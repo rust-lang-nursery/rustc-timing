@@ -1,0 +1,984 @@
+commit c5961ad06d45689b44ff305c15d6ec7ec65755a9
+Merge: ee0be3b 69bc112
+Author: bors <bors@rust-lang.org>
+Date:   Wed Jan 28 21:49:38 2015 +0000
+
+    Auto merge of #21522 - nikomatsakis:assoc-type-ice-hunt-take-3, r=nick29581
+    
+    Do not propagate the region requirements on the projected type to the input types it is being projected from.
+    
+    Fixes #21520.
+    
+    r? @aturon
+
+cfg: build triple x86_64-unknown-linux-gnu
+cfg: host triples x86_64-unknown-linux-gnu
+cfg: target triples x86_64-unknown-linux-gnu
+cfg: enabling more debugging (CFG_ENABLE_DEBUG)
+cfg: host for x86_64-unknown-linux-gnu is x86_64
+cfg: os for x86_64-unknown-linux-gnu is unknown-linux-gnu
+cfg: good valgrind for x86_64-unknown-linux-gnu is 1
+cfg: enabling valgrind run-pass tests (CFG_ENABLE_VALGRIND_RPASS)
+cfg: no lualatex found, deferring to xelatex
+cfg: no xelatex found, deferring to pdflatex
+cfg: no pdflatex found, disabling LaTeX docs
+cfg: no pandoc found, omitting PDF and EPUB docs
+rustc: x86_64-unknown-linux-gnu/stage0/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc
+rustc: x86_64-unknown-linux-gnu/stage0/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_borrowck
+rustc: x86_64-unknown-linux-gnu/stage0/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_typeck
+rustc: x86_64-unknown-linux-gnu/stage0/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_resolve
+rustc: x86_64-unknown-linux-gnu/stage0/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_trans
+rustc: x86_64-unknown-linux-gnu/stage0/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_privacy
+rustc: x86_64-unknown-linux-gnu/stage0/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_driver
+rustc: x86_64-unknown-linux-gnu/stage0/lib/rustlib/x86_64-unknown-linux-gnu/bin/rustc
+cp: x86_64-unknown-linux-gnu/stage1/lib/librustc
+cp: x86_64-unknown-linux-gnu/stage1/lib/librustc_borrowck
+cp: x86_64-unknown-linux-gnu/stage1/lib/librustc_typeck
+cp: x86_64-unknown-linux-gnu/stage1/lib/librustc_resolve
+cp: x86_64-unknown-linux-gnu/stage1/lib/librustc_trans
+cp: x86_64-unknown-linux-gnu/stage1/lib/librustc_privacy
+cp: x86_64-unknown-linux-gnu/stage1/lib/librustc_driver
+cp: x86_64-unknown-linux-gnu/stage1/bin/rustc
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/libcore
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/liblibc
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librand
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/liballoc
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/libunicode
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/libcollections
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_bitflags
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/libstd
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/libarena
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/libflate
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/libgetopts
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/libgraphviz
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/liblog
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/libterm
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/libserialize
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/libfmt_macros
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/libsyntax
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librbml
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_llvm
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_back
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_borrowck
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_typeck
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_resolve
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_trans
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_privacy
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_driver
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/bin/rustc
+cp: x86_64-unknown-linux-gnu/stage2/lib/libstd
+cp: x86_64-unknown-linux-gnu/stage2/lib/libarena
+cp: x86_64-unknown-linux-gnu/stage2/lib/libflate
+cp: x86_64-unknown-linux-gnu/stage2/lib/libgetopts
+cp: x86_64-unknown-linux-gnu/stage2/lib/libgraphviz
+cp: x86_64-unknown-linux-gnu/stage2/lib/liblog
+cp: x86_64-unknown-linux-gnu/stage2/lib/libterm
+cp: x86_64-unknown-linux-gnu/stage2/lib/libserialize
+cp: x86_64-unknown-linux-gnu/stage2/lib/libfmt_macros
+cp: x86_64-unknown-linux-gnu/stage2/lib/libsyntax
+cp: x86_64-unknown-linux-gnu/stage2/lib/librbml
+cp: x86_64-unknown-linux-gnu/stage2/lib/librustc_llvm
+cp: x86_64-unknown-linux-gnu/stage2/lib/librustc_back
+cp: x86_64-unknown-linux-gnu/stage2/lib/librustc
+cp: x86_64-unknown-linux-gnu/stage2/lib/librustc_borrowck
+cp: x86_64-unknown-linux-gnu/stage2/lib/librustc_typeck
+cp: x86_64-unknown-linux-gnu/stage2/lib/librustc_resolve
+cp: x86_64-unknown-linux-gnu/stage2/lib/librustc_trans
+cp: x86_64-unknown-linux-gnu/stage2/lib/librustc_privacy
+cp: x86_64-unknown-linux-gnu/stage2/lib/librustc_driver
+cp: x86_64-unknown-linux-gnu/stage2/bin/rustc
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/libcore
+time: 0.045 	parsing
+time: 0.000 	recursion limit
+time: 0.001 	gated macro checking
+time: 0.011 	configuration 1
+time: 0.000 	crate injection
+time: 0.000 	plugin loading
+time: 0.000 	plugin registration
+time: 0.437 	expansion
+time: 0.014 	complete gated feature checking
+time: 0.059 	configuration 2
+time: 0.059 	maybe building test harness
+time: 0.000 	prelude injection
+time: 0.006 	checking that all macro invocations are gone
+time: 0.067 	assigning node ids and indexing ast
+time: 0.003 	external crate/lib resolution
+time: 0.007 	language item collection
+time: 0.106 	resolution
+time: 0.007 	lifetime resolution
+time: 0.000 	looking for entry point
+time: 0.003 	looking for plugin registrar
+time: 0.024 	region resolution
+time: 0.003 	loop checking
+time: 0.004 	stability index
+time: 0.003 	static item recursion checking
+time: 0.073 	type collecting
+time: 0.011 	variance inference
+time: 0.620 	coherence checking
+time: 6.033 	type checking
+time: 0.021 	check static items
+time: 0.014 	const marking
+time: 0.003 	const checking
+time: 0.045 	privacy checking
+time: 0.025 	intrinsic checking
+time: 0.007 	effect checking
+time: 0.186 	match checking
+time: 0.029 	liveness checking
+time: 1.273 	borrow checking
+time: 0.757 	rvalue checking
+time: 0.043 	reachability checking
+time: 0.037 	death checking
+time: 0.014 	stability checking
+time: 0.000 	unused feature checking
+time: 0.113 	lint checking
+time: 0.000 	resolving dependency formats
+time: 1.803 	translation
+  time: 0.224 	llvm function passes
+  time: 1.625 	llvm module passes
+  time: 1.640 	codegen passes
+  time: 0.005 	codegen passes
+time: 3.560 	LLVM passes
+time: 0.130 	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/liblibc
+time: 0.013 	parsing
+time: 0.000 	recursion limit
+time: 0.000 	gated macro checking
+time: 0.001 	configuration 1
+time: 0.000 	crate injection
+time: 0.000 	plugin loading
+time: 0.000 	plugin registration
+time: 0.011 	expansion
+time: 0.000 	complete gated feature checking
+time: 0.000 	configuration 2
+time: 0.000 	maybe building test harness
+time: 0.000 	prelude injection
+time: 0.000 	checking that all macro invocations are gone
+time: 0.000 	assigning node ids and indexing ast
+time: 0.000 	external crate/lib resolution
+time: 0.000 	language item collection
+time: 0.003 	resolution
+time: 0.000 	lifetime resolution
+time: 0.000 	looking for entry point
+time: 0.000 	looking for plugin registrar
+time: 0.000 	region resolution
+time: 0.000 	loop checking
+time: 0.000 	stability index
+time: 0.000 	static item recursion checking
+time: 0.001 	type collecting
+time: 0.000 	variance inference
+time: 0.004 	coherence checking
+time: 0.003 	type checking
+time: 0.000 	check static items
+time: 0.000 	const marking
+time: 0.000 	const checking
+time: 0.000 	privacy checking
+time: 0.000 	intrinsic checking
+time: 0.000 	effect checking
+time: 0.000 	match checking
+time: 0.000 	liveness checking
+time: 0.000 	borrow checking
+time: 0.000 	rvalue checking
+time: 0.000 	reachability checking
+time: 0.000 	death checking
+time: 0.000 	stability checking
+time: 0.000 	unused feature checking
+time: 0.004 	lint checking
+time: 0.000 	resolving dependency formats
+time: 0.023 	translation
+  time: 0.000 	llvm function passes
+  time: 0.001 	llvm module passes
+  time: 0.001 	codegen passes
+  time: 0.000 	codegen passes
+time: 0.007 	LLVM passes
+time: 0.006 	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/librand
+time: 0.009 	parsing
+time: 0.000 	recursion limit
+time: 0.000 	gated macro checking
+time: 0.002 	configuration 1
+time: 0.000 	crate injection
+time: 0.000 	plugin loading
+time: 0.000 	plugin registration
+time: 0.026 	expansion
+time: 0.000 	complete gated feature checking
+time: 0.003 	configuration 2
+time: 0.003 	maybe building test harness
+time: 0.000 	prelude injection
+time: 0.000 	checking that all macro invocations are gone
+time: 0.003 	assigning node ids and indexing ast
+time: 0.000 	external crate/lib resolution
+time: 0.000 	language item collection
+time: 0.012 	resolution
+time: 0.000 	lifetime resolution
+time: 0.000 	looking for entry point
+time: 0.000 	looking for plugin registrar
+time: 0.001 	region resolution
+time: 0.000 	loop checking
+time: 0.000 	stability index
+time: 0.000 	static item recursion checking
+time: 0.003 	type collecting
+time: 0.000 	variance inference
+time: 0.015 	coherence checking
+time: 0.224 	type checking
+time: 0.002 	check static items
+time: 0.001 	const marking
+time: 0.000 	const checking
+time: 0.002 	privacy checking
+time: 0.001 	intrinsic checking
+time: 0.000 	effect checking
+time: 0.007 	match checking
+time: 0.001 	liveness checking
+time: 0.055 	borrow checking
+time: 0.034 	rvalue checking
+time: 0.000 	reachability checking
+time: 0.001 	death checking
+time: 0.005 	stability checking
+time: 0.000 	unused feature checking
+time: 0.013 	lint checking
+time: 0.000 	resolving dependency formats
+time: 0.154 	translation
+  time: 0.019 	llvm function passes
+  time: 0.170 	llvm module passes
+  time: 0.078 	codegen passes
+  time: 0.000 	codegen passes
+time: 0.277 	LLVM passes
+time: 0.010 	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/liballoc
+time: 0.006 	parsing
+time: 0.000 	recursion limit
+time: 0.000 	gated macro checking
+time: 0.001 	configuration 1
+time: 0.000 	crate injection
+time: 0.000 	plugin loading
+time: 0.000 	plugin registration
+time: 0.008 	expansion
+time: 0.000 	complete gated feature checking
+time: 0.001 	configuration 2
+time: 0.001 	maybe building test harness
+time: 0.000 	prelude injection
+time: 0.000 	checking that all macro invocations are gone
+time: 0.001 	assigning node ids and indexing ast
+time: 0.000 	external crate/lib resolution
+time: 0.000 	language item collection
+time: 0.017 	resolution
+time: 0.000 	lifetime resolution
+time: 0.000 	looking for entry point
+time: 0.000 	looking for plugin registrar
+time: 0.000 	region resolution
+time: 0.000 	loop checking
+time: 0.000 	stability index
+time: 0.000 	static item recursion checking
+time: 0.002 	type collecting
+time: 0.000 	variance inference
+time: 0.037 	coherence checking
+time: 0.109 	type checking
+time: 0.000 	check static items
+time: 0.001 	const marking
+time: 0.000 	const checking
+time: 0.000 	privacy checking
+time: 0.000 	intrinsic checking
+time: 0.000 	effect checking
+time: 0.007 	match checking
+time: 0.000 	liveness checking
+time: 0.048 	borrow checking
+time: 0.026 	rvalue checking
+time: 0.000 	reachability checking
+time: 0.000 	death checking
+time: 0.007 	stability checking
+time: 0.000 	unused feature checking
+time: 0.009 	lint checking
+time: 0.000 	resolving dependency formats
+time: 0.038 	translation
+  time: 0.001 	llvm function passes
+  time: 0.005 	llvm module passes
+  time: 0.011 	codegen passes
+  time: 0.000 	codegen passes
+time: 0.022 	LLVM passes
+time: 0.016 	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/libunicode
+time: 0.085 	parsing
+time: 0.000 	recursion limit
+time: 0.001 	gated macro checking
+time: 0.010 	configuration 1
+time: 0.000 	crate injection
+time: 0.001 	plugin loading
+time: 0.000 	plugin registration
+time: 0.235 	expansion
+time: 0.002 	complete gated feature checking
+time: 0.010 	configuration 2
+time: 0.010 	maybe building test harness
+time: 0.000 	prelude injection
+time: 0.001 	checking that all macro invocations are gone
+time: 0.013 	assigning node ids and indexing ast
+time: 0.001 	external crate/lib resolution
+time: 0.002 	language item collection
+time: 0.023 	resolution
+time: 0.001 	lifetime resolution
+time: 0.000 	looking for entry point
+time: 0.001 	looking for plugin registrar
+time: 0.018 	region resolution
+time: 0.001 	loop checking
+time: 0.001 	stability index
+time: 0.002 	static item recursion checking
+time: 0.004 	type collecting
+time: 0.003 	variance inference
+time: 0.026 	coherence checking
+time: 0.283 	type checking
+time: 0.107 	check static items
+time: 0.016 	const marking
+time: 0.002 	const checking
+time: 0.008 	privacy checking
+time: 0.001 	intrinsic checking
+time: 0.001 	effect checking
+time: 0.003 	match checking
+time: 0.002 	liveness checking
+time: 0.021 	borrow checking
+time: 0.008 	rvalue checking
+time: 0.000 	reachability checking
+time: 0.004 	death checking
+time: 0.009 	stability checking
+time: 0.000 	unused feature checking
+time: 0.050 	lint checking
+time: 0.000 	resolving dependency formats
+time: 0.319 	translation
+  time: 0.036 	llvm function passes
+  time: 0.256 	llvm module passes
+  time: 0.232 	codegen passes
+  time: 0.000 	codegen passes
+time: 0.573 	LLVM passes
+time: 0.043 	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/libcollections
+time: 0.062 	parsing
+time: 0.000 	recursion limit
+time: 0.001 	gated macro checking
+time: 0.014 	configuration 1
+time: 0.000 	crate injection
+time: 0.001 	plugin loading
+time: 0.000 	plugin registration
+time: 0.133 	expansion
+time: 0.004 	complete gated feature checking
+time: 0.014 	configuration 2
+time: 0.014 	maybe building test harness
+time: 0.000 	prelude injection
+time: 0.001 	checking that all macro invocations are gone
+time: 0.017 	assigning node ids and indexing ast
+time: 0.001 	external crate/lib resolution
+time: 0.001 	language item collection
+time: 0.055 	resolution
+time: 0.002 	lifetime resolution
+time: 0.000 	looking for entry point
+time: 0.001 	looking for plugin registrar
+time: 0.006 	region resolution
+time: 0.001 	loop checking
+time: 0.001 	stability index
+time: 0.001 	static item recursion checking
+time: 0.019 	type collecting
+time: 0.002 	variance inference
+time: 0.127 	coherence checking
+time: 2.079 	type checking
+time: 0.006 	check static items
+time: 0.006 	const marking
+time: 0.001 	const checking
+time: 0.012 	privacy checking
+time: 0.007 	intrinsic checking
+time: 0.002 	effect checking
+time: 0.121 	match checking
+time: 0.009 	liveness checking
+time: 0.792 	borrow checking
+time: 0.481 	rvalue checking
+time: 0.005 	reachability checking
+time: 0.009 	death checking
+time: 0.077 	stability checking
+time: 0.000 	unused feature checking
+time: 0.120 	lint checking
+time: 0.000 	resolving dependency formats
+time: 0.809 	translation
+  time: 0.078 	llvm function passes
+  time: 0.943 	llvm module passes
+  time: 0.481 	codegen passes
+  time: 0.002 	codegen passes
+time: 1.539 	LLVM passes
+time: 0.052 	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_bitflags
+time: 0.001 	parsing
+time: 0.000 	recursion limit
+time: 0.000 	gated macro checking
+time: 0.000 	configuration 1
+time: 0.000 	crate injection
+time: 0.000 	plugin loading
+time: 0.000 	plugin registration
+time: 0.000 	expansion
+time: 0.000 	complete gated feature checking
+time: 0.000 	configuration 2
+time: 0.000 	maybe building test harness
+time: 0.000 	prelude injection
+time: 0.000 	checking that all macro invocations are gone
+time: 0.000 	assigning node ids and indexing ast
+time: 0.000 	external crate/lib resolution
+time: 0.000 	language item collection
+time: 0.000 	resolution
+time: 0.000 	lifetime resolution
+time: 0.000 	looking for entry point
+time: 0.000 	looking for plugin registrar
+time: 0.000 	region resolution
+time: 0.000 	loop checking
+time: 0.000 	stability index
+time: 0.000 	static item recursion checking
+time: 0.000 	type collecting
+time: 0.000 	variance inference
+time: 0.000 	coherence checking
+time: 0.000 	type checking
+time: 0.000 	check static items
+time: 0.000 	const marking
+time: 0.000 	const checking
+time: 0.000 	privacy checking
+time: 0.000 	intrinsic checking
+time: 0.000 	effect checking
+time: 0.000 	match checking
+time: 0.000 	liveness checking
+time: 0.000 	borrow checking
+time: 0.000 	rvalue checking
+time: 0.000 	reachability checking
+time: 0.000 	death checking
+time: 0.000 	stability checking
+time: 0.000 	unused feature checking
+time: 0.000 	lint checking
+time: 0.000 	resolving dependency formats
+time: 0.001 	translation
+  time: 0.000 	llvm function passes
+  time: 0.000 	llvm module passes
+  time: 0.000 	codegen passes
+  time: 0.000 	codegen passes
+time: 0.004 	LLVM passes
+time: 0.003 	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/libstd
+time: 0.136 	parsing
+time: 0.000 	recursion limit
+time: 0.004 	gated macro checking
+time: 0.030 	configuration 1
+time: 0.000 	crate injection
+time: 0.005 	plugin loading
+time: 0.000 	plugin registration
+time: 0.430 	expansion
+time: 0.013 	complete gated feature checking
+time: 0.036 	configuration 2
+time: 0.035 	maybe building test harness
+time: 0.000 	prelude injection
+time: 0.003 	checking that all macro invocations are gone
+time: 0.039 	assigning node ids and indexing ast
+time: 0.004 	external crate/lib resolution
+time: 0.006 	language item collection
+time: 0.130 	resolution
+time: 0.005 	lifetime resolution
+time: 0.000 	looking for entry point
+time: 0.003 	looking for plugin registrar
+time: 0.024 	region resolution
+time: 0.003 	loop checking
+time: 0.002 	stability index
+time: 0.003 	static item recursion checking
+time: 0.040 	type collecting
+time: 0.007 	variance inference
+time: 0.201 	coherence checking
+time: 3.792 	type checking
+time: 0.044 	check static items
+time: 0.015 	const marking
+time: 0.003 	const checking
+time: 0.036 	privacy checking
+time: 0.017 	intrinsic checking
+time: 0.008 	effect checking
+time: 0.167 	match checking
+time: 0.024 	liveness checking
+time: 1.246 	borrow checking
+time: 0.749 	rvalue checking
+time: 0.010 	reachability checking
+time: 0.029 	death checking
+time: 0.166 	stability checking
+time: 0.000 	unused feature checking
+time: 0.264 	lint checking
+time: 0.000 	resolving dependency formats
+time: 3.999 	translation
+  time: 0.777 	llvm function passes
+  time: 13.152 	llvm module passes
+  time: 4.894 	codegen passes
+  time: 0.004 	codegen passes
+time: 19.401 	LLVM passes
+  time: 0.268 	running linker
+time: 0.548 	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/libflate
+time: 0.000 	parsing
+time: 0.000 	recursion limit
+time: 0.000 	gated macro checking
+time: 0.000 	configuration 1
+time: 0.000 	crate injection
+time: 0.002 	plugin loading
+time: 0.000 	plugin registration
+time: 0.001 	expansion
+time: 0.000 	complete gated feature checking
+time: 0.000 	configuration 2
+time: 0.000 	maybe building test harness
+time: 0.000 	prelude injection
+time: 0.000 	checking that all macro invocations are gone
+time: 0.000 	assigning node ids and indexing ast
+time: 0.000 	external crate/lib resolution
+time: 0.000 	language item collection
+time: 0.009 	resolution
+time: 0.000 	lifetime resolution
+time: 0.000 	looking for entry point
+time: 0.000 	looking for plugin registrar
+time: 0.000 	region resolution
+time: 0.000 	loop checking
+time: 0.000 	stability index
+time: 0.000 	static item recursion checking
+time: 0.000 	type collecting
+time: 0.000 	variance inference
+time: 0.047 	coherence checking
+time: 0.009 	type checking
+time: 0.000 	check static items
+time: 0.000 	const marking
+time: 0.000 	const checking
+time: 0.000 	privacy checking
+time: 0.000 	intrinsic checking
+time: 0.000 	effect checking
+time: 0.000 	match checking
+time: 0.000 	liveness checking
+time: 0.000 	borrow checking
+time: 0.000 	rvalue checking
+time: 0.000 	reachability checking
+time: 0.000 	death checking
+time: 0.000 	stability checking
+time: 0.000 	unused feature checking
+time: 0.001 	lint checking
+time: 0.000 	resolving dependency formats
+time: 0.008 	translation
+  time: 0.001 	llvm function passes
+  time: 0.007 	llvm module passes
+  time: 0.007 	codegen passes
+  time: 0.000 	codegen passes
+time: 0.020 	LLVM passes
+  time: 0.023 	running linker
+time: 0.032 	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/libarena
+time: 0.001 	parsing
+time: 0.000 	recursion limit
+time: 0.000 	gated macro checking
+time: 0.000 	configuration 1
+time: 0.000 	crate injection
+time: 0.002 	plugin loading
+time: 0.000 	plugin registration
+time: 0.004 	expansion
+time: 0.000 	complete gated feature checking
+time: 0.000 	configuration 2
+time: 0.000 	maybe building test harness
+time: 0.000 	prelude injection
+time: 0.000 	checking that all macro invocations are gone
+time: 0.000 	assigning node ids and indexing ast
+time: 0.000 	external crate/lib resolution
+time: 0.000 	language item collection
+time: 0.005 	resolution
+time: 0.000 	lifetime resolution
+time: 0.000 	looking for entry point
+time: 0.000 	looking for plugin registrar
+time: 0.000 	region resolution
+time: 0.000 	loop checking
+time: 0.000 	stability index
+time: 0.000 	static item recursion checking
+time: 0.000 	type collecting
+time: 0.000 	variance inference
+time: 0.050 	coherence checking
+time: 0.080 	type checking
+time: 0.000 	check static items
+time: 0.000 	const marking
+time: 0.000 	const checking
+time: 0.000 	privacy checking
+time: 0.000 	intrinsic checking
+time: 0.000 	effect checking
+time: 0.002 	match checking
+time: 0.000 	liveness checking
+time: 0.018 	borrow checking
+time: 0.010 	rvalue checking
+time: 0.000 	reachability checking
+time: 0.000 	death checking
+time: 0.004 	stability checking
+time: 0.000 	unused feature checking
+time: 0.006 	lint checking
+time: 0.000 	resolving dependency formats
+time: 0.101 	translation
+  time: 0.014 	llvm function passes
+  time: 0.094 	llvm module passes
+  time: 0.053 	codegen passes
+  time: 0.000 	codegen passes
+time: 0.167 	LLVM passes
+  time: 0.019 	running linker
+time: 0.026 	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/liblog
+time: 0.002 	parsing
+time: 0.000 	recursion limit
+time: 0.000 	gated macro checking
+time: 0.000 	configuration 1
+time: 0.000 	crate injection
+time: 0.002 	plugin loading
+time: 0.000 	plugin registration
+time: 0.006 	expansion
+time: 0.000 	complete gated feature checking
+time: 0.000 	configuration 2
+time: 0.000 	maybe building test harness
+time: 0.000 	prelude injection
+time: 0.000 	checking that all macro invocations are gone
+time: 0.000 	assigning node ids and indexing ast
+time: 0.000 	external crate/lib resolution
+time: 0.000 	language item collection
+time: 0.007 	resolution
+time: 0.000 	lifetime resolution
+time: 0.000 	looking for entry point
+time: 0.000 	looking for plugin registrar
+time: 0.000 	region resolution
+time: 0.000 	loop checking
+time: 0.000 	stability index
+time: 0.000 	static item recursion checking
+time: 0.000 	type collecting
+time: 0.000 	variance inference
+time: 0.051 	coherence checking
+time: 0.103 	type checking
+time: 0.004 	check static items
+time: 0.000 	const marking
+time: 0.000 	const checking
+time: 0.000 	privacy checking
+time: 0.000 	intrinsic checking
+time: 0.000 	effect checking
+time: 0.000 	match checking
+time: 0.000 	liveness checking
+time: 0.005 	borrow checking
+time: 0.003 	rvalue checking
+time: 0.000 	reachability checking
+time: 0.000 	death checking
+time: 0.004 	stability checking
+time: 0.000 	unused feature checking
+time: 0.006 	lint checking
+time: 0.000 	resolving dependency formats
+time: 0.266 	translation
+  time: 0.046 	llvm function passes
+  time: 0.407 	llvm module passes
+  time: 0.117 	codegen passes
+  time: 0.000 	codegen passes
+time: 0.585 	LLVM passes
+  time: 0.024 	running linker
+time: 0.035 	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/libterm
+time: 0.006 	parsing
+time: 0.000 	recursion limit
+time: 0.000 	gated macro checking
+time: 0.001 	configuration 1
+time: 0.000 	crate injection
+time: 0.003 	plugin loading
+time: 0.000 	plugin registration
+time: 0.022 	expansion
+time: 0.000 	complete gated feature checking
+time: 0.001 	configuration 2
+time: 0.001 	maybe building test harness
+time: 0.001 	prelude injection
+time: 0.000 	checking that all macro invocations are gone
+time: 0.001 	assigning node ids and indexing ast
+time: 0.000 	external crate/lib resolution
+time: 0.000 	language item collection
+time: 0.014 	resolution
+time: 0.000 	lifetime resolution
+time: 0.000 	looking for entry point
+time: 0.000 	looking for plugin registrar
+time: 0.000 	region resolution
+time: 0.000 	loop checking
+time: 0.000 	stability index
+time: 0.000 	static item recursion checking
+time: 0.001 	type collecting
+time: 0.000 	variance inference
+time: 0.055 	coherence checking
+time: 0.277 	type checking
+time: 0.005 	check static items
+time: 0.001 	const marking
+time: 0.000 	const checking
+time: 0.001 	privacy checking
+time: 0.000 	intrinsic checking
+time: 0.000 	effect checking
+time: 0.004 	match checking
+time: 0.002 	liveness checking
+time: 0.027 	borrow checking
+time: 0.015 	rvalue checking
+time: 0.000 	reachability checking
+time: 0.001 	death checking
+time: 0.018 	stability checking
+time: 0.000 	unused feature checking
+time: 0.026 	lint checking
+time: 0.000 	resolving dependency formats
+time: 0.717 	translation
+  time: 0.141 	llvm function passes
+  time: 2.124 	llvm module passes
+  time: 0.797 	codegen passes
+  time: 0.000 	codegen passes
+time: 3.122 	LLVM passes
+  time: 0.035 	running linker
+time: 0.071 	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/libserialize
+time: 0.014 	parsing
+time: 0.000 	recursion limit
+time: 0.000 	gated macro checking
+time: 0.004 	configuration 1
+time: 0.000 	crate injection
+time: 0.003 	plugin loading
+time: 0.000 	plugin registration
+time: 0.094 	expansion
+time: 0.004 	complete gated feature checking
+time: 0.013 	configuration 2
+time: 0.013 	maybe building test harness
+time: 0.013 	prelude injection
+time: 0.001 	checking that all macro invocations are gone
+time: 0.016 	assigning node ids and indexing ast
+time: 0.001 	external crate/lib resolution
+time: 0.002 	language item collection
+time: 0.054 	resolution
+time: 0.002 	lifetime resolution
+time: 0.000 	looking for entry point
+time: 0.001 	looking for plugin registrar
+time: 0.007 	region resolution
+time: 0.001 	loop checking
+time: 0.000 	stability index
+time: 0.000 	static item recursion checking
+time: 0.011 	type collecting
+time: 0.003 	variance inference
+time: 0.079 	coherence checking
+time: 1.749 	type checking
+time: 0.008 	check static items
+time: 0.005 	const marking
+time: 0.001 	const checking
+time: 0.009 	privacy checking
+time: 0.004 	intrinsic checking
+time: 0.002 	effect checking
+time: 0.083 	match checking
+time: 0.008 	liveness checking
+time: 1.223 	borrow checking
+time: 0.701 	rvalue checking
+time: 0.003 	reachability checking
+time: 0.010 	death checking
+time: 0.027 	stability checking
+time: 0.000 	unused feature checking
+time: 0.058 	lint checking
+time: 0.000 	resolving dependency formats
+time: 0.939 	translation
+  time: 0.153 	llvm function passes
+  time: 2.217 	llvm module passes
+  time: 0.818 	codegen passes
+  time: 0.001 	codegen passes
+time: 3.269 	LLVM passes
+  time: 0.044 	running linker
+time: 0.097 	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/libgetopts
+time: 0.004 	parsing
+time: 0.000 	recursion limit
+time: 0.000 	gated macro checking
+time: 0.000 	configuration 1
+time: 0.000 	crate injection
+time: 0.003 	plugin loading
+time: 0.000 	plugin registration
+time: 0.016 	expansion
+time: 0.000 	complete gated feature checking
+time: 0.001 	configuration 2
+time: 0.001 	maybe building test harness
+time: 0.001 	prelude injection
+time: 0.000 	checking that all macro invocations are gone
+time: 0.001 	assigning node ids and indexing ast
+time: 0.000 	external crate/lib resolution
+time: 0.000 	language item collection
+time: 0.011 	resolution
+time: 0.000 	lifetime resolution
+time: 0.000 	looking for entry point
+time: 0.000 	looking for plugin registrar
+time: 0.001 	region resolution
+time: 0.000 	loop checking
+time: 0.000 	stability index
+time: 0.000 	static item recursion checking
+time: 0.001 	type collecting
+time: 0.000 	variance inference
+time: 0.066 	coherence checking
+time: 0.234 	type checking
+time: 0.002 	check static items
+time: 0.001 	const marking
+time: 0.000 	const checking
+time: 0.001 	privacy checking
+time: 0.000 	intrinsic checking
+time: 0.000 	effect checking
+time: 0.002 	match checking
+time: 0.001 	liveness checking
+time: 0.019 	borrow checking
+time: 0.011 	rvalue checking
+time: 0.000 	reachability checking
+time: 0.001 	death checking
+time: 0.008 	stability checking
+time: 0.000 	unused feature checking
+time: 0.013 	lint checking
+time: 0.000 	resolving dependency formats
+time: 0.424 	translation
+  time: 0.072 	llvm function passes
+  time: 1.402 	llvm module passes
+  time: 0.661 	codegen passes
+  time: 0.000 	codegen passes
+time: 2.183 	LLVM passes
+  time: 0.028 	running linker
+time: 0.056 	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/librbml
+time: 0.004 	parsing
+time: 0.000 	recursion limit
+time: 0.000 	gated macro checking
+time: 0.001 	configuration 1
+time: 0.000 	crate injection
+time: 0.003 	plugin loading
+time: 0.000 	plugin registration
+time: 0.023 	expansion
+time: 0.000 	complete gated feature checking
+time: 0.002 	configuration 2
+time: 0.002 	maybe building test harness
+time: 0.002 	prelude injection
+time: 0.000 	checking that all macro invocations are gone
+time: 0.002 	assigning node ids and indexing ast
+time: 0.000 	external crate/lib resolution
+time: 0.000 	language item collection
+time: 0.017 	resolution
+time: 0.000 	lifetime resolution
+time: 0.000 	looking for entry point
+time: 0.000 	looking for plugin registrar
+time: 0.001 	region resolution
+time: 0.000 	loop checking
+time: 0.000 	stability index
+time: 0.000 	static item recursion checking
+time: 0.002 	type collecting
+time: 0.000 	variance inference
+time: 0.058 	coherence checking
+time: 0.344 	type checking
+time: 0.005 	check static items
+time: 0.002 	const marking
+time: 0.000 	const checking
+time: 0.002 	privacy checking
+time: 0.001 	intrinsic checking
+time: 0.000 	effect checking
+time: 0.015 	match checking
+time: 0.001 	liveness checking
+time: 0.096 	borrow checking
+time: 0.059 	rvalue checking
+time: 0.000 	reachability checking
+time: 0.002 	death checking
+time: 0.007 	stability checking
+time: 0.000 	unused feature checking
+time: 0.016 	lint checking
+time: 0.000 	resolving dependency formats
+time: 0.187 	translation
+  time: 0.025 	llvm function passes
+  time: 0.193 	llvm module passes
+  time: 0.157 	codegen passes
+  time: 0.000 	codegen passes
+time: 0.390 	LLVM passes
+  time: 0.031 	running linker
+time: 0.045 	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/libtest
+time: 0.006 	parsing
+time: 0.000 	recursion limit
+time: 0.000 	gated macro checking
+time: 0.001 	configuration 1
+time: 0.000 	crate injection
+time: 0.002 	plugin loading
+time: 0.000 	plugin registration
+time: 0.018 	expansion
+time: 0.000 	complete gated feature checking
+time: 0.002 	configuration 2
+time: 0.002 	maybe building test harness
+time: 0.002 	prelude injection
+time: 0.000 	checking that all macro invocations are gone
+time: 0.002 	assigning node ids and indexing ast
+time: 0.001 	external crate/lib resolution
+time: 0.000 	language item collection
+time: 0.020 	resolution
+time: 0.000 	lifetime resolution
+time: 0.000 	looking for entry point
+time: 0.000 	looking for plugin registrar
+time: 0.000 	region resolution
+time: 0.000 	loop checking
+time: 0.000 	stability index
+time: 0.000 	static item recursion checking
+time: 0.002 	type collecting
+time: 0.000 	variance inference
+time: 0.071 	coherence checking
+time: 0.460 	type checking
+time: 0.004 	check static items
+time: 0.002 	const marking
+time: 0.000 	const checking
+time: 0.002 	privacy checking
+time: 0.001 	intrinsic checking
+time: 0.000 	effect checking
+time: 0.014 	match checking
+time: 0.001 	liveness checking
+time: 0.099 	borrow checking
+time: 0.062 	rvalue checking
+time: 0.000 	reachability checking
+time: 0.001 	death checking
+time: 0.016 	stability checking
+time: 0.000 	unused feature checking
+time: 0.024 	lint checking
+time: 0.000 	resolving dependency formats
+time: 1.202 	translation
+  time: 0.217 	llvm function passes
+  time: 3.553 	llvm module passes
+  time: 1.223 	codegen passes
+  time: 0.001 	codegen passes
+time: 5.114 	LLVM passes
+  time: 0.032 	running linker
+time: 0.089 	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/libgraphviz
+time: 0.002 	parsing
+time: 0.000 	recursion limit
+time: 0.000 	gated macro checking
+time: 0.000 	configuration 1
+time: 0.000 	crate injection
+time: 0.003 	plugin loading
+time: 0.000 	plugin registration
+time: 0.004 	expansion
+time: 0.000 	complete gated feature checking
+time: 0.000 	configuration 2
+time: 0.000 	maybe building test harness
+time: 0.000 	prelude injection
+time: 0.000 	checking that all macro invocations are gone
+time: 0.000 	assigning node ids and indexing ast
+time: 0.000 	external crate/lib resolution
+time: 0.000 	language item collection
+time: 0.008 	resolution
+time: 0.000 	lifetime resolution
+time: 0.000 	looking for entry point
+time: 0.000 	looking for plugin registrar
+time: 0.000 	region resolution
+time: 0.000 	loop checking
+time: 0.000 	stability index
+time: 0.000 	static item recursion checking
+time: 0.001 	type collecting
+time: 0.000 	variance inference
+time: 0.054 	coherence checking
+time: 0.086 	type checking
+time: 0.000 	check static items
+time: 0.000 	const marking
+time: 0.000 	const checking
+time: 0.000 	privacy checking
+time: 0.000 	intrinsic checking
+time: 0.000 	effect checking
+time: 0.003 	match checking
+time: 0.000 	liveness checking
+time: 0.020 	borrow checking
+time: 0.013 	rvalue checking
+time: 0.000 	reachability checking
+time: 0.000 	death checking
+time: 0.002 	stability checking
+time: 0.000 	unused feature checking
+time: 0.004 	lint checking
+time: 0.000 	resolving dependency formats
+time: 0.113 	translation
+  time: 0.014 	llvm function passes
+  time: 0.095 	llvm module passes
+  time: 0.036 	codegen passes
+  time: 0.000 	codegen passes
+time: 0.152 	LLVM passes
+  time: 0.019 	running linker
+time: 0.026 	linking
