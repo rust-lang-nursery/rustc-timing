@@ -11,16 +11,17 @@ re_rustc = re.compile("rustc: .*/lib/(\w*)")
 re_time = re.compile("( *)time: ([0-9\.]*)\s*(.*)")
 
 
-def process(arg):
-    in_name = os.path.join('raw', arg + '.log')
-    out_name = os.path.join('processed', arg + '.json')
-    if VERBOSE:
-        print "input:", in_name
-        print "output:", out_name
+def process(arg, n):
+    for i in range(0, n):
+        in_name = os.path.join('raw', '%s-%s.log'%(arg, i))
+        out_name = os.path.join('processed', '%s-%s.json'%(arg, i))
+        if VERBOSE:
+            print "input:", in_name
+            print "output:", out_name
 
-    with open(in_name) as in_file:
-        with open(out_name, 'w') as out_file:
-            process_file(in_file, out_file)
+        with open(in_name) as in_file:
+            with open(out_name, 'w') as out_file:
+                process_file(in_file, out_file)
 
 
 
@@ -103,8 +104,8 @@ def process_times(times):
 
 
 
-if len(sys.argv) <= 1:
-    print "Requires filename of log as an argument"
+if len(sys.argv) <= 2:
+    print "Requires filename of log and number of logs as arguments"
     exit(1)
 
-process(sys.argv[1])
+process(sys.argv[1], int(sys.argv[2]))
