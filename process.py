@@ -3,18 +3,19 @@ import os
 import re
 import sys
 
-VERBOSE = True
+VERBOSE = False
 
 re_commit = re.compile("commit (.*)")
 re_date = re.compile("Date:   (.*)")
-re_rustc = re.compile("rustc: .*/lib/(\w*)")
+re_version = re.compile("rustc [0-9\.a-zA-Z\-]* \(([0-9a-zA-Z]*) ([0-9\-]*)\) ")
+re_rustc = re.compile("rustc: .*/(\w*)")
 re_time = re.compile("( *)time: ([0-9\.]*)\s*(.*)")
 
 
-def process(arg, n):
+def process(label, arg, n):
     for i in range(0, n):
-        in_name = os.path.join('raw', '%s-%s.log'%(arg, i))
-        out_name = os.path.join('processed', '%s-%s.json'%(arg, i))
+        in_name = os.path.join('raw', '%s-%s-%s.log'%(label, arg, i))
+        out_name = os.path.join('processed', '%s-%s-%s.json'%(label, arg, i))
         if VERBOSE:
             print "input:", in_name
             print "output:", out_name
@@ -36,14 +37,27 @@ def process_file(in_file, out_file):
 
 def mk_header(in_file):
     commit_line = in_file.readline()
-    # skip merge and author
-    in_file.readline()
-    in_file.readline()
+    if commit_line.startswith('rustc'):
+        return mk_header_from_version(commit_line)
+
+    # skip merge and author lines
+    author_line = in_file.readline()
+    if author_line.startswith('Merge'):
+        in_file.readline()
     date_line = in_file.readline()
 
     header = {}
     header['commit'] = re_commit.match(commit_line).group(1)
     header['date'] = re_date.match(date_line).group(1)
+
+    return header
+
+
+def mk_header_from_version(version_line):
+    match = re_version.match(version_line)
+    header = {}
+    header['commit'] = match.group(1)
+    header['date'] = match.group(2)
 
     return header
 
@@ -79,7 +93,6 @@ def mk_times(in_file):
     return all_times
 
 
-
 def process_times(times):
     total = 0
     llvm = 0
@@ -104,8 +117,8 @@ def process_times(times):
 
 
 
-if len(sys.argv) <= 2:
-    print "Requires filename of log and number of logs as arguments"
+if len(sys.argv) <= 3:
+    print "Requires label, filename of log, and number of logs as arguments"
     exit(1)
 
-process(sys.argv[1], int(sys.argv[2]))
+process(sys.argv[1], sys.argv[2], int(sys.argv[3]))
