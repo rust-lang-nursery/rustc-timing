@@ -1,5 +1,8 @@
 # rustc-timing
 
-Scripts and data for timing rustc
+Data for timing rustc.
 
-See nick29581/rustc-perf for visualisation of this data
+See nrc/rustc-perf for visualisation of this data.
+
+See nrc/rustc-timing-scripts and nrc/benchmarks for the scripts and benchmarks which
+generate and operate on this data.
