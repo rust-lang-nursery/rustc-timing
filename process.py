@@ -14,8 +14,8 @@ re_time = re.compile("( *)time: ([0-9\.]*)\s*(.*)")
 
 def process(label, arg, n):
     for i in range(0, n):
-        in_name = os.path.join('raw', '%s-%s-%s.log'%(label, arg, i))
-        out_name = os.path.join('processed', '%s-%s-%s.json'%(label, arg, i))
+        in_name = os.path.join('raw', '%s_%s_%s.log'%(label, arg, i))
+        out_name = os.path.join('processed', '%s_%s_%s.json'%(label, arg, i))
         if VERBOSE:
             print "input:", in_name
             print "output:", out_name

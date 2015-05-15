@@ -1,4 +1,4 @@
-DATE=$(date +%F)
+export DATE=$(date +%F_%H-%M-%S)
 START=$(pwd)
 
 git checkout master
