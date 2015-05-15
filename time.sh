@@ -1,24 +1,33 @@
 DATE=$(date +%F)
+START=$(pwd)
 
 git checkout master
 git pull upstream master
-git show HEAD >/home/ncameron/times/raw/$DATE.log
 
 export CC=clang-3.5
 export CXX=clang++-3.5
 export RUSTFLAGS_STAGE2=-Ztime-passes
 
+./configure
+
 for i in 0 1 2
 do
+    git show HEAD -s >/home/ncameron/times/raw/rustc-$DATE-$i.log
     touch src/librustc/middle/ty.rs
-    make >>/home/ncameron/times/raw/$DATE-$i.log || (./configure && make >>/home/ncameron/times/raw/$DATE-$i.log)
+    make >>/home/ncameron/times/raw/rustc-$DATE-$i.log
 done
 
 cd /home/ncameron/times
-python process.py $DATE 3
-git add raw/$DATE-0.log
-git add raw/$DATE-1.log
-git add raw/$DATE-2.log
-git add processed/$DATE.json
+python process.py rustc $DATE 3
+for i in 0 1 2
+do
+    git add raw/rustc-$DATE-$i.log
+    git add processed/rustc-$DATE-$i.json
+done
+
+export RUSTC=$START/x86_64-unknown-linux-gnu/stage2/bin/rustc
+export LD_LIBRARY_PATH=$START/x86_64-unknown-linux-gnu/stage2/lib
+/home/ncameron/benchmarks/process.py
+
 git commit -m "Added data for $DATE"
 git push origin master
