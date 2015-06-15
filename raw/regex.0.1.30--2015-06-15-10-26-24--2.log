@@ -1,0 +1,80 @@
+commit d9b801582872a72bc234088afc74fa468158ea02
+Merge: 0d82fb5 52862e4
+Author: bors <bors@rust-lang.org>
+Date:   Mon Jun 15 14:07:48 2015 +0000
+
+    Auto merge of #26302 - aidanhs:aphs-fix-musl-libc, r=alexcrichton
+    
+    musl may not be available on the target user's machine, and even if it is, we may not be able to find it because of how static libraries are searched for.
+    Instead, use the liblibc archive created at rust compile time which already contains libc.a.
+    
+    ---
+    
+    To be honest, my brain is bending a bit at this point and I wonder if I'm doing something a bit stupid.
+    
+    Problem: building the libc crate with target musl. It says "could not find native static library `c`, perhaps an -L flag is missing?".
+    
+    Some pondering: the key problem is the way static archives are searched for (note that a musl build attempts to statically link to libc) - they aren't. There are three locations which are checked (including `$PREFIX/lib/rustlib/x86_64-unknown-linux-musl/lib`), but this does not include `$PREFIX/lib`...and it probably shouldn't - rustc is mimicking the way native lib generation works by forcing you to provide the path yourself. You can make it work `cargo rustc` with `-L native=/path/to/musl/lib`, but even if this went in a build script for the libc crate, it wouldn't work if musl isn't installed by the end user.
+    
+    I've sprinkled `not(test)` around but I've no idea if I've done it right.
+    
+    This patch allows `cargo build --target x86_64-unknown-linux-musl` to work on a crate with a dependency on libc, where the musl-enabled rust was compiled before this patch. I've not yet kicked off the long process to build a musl-enabled rust with this patch, so it might be broken there.
+    
+    Sorry for the rambling.
+    
+    r? @alexcrichton
+rustc: ./regex.0.1.30
+cargo rustc -- -Ztime-passes
+   Compiling regex v0.1.30 (file:///root/benchmarks/regex.0.1.30)
+time: 0.056 	parsing
+time: 0.012 	configuration 1
+time: 0.000 	recursion limit
+time: 0.001 	gated macro checking
+time: 0.000 	crate injection
+time: 0.002 	macro loading
+time: 0.000 	plugin loading
+time: 0.000 	plugin registration
+time: 0.093 	expansion
+time: 0.001 	complete gated feature checking 1
+time: 0.013 	configuration 2
+time: 0.007 	maybe building test harness
+time: 0.006 	prelude injection
+time: 0.001 	checking that all macro invocations are gone
+time: 0.001 	complete gated feature checking 2
+time: 0.008 	assigning node ids and indexing ast
+time: 0.001 	external crate/lib resolution
+time: 0.001 	language item collection
+time: 0.013 	resolution
+time: 0.001 	lifetime resolution
+time: 0.000 	looking for entry point
+time: 0.000 	looking for plugin registrar
+time: 0.008 	region resolution
+time: 0.001 	loop checking
+time: 0.001 	static item recursion checking
+time: 0.003 	type collecting
+time: 0.001 	variance inference
+time: 0.076 	coherence checking
+time: 0.384 	type checking
+time: 0.036 	const checking
+time: 0.005 	privacy checking
+time: 0.000 	stability index
+time: 0.001 	intrinsic checking
+time: 0.001 	effect checking
+time: 0.003 	match checking
+time: 0.002 	liveness checking
+time: 0.023 	borrow checking
+time: 0.013 	rvalue checking
+time: 0.000 	reachability checking
+time: 0.003 	death checking
+time: 0.004 	stability checking
+time: 0.000 	unused lib feature checking
+time: 0.021 	lint checking
+time: 0.000 	resolving dependency formats
+time: 1.027 	translation
+  time: 0.036 	llvm function passes
+  time: 0.016 	llvm module passes
+  time: 0.726 	codegen passes
+  time: 0.002 	codegen passes
+time: 0.865 	LLVM passes
+time: 0.080 	linking
+done
