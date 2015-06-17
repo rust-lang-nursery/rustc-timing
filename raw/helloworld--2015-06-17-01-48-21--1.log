@@ -1,0 +1,87 @@
+commit aa00f2e972e8a620f77aeb457d1d1ae4e115bcac
+Merge: 0250ff9 f9d4149
+Author: bors <bors@rust-lang.org>
+Date:   Wed Jun 17 06:56:15 2015 +0000
+
+    Auto merge of #26025 - alexcrichton:update-llvm, r=brson
+    
+    This commit updates the LLVM submodule in use to the current HEAD of the LLVM
+    repository. This is primarily being done to start picking up unwinding support
+    for MSVC, which is currently unimplemented in the revision of LLVM we are using.
+    Along the way a few changes had to be made:
+    
+    * As usual, lots of C++ debuginfo bindings in LLVM changed, so there were some
+      significant changes to our RustWrapper.cpp
+    * As usual, some pass management changed in LLVM, so clang was re-scrutinized to
+      ensure that we're doing the same thing as clang.
+    * Some optimization options are now passed directly into the
+      `PassManagerBuilder` instead of through CLI switches to LLVM.
+    * The `NoFramePointerElim` option was removed from LLVM, favoring instead the
+      `no-frame-pointer-elim` function attribute instead.
+    * The `LoopVectorize` option of the LLVM optimization passes has been disabled
+      as it causes a divide-by-zero exception to happen in LLVM for zero-sized
+      types. This is reported as https://llvm.org/bugs/show_bug.cgi?id=23763
+    
+    Additionally, LLVM has picked up some new optimizations which required fixing an
+    existing soundness hole in the IR we generate. It appears that the current LLVM
+    we use does not expose this hole. When an enum is moved, the previous slot in
+    memory is overwritten with a bit pattern corresponding to "dropped". When the
+    drop glue for this slot is run, however, the switch on the discriminant can
+    often start executing the `unreachable` block of the switch due to the
+    discriminant now being outside the normal range. This was patched over locally
+    for now by having the `unreachable` block just change to a `ret void`.
+rustc: ./helloworld
+/root/rust/x86_64-unknown-linux-gnu/stage2/bin/rustc -Ztime-passes hello.rs
+time: 0.000 	parsing
+time: 0.000 	configuration 1
+time: 0.000 	recursion limit
+time: 0.000 	gated macro checking
+time: 0.000 	crate injection
+time: 0.002 	macro loading
+time: 0.000 	plugin loading
+time: 0.000 	plugin registration
+time: 0.001 	expansion
+time: 0.000 	complete gated feature checking 1
+time: 0.000 	configuration 2
+time: 0.000 	maybe building test harness
+time: 0.000 	prelude injection
+time: 0.000 	checking that all macro invocations are gone
+time: 0.000 	complete gated feature checking 2
+time: 0.000 	assigning node ids and indexing ast
+time: 0.000 	external crate/lib resolution
+time: 0.000 	language item collection
+time: 0.001 	resolution
+time: 0.000 	lifetime resolution
+time: 0.000 	looking for entry point
+time: 0.000 	looking for plugin registrar
+time: 0.000 	region resolution
+time: 0.000 	loop checking
+time: 0.000 	static item recursion checking
+time: 0.000 	type collecting
+time: 0.000 	variance inference
+time: 0.001 	coherence checking
+time: 0.001 	type checking
+time: 0.000 	const checking
+time: 0.000 	privacy checking
+time: 0.000 	stability index
+time: 0.000 	intrinsic checking
+time: 0.000 	effect checking
+time: 0.000 	match checking
+time: 0.000 	liveness checking
+time: 0.000 	borrow checking
+time: 0.000 	rvalue checking
+time: 0.000 	reachability checking
+time: 0.000 	death checking
+time: 0.000 	stability checking
+time: 0.000 	unused lib feature checking
+time: 0.000 	lint checking
+time: 0.000 	resolving dependency formats
+time: 0.003 	translation
+  time: 0.000 	llvm function passes
+  time: 0.000 	llvm module passes
+  time: 0.001 	codegen passes
+  time: 0.000 	codegen passes
+time: 0.003 	LLVM passes
+  time: 0.106 	running linker
+time: 0.106 	linking
+done
