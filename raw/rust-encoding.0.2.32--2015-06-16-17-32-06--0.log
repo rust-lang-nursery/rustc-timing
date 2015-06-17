@@ -1,0 +1,100 @@
+commit 014a5c12ac5692339c854cda02cbabc031f2c5d1
+Merge: 467e4a6 34d5b54
+Author: bors <bors@rust-lang.org>
+Date:   Tue Jun 16 22:20:15 2015 +0000
+
+    Auto merge of #26280 - Marwes:deriving_discriminant, r=pcwalton
+    
+    PR for #26128.
+    
+    Improves codegen in deriving by utilizing the discriminant_value intrinsic.
+    
+    I have a more detailed comment on the changes in a comment on the issue [here](https://github.com/rust-lang/rust/issues/26128#issuecomment-111509863)
+    
+    ### Old
+    ```
+    running 7 tests
+    test large_c_like       ... bench:   2,694,129 ns/iter (+/- 5,170)
+    test large_c_like_ord   ... bench:   2,723,521 ns/iter (+/- 9,098)
+    test test1_partial_eq   ... bench:   2,439,317 ns/iter (+/- 2,135)
+    test test1_partial_ord  ... bench:   2,499,114 ns/iter (+/- 55,766)
+    test test2_partial_eq   ... bench:   3,562,815 ns/iter (+/- 45,590)
+    test test2_partial_ord  ... bench:   3,398,306 ns/iter (+/- 22,180)
+    test test_match_success ... bench:   1,509,267 ns/iter (+/- 1,982)
+    ```
+    
+    ### New
+    ```
+    running 7 tests
+    test large_c_like       ... bench:     286,509 ns/iter (+/- 474)
+    test large_c_like_ord   ... bench:     286,666 ns/iter (+/- 8,756)
+    test test1_partial_eq   ... bench:     286,584 ns/iter (+/- 2,789)
+    test test1_partial_ord  ... bench:     286,470 ns/iter (+/- 516)
+    test test2_partial_eq   ... bench:   2,228,997 ns/iter (+/- 34,191)
+    test test2_partial_ord  ... bench:   1,731,699 ns/iter (+/- 21,756)
+    test test_match_success ... bench:   1,509,630 ns/iter (+[- 3,765)
+    ```
+    
+    [Benchmark](https://gist.github.com/Marwes/7c0b3468d0cae972a2b4)
+rustc: ./rust-encoding.0.2.32
+cargo rustc -- -Ztime-passes
+    Updating registry `https://github.com/rust-lang/crates.io-index`
+   Compiling encoding_index_tests v0.1.4 (file:///root/benchmarks/rust-encoding.0.2.32)
+   Compiling encoding-index-korean v1.20141219.5 (file:///root/benchmarks/rust-encoding.0.2.32)
+   Compiling encoding-index-singlebyte v1.20141219.5 (file:///root/benchmarks/rust-encoding.0.2.32)
+   Compiling encoding-index-japanese v1.20141219.5 (file:///root/benchmarks/rust-encoding.0.2.32)
+   Compiling encoding-index-simpchinese v1.20141219.5 (file:///root/benchmarks/rust-encoding.0.2.32)
+   Compiling encoding-index-tradchinese v1.20141219.5 (file:///root/benchmarks/rust-encoding.0.2.32)
+   Compiling encoding v0.2.32 (file:///root/benchmarks/rust-encoding.0.2.32)
+time: 0.022 	parsing
+time: 0.006 	configuration 1
+time: 0.000 	recursion limit
+time: 0.000 	gated macro checking
+time: 0.000 	crate injection
+time: 0.002 	macro loading
+time: 0.000 	plugin loading
+time: 0.000 	plugin registration
+time: 0.053 	expansion
+time: 0.001 	complete gated feature checking 1
+time: 0.007 	configuration 2
+time: 0.004 	maybe building test harness
+time: 0.003 	prelude injection
+time: 0.000 	checking that all macro invocations are gone
+time: 0.001 	complete gated feature checking 2
+time: 0.004 	assigning node ids and indexing ast
+time: 0.000 	external crate/lib resolution
+time: 0.000 	language item collection
+time: 0.012 	resolution
+time: 0.000 	lifetime resolution
+time: 0.000 	looking for entry point
+time: 0.000 	looking for plugin registrar
+time: 0.003 	region resolution
+time: 0.000 	loop checking
+time: 0.000 	static item recursion checking
+time: 0.004 	type collecting
+time: 0.000 	variance inference
+time: 0.068 	coherence checking
+time: 0.291 	type checking
+time: 0.016 	const checking
+time: 0.002 	privacy checking
+time: 0.000 	stability index
+time: 0.001 	intrinsic checking
+time: 0.000 	effect checking
+time: 0.005 	match checking
+time: 0.002 	liveness checking
+time: 0.026 	borrow checking
+time: 0.009 	rvalue checking
+time: 0.000 	reachability checking
+time: 0.002 	death checking
+time: 0.002 	stability checking
+time: 0.000 	unused lib feature checking
+time: 0.016 	lint checking
+time: 0.000 	resolving dependency formats
+time: 0.434 	translation
+  time: 0.029 	llvm function passes
+  time: 0.060 	llvm module passes
+  time: 0.625 	codegen passes
+  time: 0.001 	codegen passes
+time: 0.791 	LLVM passes
+time: 0.064 	linking
+done
