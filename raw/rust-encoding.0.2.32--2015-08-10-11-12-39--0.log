@@ -1,0 +1,31 @@
+commit 1db1417736fa9d682fb0c3e36d37c123c2944a17
+Merge: a136d4c 5847ea7
+Author: bors <bors@rust-lang.org>
+Date:   Mon Aug 10 14:40:07 2015 +0000
+
+    Auto merge of #27547 - vberger:more_perseverant_resolve, r=nrc
+    
+    As noted in my previous PR #27439 , the import resolution algorithm has two cases where it bails out:
+    
+    - The algorithm will delay an import if the module containing the target of the import still has unresolved glob imports
+    - The algorithm will delay a glob import of the target module still has unresolved imports
+    
+    This PR alters the behaviour to only bail out when the above described unresolved imports are `pub`, as non-pub imports don't affect the result anyway.
+    
+    It is still possible to fail the algorithm with examples like
+    ```rust
+    pub mod a {
+        pub use b::*;
+    }
+    
+    pub mod b {
+        pub use a::*;
+    }
+    ```
+    but such configurations cannot be resolved in any meaningful way, as these are cyclic imports.
+    
+    Closes #4865
+rustc: ./rust-encoding.0.2.32
+cargo rustc -- -Ztime-passes
+makefile:2: recipe for target 'all' failed
+done
