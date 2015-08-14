@@ -1,0 +1,81 @@
+commit e7261f3ab60e0d1e6c808004ecd25c88e04f3683
+Merge: 0649b16 7f8942c
+Author: bors <bors@rust-lang.org>
+Date:   Fri Aug 14 15:26:09 2015 +0000
+
+    Auto merge of #27641 - nikomatsakis:soundness-rfc-1214, r=nrc
+    
+    This PR implements the majority of RFC 1214. In particular, it implements:
+    
+    - the new outlives relation
+    - comprehensive WF checking
+    
+    For the most part, new code receives warnings, not errors, though 3 regressions were found via a crater run.
+    
+    There are some deviations from RFC 1214. Most notably:
+    
+    - we still consider implied bounds from fn ret; this intersects other soundness issues that I intend to address in detail in a follow-up RFC. Fixing this without breaking a lot of code probably requires rewriting compare-method somewhat (which is probably a good thing).
+    - object types do not check trait bounds for fear of encountering `Self`; this was left as an unresolved question in RFC 1214, but ultimately feels inconsistent.
+    
+    Both of those two issues are highlighted in the tracking issue, https://github.com/rust-lang/rust/issues/27579. #27579 also includes a testing matrix with new tests that I wrote -- these probably duplicate some existing tests, I tried to check but wasn't quite sure what to look for. I tried to be thorough in testing the WF relation, at least, but would welcome suggestions for missing tests.
+    
+    r? @nrc (or perhaps someone else?)
+rustc: ./helloworld
+/root/rust/x86_64-unknown-linux-gnu/stage2/bin/rustc -Ztime-passes hello.rs
+time: 0.000; rss: 29MB	parsing
+time: 0.000; rss: 33MB	configuration 1
+time: 0.000; rss: 33MB	recursion limit
+time: 0.000; rss: 33MB	gated macro checking
+time: 0.000; rss: 33MB	crate injection
+time: 0.002; rss: 33MB	macro loading
+time: 0.000; rss: 33MB	plugin loading
+time: 0.000; rss: 33MB	plugin registration
+time: 0.001; rss: 33MB	expansion
+time: 0.000; rss: 33MB	complete gated feature checking 1
+time: 0.000; rss: 33MB	configuration 2
+time: 0.000; rss: 33MB	maybe building test harness
+time: 0.000; rss: 38MB	prelude injection
+time: 0.000; rss: 38MB	checking that all macro invocations are gone
+time: 0.000; rss: 38MB	complete gated feature checking 2
+time: 0.000; rss: 38MB	assigning node ids and indexing ast
+time: 0.000; rss: 38MB	external crate/lib resolution
+time: 0.000; rss: 38MB	language item collection
+time: 0.001; rss: 42MB	resolution
+time: 0.000; rss: 42MB	lifetime resolution
+time: 0.000; rss: 42MB	looking for entry point
+time: 0.000; rss: 42MB	looking for plugin registrar
+time: 0.000; rss: 42MB	region resolution
+time: 0.000; rss: 42MB	loop checking
+time: 0.000; rss: 42MB	static item recursion checking
+time: 0.000; rss: 42MB	type collecting
+time: 0.000; rss: 42MB	variance inference
+time: 0.004; rss: 50MB	coherence checking
+time: 0.000; rss: 50MB	wf checking (old)
+time: 0.000; rss: 50MB	item-types checking
+time: 0.000; rss: 50MB	item-bodies checking
+time: 0.000; rss: 50MB	drop-impl checking
+time: 0.000; rss: 50MB	wf checking (new)
+time: 0.000; rss: 50MB	const checking
+time: 0.000; rss: 50MB	privacy checking
+time: 0.000; rss: 50MB	stability index
+time: 0.000; rss: 50MB	intrinsic checking
+time: 0.000; rss: 50MB	effect checking
+time: 0.000; rss: 50MB	match checking
+time: 0.000; rss: 50MB	liveness checking
+time: 0.000; rss: 50MB	borrow checking
+time: 0.000; rss: 50MB	rvalue checking
+time: 0.000; rss: 50MB	reachability checking
+time: 0.000; rss: 50MB	death checking
+time: 0.000; rss: 50MB	stability checking
+time: 0.000; rss: 50MB	unused lib feature checking
+time: 0.000; rss: 50MB	lint checking
+time: 0.000; rss: 50MB	resolving dependency formats
+time: 0.004; rss: 63MB	translation
+  time: 0.000; rss: 65MB	llvm function passes
+  time: 0.000; rss: 65MB	llvm module passes
+  time: 0.001; rss: 67MB	codegen passes
+  time: 0.000; rss: 67MB	codegen passes
+time: 0.002; rss: 67MB	LLVM passes
+  time: 0.083; rss: 73MB	running linker
+time: 0.083; rss: 73MB	linking
+done
