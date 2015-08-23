@@ -1,0 +1,18 @@
+commit 357ae03cc318584402a090d4bbf74ea23ed69106
+Merge: 8278342 2ac5cc4
+Author: bors <bors@rust-lang.org>
+Date:   Sat Aug 22 21:33:35 2015 +0000
+
+    Auto merge of #27914 - pnkfelix:fix-fcnr-for-valgrind, r=alexcrichton
+    
+    Fix (and extend) src/test/run-pass/foreign-call-no-runtime.rs
+    
+    While going over various problems signaled by valgrind when running `make check` on a build configured with `--enable-valgrind`, I discovered a bug in this test case.
+    
+    Namely, the test case was previously creating an `i32` (originally an `int` aka `isize` but then we changed the name and the fallback rules), and then reading from a `*const isize`. Valgrind rightly complains about this, since we are reading an 8 byte value on 64-bit systems, but in principle only 4 bytes have been initialized.
+    
+    (I wish this was the only valgrind unclean test, but unfortunately there are a bunch more. This was just the easiest/first one that I dissected.)
+rustc: ./regex.0.1.30
+cargo rustc -- -Ztime-passes
+makefile:2: recipe for target 'all' failed
+done
