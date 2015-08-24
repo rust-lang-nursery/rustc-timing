@@ -1,0 +1,18 @@
+commit db67cbe43dfce043c664c53d709b91252d5afc9e
+Merge: 63ba780 1994875
+Author: bors <bors@rust-lang.org>
+Date:   Mon Aug 24 10:03:48 2015 +0000
+
+    Auto merge of #27856 - nikomatsakis:move-def-id-to-rustc, r=eddyb
+    
+    It doesn't really make sense for DefId to be in libsyntax -- it is concerned with a single crate only. It is the compiler that understands the idea of many crates. (At some point, there might be a useful intermediate point here.) This is a refactoring in support of incr. compilation, which will be adjusting the notion of a DefId to make it more durable across compilations.
+    
+    This will probably be a [breaking-change] for every plugin ever. You need to adjust things as follows:
+    
+        use rustc::middle::def_id::{DefId, LOCAL_CRATE}; // two most common definitions
+        ast_util::is_local(def_id) => def_id.is_local()
+        ast_util::local_def(node_id) => DefId::local(node_id)
+rustc: ./html5ever-2015-05-15
+cargo rustc -- -Ztime-passes
+makefile:2: recipe for target 'all' failed
+done
