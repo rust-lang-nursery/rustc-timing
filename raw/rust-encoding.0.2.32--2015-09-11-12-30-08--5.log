@@ -1,0 +1,24 @@
+commit fbeef72163200ee442ff14929b79763c82993c0e
+Merge: 1a1e6b8 9104a90
+Author: bors <bors@rust-lang.org>
+Date:   Fri Sep 11 14:45:32 2015 +0000
+
+    Auto merge of #28354 - dotdash:slow_plat, r=eddyb
+    
+    When the inliner has to decided if it wants to inline a function A into an
+    internal function B, it first checks whether it would be more profitable
+    to inline B into its callees instead. This means that it has to analyze
+    B, which involves checking the assumption cache. Building the assumption
+    cache requires scanning the whole function, and because inlining
+    currently clears the assumption cache, this scan happens again and
+    again, getting even slower as the function grows from inlining.
+    
+    As inlining the huge find functions isn't really useful anyway, we can
+    mark them as noinline, which skips the cost analysis and reduces compile
+    times by as much as 70%.
+    
+    cc #28273
+rustc: ./rust-encoding.0.2.32
+cargo rustc -- -Ztime-passes
+makefile:2: recipe for target 'all' failed
+done
