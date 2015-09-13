@@ -1,0 +1,23 @@
+commit 9040b06ed28d37022d7c5135a6809aba951a243e
+Merge: fd230ff c87a58f
+Author: bors <bors@rust-lang.org>
+Date:   Sun Sep 13 13:09:22 2015 +0000
+
+    Auto merge of #28286 - matklad:remove-dead-code, r=eddyb
+    
+    There is a dead code in libsyntax/parser/parse.rs, when parsing structs.
+    
+    Two functions are involved:
+    
+    * [parse_item_struct](https://github.com/rust-lang/rust/blob/cd9c9f048f6aa0be091cd9835771ba0712bead4e/src/libsyntax/parse/parser.rs#L4691)
+    * [parse_tuple_struct_body](https://github.com/rust-lang/rust/blob/cd9c9f048f6aa0be091cd9835771ba0712bead4e/src/libsyntax/parse/parser.rs#L4769)
+    
+    The problem is that both functions handle the case with unit structs. But because
+    `parse_tuple_struct_body` is called from `parse_item_struct`, it never faces
+    this case.
+    
+    This PR removes unit struct case from `parse_tuple_struct_body` function. I tested with `make -j8 check-statge1`.
+rustc: ./regex.0.1.30
+cargo rustc -- -Ztime-passes
+makefile:2: recipe for target 'all' failed
+done
