@@ -1,0 +1,110 @@
+commit e629dba0ee190cab49df0c5db299fb8d77264dda
+Merge: bc6c397 1049021
+Author: bors <bors@rust-lang.org>
+Date:   Mon Sep 14 22:21:41 2015 +0000
+
+    Auto merge of #28256 - petrochenkov:conv, r=alexcrichton
+    
+    This patch transforms functions of the form
+    ```
+    fn f<Generic: AsRef<Concrete>>(arg: Generic) {
+    	let arg: &Concrete = arg.as_ref();
+    	// Code using arg
+    }
+    ```
+    to the next form:
+    ```
+    #[inline]
+    fn f<Generic: AsRef<Concrete>>(arg: Generic) {
+    	fn f_inner(arg: &Concrete) {
+    		// Code using arg
+    	}
+    
+    	f_inner(arg.as_ref());
+    }
+    ```
+    
+    Therefore, most of the code is concrete and not duplicated during monomorphisation (unless inlined)
+    and only the tiny bit of conversion code is duplicated. This method was mentioned by @aturon in the
+    Conversion Traits RFC (https://github.com/rust-lang/rfcs/blame/master/text/0529-conversion-traits.md#L249) and similar techniques are not uncommon in C++ template libraries.
+    
+    This patch goes to the extremes and applies the transformation even to smaller functions<sup>1</sup>
+    for purity of the experiment. *Some of them can be rolled back* if considered too ridiculous.
+    
+    <sup>1</sup> However who knows how small are these functions are after inlining and everything.
+    
+    The functions in question are mostly `fs`/`os` functions and not used especially often with variety
+    of argument types, so the code size reduction is rather small (but consistent). Here are the sizes
+    of stage2 artifacts before and after the patch:
+    https://gist.github.com/petrochenkov/e76a6b280f382da13c5d
+    https://gist.github.com/petrochenkov/6cc28727d5256dbdfed0
+    
+    Note:
+    All the `inner` functions are concrete and unavailable for cross-crate inlining, some of them may
+    need `#[inline]` annotations in the future.
+    
+    r? @aturon
+rustc: ./helloworld
+/root/rust/x86_64-unknown-linux-gnu/stage2/bin/rustc -Ztime-passes hello.rs
+time: 0.000; rss: 29MB	parsing
+time: 0.000; rss: 29MB	configuration 1
+time: 0.000; rss: 29MB	recursion limit
+time: 0.000; rss: 29MB	gated macro checking
+time: 0.000; rss: 29MB	crate injection
+time: 0.002; rss: 35MB	macro loading
+time: 0.000; rss: 35MB	plugin loading
+time: 0.000; rss: 35MB	plugin registration
+time: 0.001; rss: 35MB	expansion
+time: 0.000; rss: 35MB	complete gated feature checking 1
+time: 0.000; rss: 35MB	configuration 2
+time: 0.000; rss: 35MB	gated configuration checking
+time: 0.000; rss: 35MB	maybe building test harness
+time: 0.000; rss: 35MB	prelude injection
+time: 0.000; rss: 35MB	checking that all macro invocations are gone
+time: 0.000; rss: 35MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 35MB	complete gated feature checking 2
+time: 0.000; rss: 35MB	assigning node ids
+time: 0.000; rss: 35MB	lowering ast -> hir
+time: 0.000; rss: 35MB	indexing hir
+time: 0.001; rss: 38MB	external crate/lib resolution
+time: 0.000; rss: 38MB	language item collection
+time: 0.001; rss: 43MB	resolution
+time: 0.000; rss: 43MB	lifetime resolution
+time: 0.000; rss: 43MB	looking for entry point
+time: 0.000; rss: 43MB	looking for plugin registrar
+time: 0.000; rss: 43MB	region resolution
+time: 0.000; rss: 43MB	loop checking
+time: 0.000; rss: 43MB	static item recursion checking
+time: 0.000; rss: 43MB	type collecting
+time: 0.000; rss: 43MB	variance inference
+time: 0.004; rss: 51MB	coherence checking
+time: 0.000; rss: 51MB	wf checking (old)
+time: 0.000; rss: 51MB	item-types checking
+time: 0.000; rss: 51MB	item-bodies checking
+time: 0.000; rss: 51MB	drop-impl checking
+time: 0.000; rss: 51MB	wf checking (new)
+time: 0.000; rss: 51MB	MIR dump
+time: 0.000; rss: 51MB	const checking
+time: 0.000; rss: 51MB	privacy checking
+time: 0.000; rss: 51MB	stability index
+time: 0.000; rss: 51MB	intrinsic checking
+time: 0.000; rss: 51MB	effect checking
+time: 0.000; rss: 51MB	match checking
+time: 0.000; rss: 51MB	liveness checking
+time: 0.000; rss: 51MB	borrow checking
+time: 0.000; rss: 51MB	rvalue checking
+time: 0.000; rss: 51MB	reachability checking
+time: 0.000; rss: 51MB	death checking
+time: 0.000; rss: 51MB	stability checking
+time: 0.000; rss: 51MB	unused lib feature checking
+time: 0.000; rss: 51MB	lint checking
+time: 0.001; rss: 51MB	resolving dependency formats
+time: 0.004; rss: 63MB	translation
+  time: 0.000; rss: 65MB	llvm function passes
+  time: 0.000; rss: 65MB	llvm module passes
+  time: 0.001; rss: 67MB	codegen passes
+  time: 0.000; rss: 67MB	codegen passes
+time: 0.002; rss: 67MB	LLVM passes
+  time: 0.083; rss: 73MB	running linker
+time: 0.083; rss: 73MB	linking
+done

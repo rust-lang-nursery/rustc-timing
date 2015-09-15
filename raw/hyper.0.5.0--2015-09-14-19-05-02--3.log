@@ -1,0 +1,50 @@
+commit e629dba0ee190cab49df0c5db299fb8d77264dda
+Merge: bc6c397 1049021
+Author: bors <bors@rust-lang.org>
+Date:   Mon Sep 14 22:21:41 2015 +0000
+
+    Auto merge of #28256 - petrochenkov:conv, r=alexcrichton
+    
+    This patch transforms functions of the form
+    ```
+    fn f<Generic: AsRef<Concrete>>(arg: Generic) {
+    	let arg: &Concrete = arg.as_ref();
+    	// Code using arg
+    }
+    ```
+    to the next form:
+    ```
+    #[inline]
+    fn f<Generic: AsRef<Concrete>>(arg: Generic) {
+    	fn f_inner(arg: &Concrete) {
+    		// Code using arg
+    	}
+    
+    	f_inner(arg.as_ref());
+    }
+    ```
+    
+    Therefore, most of the code is concrete and not duplicated during monomorphisation (unless inlined)
+    and only the tiny bit of conversion code is duplicated. This method was mentioned by @aturon in the
+    Conversion Traits RFC (https://github.com/rust-lang/rfcs/blame/master/text/0529-conversion-traits.md#L249) and similar techniques are not uncommon in C++ template libraries.
+    
+    This patch goes to the extremes and applies the transformation even to smaller functions<sup>1</sup>
+    for purity of the experiment. *Some of them can be rolled back* if considered too ridiculous.
+    
+    <sup>1</sup> However who knows how small are these functions are after inlining and everything.
+    
+    The functions in question are mostly `fs`/`os` functions and not used especially often with variety
+    of argument types, so the code size reduction is rather small (but consistent). Here are the sizes
+    of stage2 artifacts before and after the patch:
+    https://gist.github.com/petrochenkov/e76a6b280f382da13c5d
+    https://gist.github.com/petrochenkov/6cc28727d5256dbdfed0
+    
+    Note:
+    All the `inner` functions are concrete and unavailable for cross-crate inlining, some of them may
+    need `#[inline]` annotations in the future.
+    
+    r? @aturon
+rustc: ./hyper.0.5.0
+cargo rustc -- -Ztime-passes
+makefile:2: recipe for target 'all' failed
+done
