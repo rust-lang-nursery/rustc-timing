@@ -1,0 +1,16 @@
+commit f17cc4cf045dcb8e8fb3e2060eb0ec0681e6c08f
+Merge: 0b089cd 920f32b
+Author: bors <bors@rust-lang.org>
+Date:   Tue Sep 22 09:19:47 2015 +0000
+
+    Auto merge of #28578 - gandro:nodefaultlibs, r=alexcrichton
+    
+    This patch basically adds a target option for omitting the `-nodefaultlibs` flag when invoking the linker. I am not sure if this is the correct or only way to approach this problem, so any feedback is welcome.
+    
+    Motivation: I'm currently working on a Rust target specification for the [rumprun](/rumpkernel/rumprun) unikernel. rumprun is based on rump kernels and uses NetBSDs libc and drivers to provide a POSIXy environment. It provides its own linker wrapper that generates binaries which can be "baked" into a unikernel after configuration. Using `-nodefaultlibs` on the rumprun linker will prevent it from selecting the search paths for the rumprun libraries. My current target implementation for rumprun is here: gandro/rust@295744b2ee2378f41a20d4b498b8f1991a75e93c
+    
+    Currently, only a target that `is_like_windows` will omit the `-nodefaultlibs` flag, but since rumprun is not like Windows otherwise, I think a separate flag makes more sense. This might be a breaking change for target specifications that have the `is_like_windows` option set to true. Such targets need to set `no_default_libraries` to false in order to restore the old behavior.
+rustc: ./hyper.0.5.0
+cargo rustc -- -Ztime-passes
+makefile:2: recipe for target 'all' failed
+done
