@@ -1,0 +1,38 @@
+commit 6a2187414a8c25f485dc788088b4466f595a7dd9
+Merge: e980129 b30d896
+Author: bors <bors@rust-lang.org>
+Date:   Thu Sep 24 18:55:00 2015 +0000
+
+    Auto merge of #28538 - alevy:make_fixedsizearray_unsafe, r=alexcrichton
+    
+    [breaking-change]
+    
+    `FixedSizeArray` is meant to be implemented for arrays of fixed size only, but can be implemented for anything at the moment. Marking the trait unsafe would make it more reasonable to write unsafe code which operates on fixed size arrays of any size.
+    
+    For example, using `uninitialized` to create a fixed size array and immediately filling it with a fixed value is externally safe:
+    
+    ```
+    pub fn init_with_nones<T, A: FixedSizeArray<Option<T>>>() -> A {
+        let mut res = unsafe { mem::uninitialized() };
+        for elm in res.as_mut_slice().iter_mut() {
+            *elm = None;
+        }
+        res
+    }
+    ```
+    
+    But the same code is not safe if `FixedSizeArray` is implemented for other types:
+    
+    ```
+    struct Foo { foo: usize }
+    impl FixedSizeArray<Option<usize>> for Foo {
+        fn as_slice(&self) -> &[usize] { &[] }
+        fn as_mut_slice(&self) -> &mut [usize] { &mut [] }
+    }
+    ```
+    
+    now `init_with_nones() : Foo` returns a `Foo` with an undefined value for the field `foo`.
+rustc: ./rust-encoding.0.2.32
+cargo rustc -- -Ztime-passes
+makefile:2: recipe for target 'all' failed
+done
