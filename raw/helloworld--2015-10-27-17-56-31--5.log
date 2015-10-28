@@ -1,0 +1,92 @@
+commit e0e262737478b695d115519f7856e475c17f84e1
+Merge: 8a72584 99f9bb1
+Author: bors <bors@rust-lang.org>
+Date:   Tue Oct 27 22:56:39 2015 +0000
+
+    Auto merge of #29072 - nagisa:place-arrow, r=pnkfelix
+    
+    This commit generalises parsing of associative operators from left-associative
+    only (with some ugly hacks to support right-associative assignment) to properly
+    left/right-associative operators.
+    
+    Parsing is still is not general enough to handle non-associative,
+    non-highest-precedence prefix or non-highest-precedence
+    postfix operators (e.g. `..` range syntax) and should be made to be.
+    
+    Lastly, this commit adds support for parsing right-associative `<-` (left arrow)
+    operator with precedence higher than assignment as the operator for placement-in
+    feature.
+    
+    ---
+    
+    This PR still needs various non-parser changes (e.g. src/grammar and tests) and I’m still working on these; the meat of the PR can already be reviewed, though, I think.
+    
+    Please review carefully. I made sure that quirks I have discovered so far are preserved (see e.g. https://github.com/rust-lang/rust/issues/29071) and am looking for more corner cases as I continue to work on tests et al, but there may be something I haven’t noticed or accounted for.
+    
+    EDIT: I’m also not sure I managed to preserve all the semantics with the range operator inside non-trivial expressions since these are a mess at the moment. Crater runs would be nice.
+rustc: ./helloworld
+/root/rust/x86_64-unknown-linux-gnu/stage2/bin/rustc hello.rs -Ztime-passes
+time: 0.000; rss: 29MB	parsing
+time: 0.000; rss: 29MB	configuration 1
+time: 0.000; rss: 29MB	recursion limit
+time: 0.000; rss: 29MB	gated macro checking
+time: 0.000; rss: 29MB	crate injection
+time: 0.002; rss: 35MB	macro loading
+time: 0.000; rss: 35MB	plugin loading
+time: 0.000; rss: 35MB	plugin registration
+time: 0.001; rss: 35MB	expansion
+time: 0.000; rss: 35MB	complete gated feature checking 1
+time: 0.000; rss: 35MB	configuration 2
+time: 0.000; rss: 35MB	gated configuration checking
+time: 0.000; rss: 35MB	maybe building test harness
+time: 0.000; rss: 35MB	prelude injection
+time: 0.000; rss: 35MB	checking that all macro invocations are gone
+time: 0.000; rss: 35MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 35MB	complete gated feature checking 2
+time: 0.000; rss: 35MB	assigning node ids
+time: 0.000; rss: 35MB	lowering ast -> hir
+time: 0.000; rss: 35MB	indexing hir
+time: 0.000; rss: 35MB	attribute checking
+time: 0.000; rss: 35MB	early lint checks
+time: 0.001; rss: 38MB	external crate/lib resolution
+time: 0.000; rss: 39MB	language item collection
+time: 0.001; rss: 43MB	resolution
+time: 0.000; rss: 43MB	lifetime resolution
+time: 0.000; rss: 43MB	looking for entry point
+time: 0.000; rss: 43MB	looking for plugin registrar
+time: 0.000; rss: 43MB	region resolution
+time: 0.000; rss: 43MB	loop checking
+time: 0.000; rss: 43MB	static item recursion checking
+time: 0.000; rss: 43MB	type collecting
+time: 0.000; rss: 43MB	variance inference
+time: 0.004; rss: 51MB	coherence checking
+time: 0.000; rss: 51MB	wf checking (old)
+time: 0.000; rss: 51MB	item-types checking
+time: 0.000; rss: 51MB	item-bodies checking
+time: 0.000; rss: 51MB	drop-impl checking
+time: 0.000; rss: 51MB	wf checking (new)
+time: 0.000; rss: 51MB	const checking
+time: 0.000; rss: 51MB	privacy checking
+time: 0.000; rss: 51MB	stability index
+time: 0.000; rss: 51MB	intrinsic checking
+time: 0.000; rss: 51MB	effect checking
+time: 0.000; rss: 51MB	match checking
+time: 0.000; rss: 51MB	MIR dump
+time: 0.000; rss: 51MB	liveness checking
+time: 0.000; rss: 51MB	borrow checking
+time: 0.000; rss: 51MB	rvalue checking
+time: 0.000; rss: 51MB	reachability checking
+time: 0.000; rss: 51MB	death checking
+time: 0.000; rss: 51MB	stability checking
+time: 0.000; rss: 51MB	unused lib feature checking
+time: 0.000; rss: 51MB	lint checking
+time: 0.001; rss: 51MB	resolving dependency formats
+time: 0.004; rss: 61MB	translation
+  time: 0.000; rss: 64MB	llvm function passes [0]
+  time: 0.000; rss: 64MB	llvm module passes [0]
+  time: 0.001; rss: 65MB	codegen passes [0]
+  time: 0.000; rss: 65MB	codegen passes [0]
+time: 0.002; rss: 65MB	LLVM passes
+  time: 0.084; rss: 72MB	running linker
+time: 0.084; rss: 72MB	linking
+done
