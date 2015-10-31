@@ -1,0 +1,100 @@
+commit 64b027764302aa67aa701a9f81bd938ca3d4052a
+Merge: cc8d398 46068c9
+Author: bors <bors@rust-lang.org>
+Date:   Fri Oct 30 22:23:41 2015 +0000
+
+    Auto merge of #29454 - stepancheg:vec-reserve, r=bluss
+    
+    Before this patch `reserve` function allocated twice as requested
+    amount elements (not twice as capacity).  It leaded to unnecessary
+    excessive memory usage in scenarios like this:
+    
+    ```
+    let mut v = Vec::new();
+    v.push(17);
+    v.extend(0..10);
+    println!("{}", v.capacity());
+    ```
+    
+    `Vec` allocated 22 elements, while it could allocate just 11.
+    
+    `reserve` function must have a property of keeping `push` operation
+    cost (which calls `reserve`) `O(1)`. To achieve this `reserve` must
+    exponentialy grow its capacity when it does reallocation.
+    
+    There's better strategy to implement `reserve`:
+    
+    ```
+    let new_capacity = max(current_capacity * 2, requested_capacity);
+    ```
+    
+    This strategy still guarantees that capacity grows at `O(1)` with
+    `reserve`, and fixes the issue with `extend`.
+    
+    Patch imlpements this strategy.
+rustc: ./html5ever-2015-05-15
+cargo rustc -- -Ztime-passes
+   Compiling html5ever v0.0.0 (file:///root/benchmarks/html5ever-2015-05-15)
+time: 0.018; rss: 39MB	parsing
+time: 0.005; rss: 39MB	configuration 1
+time: 0.000; rss: 39MB	recursion limit
+time: 0.000; rss: 39MB	gated macro checking
+time: 0.000; rss: 39MB	crate injection
+time: 0.020; rss: 53MB	macro loading
+time: 0.001; rss: 54MB	plugin loading
+time: 0.000; rss: 54MB	plugin registration
+time: 1.010; rss: 73MB	expansion
+time: 0.004; rss: 73MB	complete gated feature checking 1
+time: 0.027; rss: 73MB	configuration 2
+time: 0.000; rss: 73MB	gated configuration checking
+time: 0.014; rss: 73MB	maybe building test harness
+time: 0.013; rss: 73MB	prelude injection
+time: 0.002; rss: 73MB	checking that all macro invocations are gone
+time: 0.000; rss: 73MB	checking for inline asm in case the target doesn't support it
+time: 0.004; rss: 73MB	complete gated feature checking 2
+time: 0.013; rss: 73MB	assigning node ids
+time: 0.017; rss: 86MB	lowering ast -> hir
+time: 0.007; rss: 91MB	indexing hir
+time: 0.000; rss: 91MB	attribute checking
+time: 0.009; rss: 91MB	early lint checks
+time: 0.003; rss: 91MB	external crate/lib resolution
+time: 0.003; rss: 91MB	language item collection
+time: 0.032; rss: 106MB	resolution
+time: 0.002; rss: 106MB	lifetime resolution
+time: 0.000; rss: 106MB	looking for entry point
+time: 0.001; rss: 106MB	looking for plugin registrar
+time: 0.015; rss: 112MB	region resolution
+time: 0.002; rss: 112MB	loop checking
+time: 0.002; rss: 112MB	static item recursion checking
+time: 0.008; rss: 113MB	type collecting
+time: 0.003; rss: 113MB	variance inference
+time: 0.037; rss: 129MB	coherence checking
+time: 0.007; rss: 129MB	wf checking (old)
+time: 0.327; rss: 165MB	item-types checking
+time: 0.588; rss: 174MB	item-bodies checking
+time: 0.000; rss: 174MB	drop-impl checking
+time: 0.028; rss: 174MB	wf checking (new)
+time: 0.075; rss: 174MB	const checking
+time: 0.013; rss: 174MB	privacy checking
+time: 0.001; rss: 174MB	stability index
+time: 0.004; rss: 174MB	intrinsic checking
+time: 0.003; rss: 174MB	effect checking
+time: 0.027; rss: 174MB	match checking
+time: 0.093; rss: 193MB	MIR dump
+time: 0.012; rss: 184MB	liveness checking
+time: 0.100; rss: 182MB	borrow checking
+time: 0.039; rss: 182MB	rvalue checking
+time: 0.003; rss: 182MB	reachability checking
+time: 0.010; rss: 182MB	death checking
+time: 0.007; rss: 182MB	stability checking
+time: 0.000; rss: 182MB	unused lib feature checking
+time: 0.055; rss: 182MB	lint checking
+time: 0.000; rss: 182MB	resolving dependency formats
+time: 0.473; rss: 227MB	translation
+  time: 0.018; rss: 119MB	llvm function passes [0]
+  time: 0.007; rss: 120MB	llvm module passes [0]
+  time: 0.331; rss: 156MB	codegen passes [0]
+  time: 0.001; rss: 131MB	codegen passes [0]
+time: 0.412; rss: 131MB	LLVM passes
+time: 0.059; rss: 132MB	linking
+done
