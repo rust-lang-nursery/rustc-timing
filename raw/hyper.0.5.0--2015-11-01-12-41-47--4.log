@@ -1,0 +1,84 @@
+commit 71409184dc00604537ce03312dc17ba986c329d9
+Merge: 6d43fef 0332ee9
+Author: bors <bors@rust-lang.org>
+Date:   Sun Nov 1 17:15:29 2015 +0000
+
+    Auto merge of #29177 - vadimcn:rtstuff, r=alexcrichton
+    
+    Note: for now, this change only affects `-windows-gnu` builds.
+    
+    So why was this `libgcc` dylib dependency needed in the first place?
+    The stack unwinder needs to know about locations of unwind tables of all the modules loaded in the current process.  The easiest portable way of achieving this is to have each module register itself with the unwinder when loaded into the process.  All modules compiled by GCC do this by calling the __register_frame_info() in their startup code (that's `crtbegin.o` and `crtend.o`, which are automatically linked into any gcc output).
+    Another important piece is that there should be only one copy of the unwinder (and thus unwind tables registry) in the process.  This pretty much means that the unwinder must be in a shared library (unless everything is statically linked).
+    
+    Now, Rust compiler tries very hard to make sure that any given Rust crate appears in the final output just once.   So if we link the unwinder statically to one of Rust's crates, everything should be fine.
+    
+    Unfortunately, GCC startup objects are built under assumption that `libgcc` is the one true place for the unwind info registry, so I couldn't find any better way than to replace them.  So out go `crtbegin`/`crtend`, in come `rsbegin`/`rsend`!
+    
+    A side benefit of this change is that rustc is now more in control of the command line that goes to the linker, so we could stop using `gcc` as the linker driver and just invoke `ld` directly.
+rustc: ./hyper.0.5.0
+cargo rustc -- -Ztime-passes
+   Compiling hyper v0.5.0 (file:///root/benchmarks/hyper.0.5.0)
+time: 0.026; rss: 38MB	parsing
+time: 0.009; rss: 42MB	configuration 1
+time: 0.000; rss: 42MB	recursion limit
+time: 0.000; rss: 42MB	gated macro checking
+time: 0.000; rss: 42MB	crate injection
+time: 0.004; rss: 46MB	macro loading
+time: 0.000; rss: 46MB	plugin loading
+time: 0.000; rss: 46MB	plugin registration
+time: 0.166; rss: 56MB	expansion
+time: 0.005; rss: 56MB	complete gated feature checking 1
+time: 0.029; rss: 56MB	configuration 2
+time: 0.000; rss: 56MB	gated configuration checking
+time: 0.012; rss: 56MB	maybe building test harness
+time: 0.009; rss: 56MB	prelude injection
+time: 0.001; rss: 56MB	checking that all macro invocations are gone
+time: 0.000; rss: 56MB	checking for inline asm in case the target doesn't support it
+time: 0.002; rss: 56MB	complete gated feature checking 2
+time: 0.010; rss: 56MB	assigning node ids
+time: 0.007; rss: 60MB	lowering ast -> hir
+time: 0.004; rss: 62MB	indexing hir
+time: 0.000; rss: 62MB	attribute checking
+time: 0.005; rss: 62MB	early lint checks
+time: 0.003; rss: 62MB	external crate/lib resolution
+time: 0.002; rss: 62MB	language item collection
+time: 0.030; rss: 91MB	resolution
+time: 0.002; rss: 90MB	lifetime resolution
+time: 0.000; rss: 90MB	looking for entry point
+time: 0.001; rss: 90MB	looking for plugin registrar
+time: 0.005; rss: 90MB	region resolution
+time: 0.001; rss: 90MB	loop checking
+time: 0.001; rss: 90MB	static item recursion checking
+time: 0.013; rss: 94MB	type collecting
+time: 0.002; rss: 94MB	variance inference
+time: 0.042; rss: 107MB	coherence checking
+time: 0.027; rss: 109MB	wf checking (old)
+time: 0.025; rss: 109MB	item-types checking
+time: 0.513; rss: 128MB	item-bodies checking
+time: 0.000; rss: 128MB	drop-impl checking
+time: 0.086; rss: 128MB	wf checking (new)
+time: 0.049; rss: 128MB	const checking
+time: 0.008; rss: 128MB	privacy checking
+time: 0.000; rss: 128MB	stability index
+time: 0.004; rss: 128MB	intrinsic checking
+time: 0.002; rss: 128MB	effect checking
+time: 0.012; rss: 128MB	match checking
+time: 0.057; rss: 144MB	MIR dump
+time: 0.006; rss: 136MB	liveness checking
+time: 0.074; rss: 136MB	borrow checking
+time: 0.052; rss: 136MB	rvalue checking
+time: 0.003; rss: 136MB	reachability checking
+time: 0.006; rss: 136MB	death checking
+time: 0.005; rss: 136MB	stability checking
+time: 0.000; rss: 136MB	unused lib feature checking
+time: 0.040; rss: 138MB	lint checking
+time: 0.000; rss: 138MB	resolving dependency formats
+time: 1.449; rss: 271MB	translation
+  time: 0.101; rss: 173MB	llvm function passes [0]
+  time: 0.054; rss: 174MB	llvm module passes [0]
+  time: 1.685; rss: 217MB	codegen passes [0]
+  time: 0.001; rss: 179MB	codegen passes [0]
+time: 2.063; rss: 179MB	LLVM passes
+time: 0.182; rss: 180MB	linking
+done

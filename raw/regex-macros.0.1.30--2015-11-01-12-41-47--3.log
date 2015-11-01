@@ -1,0 +1,47 @@
+commit 71409184dc00604537ce03312dc17ba986c329d9
+Merge: 6d43fef 0332ee9
+Author: bors <bors@rust-lang.org>
+Date:   Sun Nov 1 17:15:29 2015 +0000
+
+    Auto merge of #29177 - vadimcn:rtstuff, r=alexcrichton
+    
+    Note: for now, this change only affects `-windows-gnu` builds.
+    
+    So why was this `libgcc` dylib dependency needed in the first place?
+    The stack unwinder needs to know about locations of unwind tables of all the modules loaded in the current process.  The easiest portable way of achieving this is to have each module register itself with the unwinder when loaded into the process.  All modules compiled by GCC do this by calling the __register_frame_info() in their startup code (that's `crtbegin.o` and `crtend.o`, which are automatically linked into any gcc output).
+    Another important piece is that there should be only one copy of the unwinder (and thus unwind tables registry) in the process.  This pretty much means that the unwinder must be in a shared library (unless everything is statically linked).
+    
+    Now, Rust compiler tries very hard to make sure that any given Rust crate appears in the final output just once.   So if we link the unwinder statically to one of Rust's crates, everything should be fine.
+    
+    Unfortunately, GCC startup objects are built under assumption that `libgcc` is the one true place for the unwind info registry, so I couldn't find any better way than to replace them.  So out go `crtbegin`/`crtend`, in come `rsbegin`/`rsend`!
+    
+    A side benefit of this change is that rustc is now more in control of the command line that goes to the linker, so we could stop using `gcc` as the linker driver and just invoke `ld` directly.
+rustc: ./regex-macros.0.1.30
+cd regex_macros && cargo rustc -- -Ztime-passes
+   Compiling regex_macros v0.1.17 (file:///root/benchmarks/regex-macros.0.1.30/regex_macros)
+time: 0.002; rss: 29MB	parsing
+time: 0.001; rss: 33MB	configuration 1
+time: 0.000; rss: 33MB	recursion limit
+time: 0.000; rss: 33MB	gated macro checking
+time: 0.000; rss: 33MB	crate injection
+time: 0.002; rss: 36MB	macro loading
+time: 0.000; rss: 36MB	plugin loading
+time: 0.000; rss: 36MB	plugin registration
+time: 0.026; rss: 44MB	expansion
+time: 0.001; rss: 44MB	complete gated feature checking 1
+time: 0.008; rss: 44MB	configuration 2
+time: 0.000; rss: 44MB	gated configuration checking
+time: 0.004; rss: 44MB	maybe building test harness
+time: 0.004; rss: 44MB	prelude injection
+time: 0.000; rss: 44MB	checking that all macro invocations are gone
+time: 0.000; rss: 44MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 44MB	complete gated feature checking 2
+time: 0.004; rss: 44MB	assigning node ids
+time: 0.003; rss: 48MB	lowering ast -> hir
+time: 0.001; rss: 48MB	indexing hir
+time: 0.000; rss: 48MB	attribute checking
+time: 0.003; rss: 48MB	early lint checks
+time: 0.047; rss: 86MB	external crate/lib resolution
+time: 0.000; rss: 86MB	language item collection
+makefile:2: recipe for target 'all' failed
+done
