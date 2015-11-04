@@ -1,0 +1,90 @@
+commit a216e847272ddbd3033037b606eaf2d801c250b9
+Merge: c340ea1 e787863
+Author: bors <bors@rust-lang.org>
+Date:   Wed Nov 4 02:13:05 2015 +0000
+
+    Auto merge of #29217 - nikomatsakis:mir-trans, r=dotdash
+    
+    This branch implements a variant of trans that is based on MIR. It is very incomplete (intentionally), and had only the goal of laying out enough work to enable more incremental follow-on patches. Currently, only fns tagged with `#[rustc_mir]` use the new trans code. I plan to build up a meta-issue as well that tracks the various "not-yet-implemented" points. The only fn that has been tested so far is this amazingly complex "spike" fn:
+    
+    ```rust
+    #[rustc_mir]
+    fn sum(x: i32, y: i32) -> i32 {
+        x + y
+    }
+    ```
+    
+    In general, the most interesting commit is the last one. There are some points on which I would like feedback from @rust-lang/compiler:
+    
+    - I did not use `Datum`. Originally, I thought that maybe just a `ValueRef` would be enough but I wound up with two very simple structures, `LvalueRef` and `OperandRef`, that just package up a `ValueRef` and a type. Because of MIR's structure, you don't wind up mixing by-ref and by-value so much, and I tend to think that a thinner abstraction layer is better here, but I'm not sure.
+    - Related to the above, I expect that sooner or later we will analyze temps (and maybe variables too) to find those whose address is never taken and which are word-sized and which perhaps meet a few other criteria. For those, we'll probably want to avoid the alloca, just because it means prettier code.
+    - I generally tried to re-use data structures from elsewhere in trans, though I'm sure we can trim these down.
+    - I didn't do any debuginfo primarily because it seems to want node-ids and we have only spans. I haven't really read into that code so I don't know what's going on there.
+    
+    r? @nrc
+rustc: ./helloworld
+/root/rust/x86_64-unknown-linux-gnu/stage2/bin/rustc hello.rs -Ztime-passes
+time: 0.000; rss: 29MB	parsing
+time: 0.000; rss: 29MB	configuration 1
+time: 0.000; rss: 29MB	recursion limit
+time: 0.000; rss: 29MB	gated macro checking
+time: 0.000; rss: 29MB	crate injection
+time: 0.002; rss: 35MB	macro loading
+time: 0.000; rss: 35MB	plugin loading
+time: 0.000; rss: 35MB	plugin registration
+time: 0.001; rss: 35MB	expansion
+time: 0.000; rss: 35MB	complete gated feature checking 1
+time: 0.000; rss: 35MB	configuration 2
+time: 0.000; rss: 35MB	gated configuration checking
+time: 0.000; rss: 35MB	maybe building test harness
+time: 0.000; rss: 35MB	prelude injection
+time: 0.000; rss: 35MB	checking that all macro invocations are gone
+time: 0.000; rss: 35MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 35MB	complete gated feature checking 2
+time: 0.000; rss: 35MB	assigning node ids
+time: 0.000; rss: 35MB	lowering ast -> hir
+time: 0.000; rss: 35MB	indexing hir
+time: 0.000; rss: 35MB	attribute checking
+time: 0.000; rss: 35MB	early lint checks
+time: 0.001; rss: 35MB	external crate/lib resolution
+time: 0.000; rss: 35MB	language item collection
+time: 0.001; rss: 43MB	resolution
+time: 0.000; rss: 43MB	lifetime resolution
+time: 0.000; rss: 43MB	looking for entry point
+time: 0.000; rss: 43MB	looking for plugin registrar
+time: 0.000; rss: 43MB	region resolution
+time: 0.000; rss: 43MB	loop checking
+time: 0.000; rss: 43MB	static item recursion checking
+time: 0.000; rss: 43MB	type collecting
+time: 0.000; rss: 43MB	variance inference
+time: 0.004; rss: 48MB	coherence checking
+time: 0.000; rss: 52MB	wf checking (old)
+time: 0.000; rss: 52MB	item-types checking
+time: 0.000; rss: 52MB	item-bodies checking
+time: 0.000; rss: 52MB	drop-impl checking
+time: 0.000; rss: 52MB	wf checking (new)
+time: 0.000; rss: 52MB	const checking
+time: 0.000; rss: 52MB	privacy checking
+time: 0.000; rss: 52MB	stability index
+time: 0.000; rss: 52MB	intrinsic checking
+time: 0.000; rss: 52MB	effect checking
+time: 0.000; rss: 52MB	match checking
+time: 0.000; rss: 52MB	MIR dump
+time: 0.000; rss: 52MB	liveness checking
+time: 0.000; rss: 52MB	borrow checking
+time: 0.000; rss: 52MB	rvalue checking
+time: 0.000; rss: 52MB	reachability checking
+time: 0.000; rss: 52MB	death checking
+time: 0.000; rss: 52MB	stability checking
+time: 0.000; rss: 52MB	unused lib feature checking
+time: 0.000; rss: 52MB	lint checking
+time: 0.001; rss: 52MB	resolving dependency formats
+time: 0.004; rss: 62MB	translation
+  time: 0.000; rss: 64MB	llvm function passes [0]
+  time: 0.000; rss: 64MB	llvm module passes [0]
+  time: 0.001; rss: 66MB	codegen passes [0]
+  time: 0.000; rss: 66MB	codegen passes [0]
+time: 0.002; rss: 66MB	LLVM passes
+  time: 0.085; rss: 72MB	running linker
+time: 0.085; rss: 72MB	linking
+done
