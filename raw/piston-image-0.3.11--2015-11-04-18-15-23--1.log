@@ -1,0 +1,18 @@
+commit effcd29652bbf16981d9cd0d8a578681b2ed55bb
+Merge: 4ee11cd 59c5191
+Author: bors <bors@rust-lang.org>
+Date:   Wed Nov 4 20:39:49 2015 +0000
+
+    Auto merge of #29543 - Amanieu:asm_mem_constraint, r=alexcrichton
+    
+    The "m" memory constraint in inline assembly is broken (generates incorrect code or triggers LLVM asserts) and should not be used. Instead, indirect memory operands should be used with "\*m", "=\*m" and "+\*m".
+    
+    Clang does this transparently by transforming "m" constraints into "\*m" indirect constraints, but for now just being able to use "\*m" directly is enough since asm! isn't stable.
+    
+    While "\*m" works fine as an input operand, "=\*m" and "+\*m" need to be specified as input operands because they take a pointer value as an input. This PR relaxes the constraint checker to allow constraints starting with "=" or "+" if the constraint string contains a "\*", which indicates an indirect operand.
+    
+    This (indirectly) fixes these issues: #29382, #16383 and #13366. The code will need to be changed to use "\*m" instead of "m".
+rustc: ./piston-image-0.3.11
+cargo rustc -- -Ztime-passes
+makefile:2: recipe for target 'all' failed
+done
