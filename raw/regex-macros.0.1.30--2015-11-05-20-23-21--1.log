@@ -1,0 +1,23 @@
+commit 41308a05203c342ae0899d80b1bc3657de7fec8b
+Merge: 1dac3ad 4b43e07
+Author: bors <bors@rust-lang.org>
+Date:   Fri Nov 6 00:56:08 2015 +0000
+
+    Auto merge of #29305 - alexcrichton:bad-getenv, r=brson
+    
+    As discovered in #29298, `env::set_var("", "")` will panic, but it turns out
+    that it *also* deadlocks on Unix systems. This happens because if a panic
+    happens while holding the environment lock, we then go try to read
+    RUST_BACKTRACE, grabbing the environment lock, causing a deadlock.
+    
+    Specifically, the changes made here are:
+    
+    * The environment lock is pushed into `std::sys` instead of `std::env`. This
+      also only puts it in the Unix implementation, not Windows where the functions
+      are already threadsafe.
+    * The `std::sys` implementation now returns `io::Result` so panics are
+      explicitly at the `std::env` level.
+rustc: ./regex-macros.0.1.30
+cd regex_macros && cargo rustc -- -Ztime-passes
+makefile:2: recipe for target 'all' failed
+done
