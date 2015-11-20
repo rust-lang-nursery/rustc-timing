@@ -1,0 +1,76 @@
+commit b289892b5d4acd52237fb88ab12f825e7602280c
+Merge: 6861c51 c6eb852
+Author: bors <bors@rust-lang.org>
+Date:   Thu Nov 19 23:57:07 2015 +0000
+
+    Auto merge of #29894 - alexcrichton:stdtime, r=brson
+    
+    This commit is an implementation of [RFC 1288][rfc] which adds two new unstable
+    types to the `std::time` module. The `Instant` type is used to represent
+    measurements of a monotonically increasing clock suitable for measuring time
+    withing a process for operations such as benchmarks or just the elapsed time to
+    do something. An `Instant` favors panicking when bugs are found as the bugs are
+    programmer errors rather than typical errors that can be encountered.
+    
+    [rfc]: https://github.com/rust-lang/rfcs/pull/1288
+    
+    The `SystemTime` type is used to represent a system timestamp and is not
+    monotonic. Very few guarantees are provided about this measurement of the system
+    clock, but a fixed point in time (`UNIX_EPOCH`) is provided to learn about the
+    relative distance from this point for any particular time stamp.
+    
+    This PR takes the same implementation strategy as the `time` crate on crates.io,
+    namely:
+    
+    |  Platform  |  Instant                 |  SystemTime              |
+    |------------|--------------------------|--------------------------|
+    | Windows    | QueryPerformanceCounter  | GetSystemTimeAsFileTime  |
+    | OSX        | mach_absolute_time       | gettimeofday             |
+    | Unix       | CLOCK_MONOTONIC          | CLOCK_REALTIME           |
+    
+    These implementations can perhaps be refined over time, but they currently
+    satisfy the requirements of the `Instant` and `SystemTime` types while also
+    being portable across implementations and revisions of each platform.
+    
+    cc #29866
+rustc: ./regex-macros.0.1.30
+cd regex_macros && cargo rustc -- -Ztime-passes
+   Compiling regex_macros v0.1.17 (file:///root/benchmarks/regex-macros.0.1.30/regex_macros)
+time: 0.002; rss: 29MB	parsing
+time: 0.001; rss: 33MB	configuration 1
+time: 0.000; rss: 33MB	recursion limit
+time: 0.000; rss: 33MB	gated macro checking
+time: 0.000; rss: 33MB	crate injection
+time: 0.002; rss: 37MB	macro loading
+time: 0.000; rss: 37MB	plugin loading
+time: 0.000; rss: 37MB	plugin registration
+time: 0.028; rss: 43MB	expansion
+time: 0.001; rss: 43MB	complete gated feature checking 1
+time: 0.008; rss: 43MB	configuration 2
+time: 0.000; rss: 43MB	gated configuration checking
+time: 0.004; rss: 43MB	maybe building test harness
+time: 0.004; rss: 43MB	prelude injection
+time: 0.000; rss: 43MB	checking that all macro invocations are gone
+time: 0.000; rss: 43MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 43MB	complete gated feature checking 2
+time: 0.004; rss: 44MB	assigning node ids
+time: 0.004; rss: 49MB	lowering ast -> hir
+time: 0.001; rss: 51MB	indexing hir
+time: 0.000; rss: 51MB	attribute checking
+time: 0.003; rss: 51MB	early lint checks
+time: 0.047; rss: 88MB	external crate/lib resolution
+time: 0.001; rss: 88MB	language item collection
+time: 0.014; rss: 107MB	resolution
+time: 0.001; rss: 107MB	lifetime resolution
+time: 0.000; rss: 107MB	looking for entry point
+time: 0.000; rss: 107MB	looking for plugin registrar
+time: 0.002; rss: 108MB	region resolution
+time: 0.000; rss: 108MB	loop checking
+time: 0.000; rss: 108MB	static item recursion checking
+time: 0.004; rss: 111MB	type collecting
+time: 0.000; rss: 111MB	variance inference
+time: 0.015; rss: 133MB	coherence checking
+time: 0.001; rss: 133MB	wf checking (old)
+time: 0.001; rss: 133MB	item-types checking
+makefile:2: recipe for target 'all' failed
+done

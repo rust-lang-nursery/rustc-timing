@@ -1,0 +1,102 @@
+commit b289892b5d4acd52237fb88ab12f825e7602280c
+Merge: 6861c51 c6eb852
+Author: bors <bors@rust-lang.org>
+Date:   Thu Nov 19 23:57:07 2015 +0000
+
+    Auto merge of #29894 - alexcrichton:stdtime, r=brson
+    
+    This commit is an implementation of [RFC 1288][rfc] which adds two new unstable
+    types to the `std::time` module. The `Instant` type is used to represent
+    measurements of a monotonically increasing clock suitable for measuring time
+    withing a process for operations such as benchmarks or just the elapsed time to
+    do something. An `Instant` favors panicking when bugs are found as the bugs are
+    programmer errors rather than typical errors that can be encountered.
+    
+    [rfc]: https://github.com/rust-lang/rfcs/pull/1288
+    
+    The `SystemTime` type is used to represent a system timestamp and is not
+    monotonic. Very few guarantees are provided about this measurement of the system
+    clock, but a fixed point in time (`UNIX_EPOCH`) is provided to learn about the
+    relative distance from this point for any particular time stamp.
+    
+    This PR takes the same implementation strategy as the `time` crate on crates.io,
+    namely:
+    
+    |  Platform  |  Instant                 |  SystemTime              |
+    |------------|--------------------------|--------------------------|
+    | Windows    | QueryPerformanceCounter  | GetSystemTimeAsFileTime  |
+    | OSX        | mach_absolute_time       | gettimeofday             |
+    | Unix       | CLOCK_MONOTONIC          | CLOCK_REALTIME           |
+    
+    These implementations can perhaps be refined over time, but they currently
+    satisfy the requirements of the `Instant` and `SystemTime` types while also
+    being portable across implementations and revisions of each platform.
+    
+    cc #29866
+rustc: ./regex.0.1.30
+cargo rustc -- -Ztime-passes
+   Compiling regex v0.1.30 (file:///root/benchmarks/regex.0.1.30)
+time: 0.051; rss: 45MB	parsing
+time: 0.009; rss: 46MB	configuration 1
+time: 0.000; rss: 46MB	recursion limit
+time: 0.001; rss: 46MB	gated macro checking
+time: 0.000; rss: 46MB	crate injection
+time: 0.003; rss: 48MB	macro loading
+time: 0.000; rss: 48MB	plugin loading
+time: 0.000; rss: 48MB	plugin registration
+time: 0.057; rss: 51MB	expansion
+time: 0.001; rss: 51MB	complete gated feature checking 1
+time: 0.011; rss: 51MB	configuration 2
+time: 0.000; rss: 51MB	gated configuration checking
+time: 0.006; rss: 51MB	maybe building test harness
+time: 0.005; rss: 51MB	prelude injection
+time: 0.001; rss: 51MB	checking that all macro invocations are gone
+time: 0.000; rss: 51MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 51MB	complete gated feature checking 2
+time: 0.005; rss: 51MB	assigning node ids
+time: 0.007; rss: 59MB	lowering ast -> hir
+time: 0.002; rss: 61MB	indexing hir
+time: 0.000; rss: 61MB	attribute checking
+time: 0.004; rss: 61MB	early lint checks
+time: 0.001; rss: 61MB	external crate/lib resolution
+time: 0.001; rss: 61MB	language item collection
+time: 0.010; rss: 71MB	resolution
+time: 0.001; rss: 71MB	lifetime resolution
+time: 0.000; rss: 71MB	looking for entry point
+time: 0.000; rss: 71MB	looking for plugin registrar
+time: 0.006; rss: 75MB	region resolution
+time: 0.001; rss: 75MB	loop checking
+time: 0.001; rss: 75MB	static item recursion checking
+time: 0.004; rss: 78MB	type collecting
+time: 0.000; rss: 78MB	variance inference
+time: 0.022; rss: 95MB	coherence checking
+time: 0.005; rss: 95MB	wf checking (old)
+time: 0.091; rss: 99MB	item-types checking
+time: 0.209; rss: 107MB	item-bodies checking
+time: 0.000; rss: 107MB	drop-impl checking
+time: 0.011; rss: 107MB	wf checking (new)
+time: 0.027; rss: 109MB	const checking
+time: 0.004; rss: 109MB	privacy checking
+time: 0.000; rss: 109MB	stability index
+time: 0.001; rss: 109MB	intrinsic checking
+time: 0.001; rss: 109MB	effect checking
+time: 0.003; rss: 109MB	match checking
+time: 0.016; rss: 117MB	MIR dump
+time: 0.003; rss: 119MB	liveness checking
+time: 0.020; rss: 119MB	borrow checking
+time: 0.007; rss: 119MB	rvalue checking
+time: 0.000; rss: 119MB	reachability checking
+time: 0.003; rss: 119MB	death checking
+time: 0.002; rss: 119MB	stability checking
+time: 0.000; rss: 119MB	unused lib feature checking
+time: 0.020; rss: 119MB	lint checking
+time: 0.000; rss: 119MB	resolving dependency formats
+time: 0.002; rss: 119MB	erasing regions from MIR
+time: 0.659; rss: 186MB	translation
+  time: 0.038; rss: 114MB	llvm function passes [0]
+  time: 0.020; rss: 114MB	llvm module passes [0]
+  time: 0.623; rss: 140MB	codegen passes [0]
+  time: 0.001; rss: 127MB	codegen passes [0]
+time: 0.766; rss: 127MB	LLVM passes
+time: 0.067; rss: 126MB	linking
+done
