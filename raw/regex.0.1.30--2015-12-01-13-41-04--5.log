@@ -1,0 +1,84 @@
+commit eb1d018c01f70bcfc38bc8365a3de71c1564f694
+Merge: dfe88bf 6405122
+Author: bors <bors@rust-lang.org>
+Date:   Tue Dec 1 19:47:38 2015 +0000
+
+    Auto merge of #25570 - oli-obk:const_indexing, r=nikomatsakis
+    
+    This PR allows the constant evaluation of index operations on constant arrays and repeat expressions. This allows index expressions to appear in the expression path of the length expression of a repeat expression or an array type.
+    
+    An example is
+    
+    ```rust
+    const ARR: [usize; 5] = [1, 2, 3, 4, 5];
+    const ARR2: [usize; ARR[1]] = [42, 99];
+    ```
+    
+    In most other locations llvm's const evaluator figures it out already. This is not specific to index expressions and could be remedied in the future.
+rustc: ./regex.0.1.30
+cargo rustc -- -Ztime-passes
+   Compiling regex v0.1.30 (file:///root/benchmarks/regex.0.1.30)
+time: 0.049; rss: 45MB	parsing
+time: 0.009; rss: 46MB	configuration 1
+time: 0.000; rss: 46MB	recursion limit
+time: 0.001; rss: 46MB	gated macro checking
+time: 0.000; rss: 46MB	crate injection
+time: 0.003; rss: 49MB	macro loading
+time: 0.000; rss: 49MB	plugin loading
+time: 0.000; rss: 49MB	plugin registration
+time: 0.057; rss: 51MB	expansion
+time: 0.001; rss: 51MB	complete gated feature checking 1
+time: 0.010; rss: 51MB	configuration 2
+time: 0.000; rss: 51MB	gated configuration checking
+time: 0.005; rss: 51MB	maybe building test harness
+time: 0.005; rss: 51MB	prelude injection
+time: 0.000; rss: 51MB	checking that all macro invocations are gone
+time: 0.000; rss: 51MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 51MB	complete gated feature checking 2
+time: 0.005; rss: 51MB	assigning node ids
+time: 0.007; rss: 60MB	lowering ast -> hir
+time: 0.002; rss: 62MB	indexing hir
+time: 0.000; rss: 62MB	attribute checking
+time: 0.004; rss: 62MB	early lint checks
+time: 0.001; rss: 62MB	external crate/lib resolution
+time: 0.001; rss: 62MB	language item collection
+time: 0.010; rss: 70MB	resolution
+time: 0.001; rss: 70MB	lifetime resolution
+time: 0.000; rss: 70MB	looking for entry point
+time: 0.000; rss: 70MB	looking for plugin registrar
+time: 0.005; rss: 75MB	region resolution
+time: 0.001; rss: 75MB	loop checking
+time: 0.001; rss: 75MB	static item recursion checking
+time: 0.004; rss: 78MB	type collecting
+time: 0.000; rss: 78MB	variance inference
+time: 0.021; rss: 95MB	coherence checking
+time: 0.005; rss: 95MB	wf checking (old)
+time: 0.087; rss: 99MB	item-types checking
+time: 0.207; rss: 107MB	item-bodies checking
+time: 0.000; rss: 107MB	drop-impl checking
+time: 0.010; rss: 107MB	wf checking (new)
+time: 0.026; rss: 113MB	const checking
+time: 0.004; rss: 113MB	privacy checking
+time: 0.000; rss: 113MB	stability index
+time: 0.001; rss: 113MB	intrinsic checking
+time: 0.001; rss: 113MB	effect checking
+time: 0.003; rss: 113MB	match checking
+time: 0.015; rss: 115MB	MIR dump
+time: 0.003; rss: 117MB	liveness checking
+time: 0.020; rss: 117MB	borrow checking
+time: 0.007; rss: 117MB	rvalue checking
+time: 0.000; rss: 117MB	reachability checking
+time: 0.002; rss: 117MB	death checking
+time: 0.002; rss: 117MB	stability checking
+time: 0.000; rss: 117MB	unused lib feature checking
+time: 0.021; rss: 117MB	lint checking
+time: 0.000; rss: 117MB	resolving dependency formats
+time: 0.002; rss: 117MB	erasing regions from MIR
+time: 0.642; rss: 184MB	translation
+  time: 0.039; rss: 114MB	llvm function passes [0]
+  time: 0.020; rss: 116MB	llvm module passes [0]
+  time: 0.621; rss: 141MB	codegen passes [0]
+  time: 0.001; rss: 130MB	codegen passes [0]
+time: 0.765; rss: 128MB	LLVM passes
+time: 0.066; rss: 127MB	linking
+done
