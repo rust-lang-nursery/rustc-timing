@@ -1,0 +1,52 @@
+commit e819d8aa3cd2319fa57e7336e167069ef7002d6a
+Merge: 64c21f9 0ca2a9e
+Author: bors <bors@rust-lang.org>
+Date:   Mon Dec 7 02:16:13 2015 +0000
+
+    Auto merge of #30247 - bluss:revert-array-clone, r=alexcrichton
+    
+    Revert "PR #30130 Implement `Clone` for more arrays"
+    
+    This reverts commit e22a64e8d8d4da46c74f878ce1c23ad1c88982e8.
+    
+    This caused a regression such that types like `[[u8; 256]; 4]`
+    no longer implemented Clone. This previously worked due to Clone
+    for `[T; N]` (N in 0 to 32) being implemented for T: Copy.
+    
+    Due to fixed size arrays not implementing Clone for sizes above 32,
+    the new implementation requiring T: Clone would not allow
+    `[[u8; 256]; 4]` to be Clone.
+    
+    Fixes #30244
+    
+    Due to changing back, this is technically a [breaking-change],
+    albeit for a behavior that existed for a very short time.
+rustc: ./regex-macros.0.1.30
+cd regex_macros && cargo rustc -- -Ztime-passes
+   Compiling regex_macros v0.1.17 (file:///root/benchmarks/regex-macros.0.1.30/regex_macros)
+time: 0.002; rss: 29MB	parsing
+time: 0.001; rss: 33MB	configuration 1
+time: 0.000; rss: 33MB	recursion limit
+time: 0.000; rss: 33MB	gated macro checking
+time: 0.000; rss: 33MB	crate injection
+time: 0.002; rss: 37MB	macro loading
+time: 0.000; rss: 37MB	plugin loading
+time: 0.000; rss: 37MB	plugin registration
+time: 0.035; rss: 45MB	expansion
+time: 0.001; rss: 45MB	complete gated feature checking 1
+time: 0.011; rss: 45MB	configuration 2
+time: 0.000; rss: 45MB	gated configuration checking
+time: 0.005; rss: 45MB	maybe building test harness
+time: 0.005; rss: 45MB	prelude injection
+time: 0.000; rss: 45MB	checking that all macro invocations are gone
+time: 0.000; rss: 45MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 45MB	complete gated feature checking 2
+time: 0.005; rss: 45MB	assigning node ids
+time: 0.004; rss: 49MB	lowering ast -> hir
+time: 0.001; rss: 51MB	indexing hir
+time: 0.000; rss: 51MB	attribute checking
+time: 0.003; rss: 51MB	early lint checks
+time: 0.048; rss: 89MB	external crate/lib resolution
+time: 0.001; rss: 89MB	language item collection
+makefile:2: recipe for target 'all' failed
+done
