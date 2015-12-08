@@ -1,0 +1,83 @@
+commit acf4e0be22203213a5e42469deea4dc6e49da840
+Merge: 8864f2c ca88e9c
+Author: bors <bors@rust-lang.org>
+Date:   Mon Dec 7 22:28:45 2015 +0000
+
+    Auto merge of #30087 - petrochenkov:indi, r=nrc
+    
+    I've measured the time/memory consumption before and after - the difference is lost in statistical noise, so it's mostly a code simplification.
+    Sizes of `enum`s are not affected.
+    
+    r? @nrc
+    
+    I wonder if AST/HIR visitors could run faster if `P`s are systematically removed (except for cases where they control `enum` sizes). Theoretically they should.
+    Remaining unnecessary `P`s can't be easily removed because many folders accept `P<X>`s as arguments, but these folders can be converted to accept `X`s instead without loss of efficiency.
+    When I have a mood for some mindless refactoring again, I'll probably try to convert the folders, remove remaining `P`s and measure again.
+rustc: ./regex.0.1.30
+cargo rustc -- -Ztime-passes
+    Updating registry `https://github.com/rust-lang/crates.io-index`
+   Compiling regex v0.1.30 (file:///root/benchmarks/regex.0.1.30)
+time: 0.055; rss: 46MB	parsing
+time: 0.011; rss: 46MB	configuration 1
+time: 0.000; rss: 46MB	recursion limit
+time: 0.001; rss: 46MB	gated macro checking
+time: 0.000; rss: 46MB	crate injection
+time: 0.003; rss: 50MB	macro loading
+time: 0.000; rss: 50MB	plugin loading
+time: 0.000; rss: 50MB	plugin registration
+time: 0.059; rss: 52MB	expansion
+time: 0.001; rss: 52MB	complete gated feature checking 1
+time: 0.013; rss: 52MB	configuration 2
+time: 0.000; rss: 52MB	gated configuration checking
+time: 0.007; rss: 52MB	maybe building test harness
+time: 0.006; rss: 52MB	prelude injection
+time: 0.000; rss: 52MB	checking that all macro invocations are gone
+time: 0.000; rss: 52MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 52MB	complete gated feature checking 2
+time: 0.007; rss: 52MB	assigning node ids
+time: 0.007; rss: 61MB	lowering ast -> hir
+time: 0.002; rss: 63MB	indexing hir
+time: 0.000; rss: 63MB	attribute checking
+time: 0.004; rss: 63MB	early lint checks
+time: 0.001; rss: 63MB	external crate/lib resolution
+time: 0.001; rss: 63MB	language item collection
+time: 0.010; rss: 71MB	resolution
+time: 0.001; rss: 71MB	lifetime resolution
+time: 0.000; rss: 71MB	looking for entry point
+time: 0.000; rss: 71MB	looking for plugin registrar
+time: 0.005; rss: 75MB	region resolution
+time: 0.001; rss: 75MB	loop checking
+time: 0.001; rss: 75MB	static item recursion checking
+time: 0.004; rss: 75MB	type collecting
+time: 0.000; rss: 75MB	variance inference
+time: 0.022; rss: 96MB	coherence checking
+time: 0.005; rss: 96MB	wf checking (old)
+time: 0.089; rss: 100MB	item-types checking
+time: 0.207; rss: 108MB	item-bodies checking
+time: 0.000; rss: 108MB	drop-impl checking
+time: 0.011; rss: 108MB	wf checking (new)
+time: 0.026; rss: 116MB	const checking
+time: 0.004; rss: 116MB	privacy checking
+time: 0.000; rss: 116MB	stability index
+time: 0.001; rss: 116MB	intrinsic checking
+time: 0.001; rss: 116MB	effect checking
+time: 0.003; rss: 116MB	match checking
+time: 0.015; rss: 116MB	MIR dump
+time: 0.003; rss: 118MB	liveness checking
+time: 0.020; rss: 118MB	borrow checking
+time: 0.007; rss: 118MB	rvalue checking
+time: 0.000; rss: 118MB	reachability checking
+time: 0.002; rss: 118MB	death checking
+time: 0.002; rss: 118MB	stability checking
+time: 0.000; rss: 118MB	unused lib feature checking
+time: 0.028; rss: 118MB	lint checking
+time: 0.000; rss: 118MB	resolving dependency formats
+time: 0.002; rss: 118MB	erasing regions from MIR
+time: 0.656; rss: 185MB	translation
+  time: 0.038; rss: 114MB	llvm function passes [0]
+  time: 0.020; rss: 115MB	llvm module passes [0]
+  time: 0.622; rss: 141MB	codegen passes [0]
+  time: 0.001; rss: 128MB	codegen passes [0]
+time: 0.760; rss: 128MB	LLVM passes
+time: 0.067; rss: 127MB	linking
+done
