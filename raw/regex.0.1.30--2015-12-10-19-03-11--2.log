@@ -1,0 +1,91 @@
+commit 7ce713961cb7c36bb66db70a276973eb78cf9e6e
+Merge: 0d36840 5addc31
+Author: bors <bors@rust-lang.org>
+Date:   Fri Dec 11 00:59:48 2015 +0000
+
+    Auto merge of #30301 - michaelwoerister:mir-to-metadata2, r=nikomatsakis
+    
+    This PR makes `Mir` `RustcEncodable` and `RustcDecodable` and stores it in crate metadata for inlinable items.
+    
+    Some other things in here:
+    - `mir::visit::Visitor` is extended to also visit `Literals`, `Spans` and `DefIds`.
+    - It also adds `mir::visit::MutVisitor` which allows to mutate the visited `Mir` structure in place.
+    - Some numbers on how big MIR is in metadata (total metadata size in bytes):
+    
+    |                | w/ MIR     | w/o MIR     | Rel. Size |
+    |----------------|-----------:|------------:|:---------:|
+    | libcore        | 17,695,473 |  14,263,377 |  124%     |
+    | liblibc        | 411,440   |  404,382    | 102%      |
+    | libcollections |  4,537,975 |   3,526,933 |   129%    |
+    | libserialize   |  2,574,769 |   2,060,798 |   125%    |
+    | libsyntax      | 15,262,894 |  12,075,574 |  126%     |
+    | librustc       | 16,984,537 |  13,692,168 |  124%     |
+    
+    So, adding MIR to metadata makes it about 25% bigger. It could be worse, considering that it still uses the inefficient RBML encoding. Still, the question is whether we should put MIR emission behind a `-Z` flag.
+rustc: ./regex.0.1.30
+cargo rustc -- -Ztime-passes
+   Compiling regex v0.1.30 (file:///root/benchmarks/regex.0.1.30)
+time: 0.056; rss: 47MB	parsing
+time: 0.011; rss: 47MB	configuration 1
+time: 0.000; rss: 47MB	recursion limit
+time: 0.001; rss: 47MB	gated macro checking
+time: 0.000; rss: 47MB	crate injection
+time: 0.003; rss: 50MB	macro loading
+time: 0.000; rss: 50MB	plugin loading
+time: 0.000; rss: 50MB	plugin registration
+time: 0.060; rss: 53MB	expansion
+time: 0.001; rss: 53MB	complete gated feature checking 1
+time: 0.013; rss: 53MB	configuration 2
+time: 0.000; rss: 53MB	gated configuration checking
+time: 0.006; rss: 53MB	maybe building test harness
+time: 0.006; rss: 53MB	prelude injection
+time: 0.000; rss: 53MB	checking that all macro invocations are gone
+time: 0.000; rss: 53MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 53MB	complete gated feature checking 2
+time: 0.007; rss: 53MB	assigning node ids
+time: 0.009; rss: 61MB	lowering ast -> hir
+time: 0.002; rss: 63MB	indexing hir
+time: 0.000; rss: 63MB	attribute checking
+time: 0.004; rss: 63MB	early lint checks
+time: 0.001; rss: 63MB	external crate/lib resolution
+time: 0.001; rss: 63MB	language item collection
+time: 0.009; rss: 72MB	resolution
+time: 0.001; rss: 72MB	lifetime resolution
+time: 0.000; rss: 72MB	looking for entry point
+time: 0.000; rss: 72MB	looking for plugin registrar
+time: 0.005; rss: 77MB	region resolution
+time: 0.001; rss: 77MB	loop checking
+time: 0.001; rss: 77MB	static item recursion checking
+time: 0.004; rss: 80MB	type collecting
+time: 0.000; rss: 80MB	variance inference
+time: 0.021; rss: 97MB	coherence checking
+time: 0.005; rss: 97MB	wf checking (old)
+time: 0.089; rss: 103MB	item-types checking
+time: 0.209; rss: 117MB	item-bodies checking
+time: 0.000; rss: 117MB	drop-impl checking
+time: 0.011; rss: 117MB	wf checking (new)
+time: 0.027; rss: 119MB	const checking
+time: 0.004; rss: 119MB	privacy checking
+time: 0.000; rss: 119MB	stability index
+time: 0.001; rss: 119MB	intrinsic checking
+time: 0.001; rss: 119MB	effect checking
+time: 0.003; rss: 119MB	match checking
+time: 0.015; rss: 121MB	MIR dump
+time: 0.003; rss: 124MB	liveness checking
+time: 0.020; rss: 124MB	borrow checking
+time: 0.007; rss: 124MB	rvalue checking
+time: 0.000; rss: 124MB	reachability checking
+time: 0.002; rss: 124MB	death checking
+time: 0.002; rss: 124MB	stability checking
+time: 0.000; rss: 124MB	unused lib feature checking
+time: 0.028; rss: 124MB	lint checking
+time: 0.000; rss: 124MB	resolving dependency formats
+time: 0.002; rss: 124MB	erasing regions from MIR
+time: 0.674; rss: 189MB	translation
+  time: 0.038; rss: 120MB	llvm function passes [0]
+  time: 0.020; rss: 120MB	llvm module passes [0]
+  time: 0.624; rss: 147MB	codegen passes [0]
+  time: 0.001; rss: 134MB	codegen passes [0]
+time: 0.764; rss: 134MB	LLVM passes
+time: 0.067; rss: 132MB	linking
+done
