@@ -1,0 +1,2664 @@
+commit 6734dccc3149d62d36a41979424e61dce4473267
+Merge: 9687a8a ba20a86
+Author: bors <bors@rust-lang.org>
+Date:   Thu Dec 17 18:21:25 2015 +0000
+
+    Auto merge of #30325 - jseyfried:fixes_30078, r=nrc
+    
+    This fixes a bug in which unused imports can get wrongly marked as used when checking for unused qualifications in `resolve_path` (issue #30078), and it removes unused imports that were previously undetected because of the bug.
+cfg: version 1.7.0-dev (6734dccc3 2015-12-17)
+cfg: build triple x86_64-unknown-linux-gnu
+cfg: host triples x86_64-unknown-linux-gnu
+cfg: target triples x86_64-unknown-linux-gnu
+cfg: host for x86_64-unknown-linux-gnu is x86_64
+cfg: os for x86_64-unknown-linux-gnu is unknown-linux-gnu
+cfg: good valgrind for x86_64-unknown-linux-gnu is 1
+cfg: using CC=gcc (CFG_CC)
+cfg: disabling valgrind run-pass tests
+rustc: x86_64-unknown-linux-gnu/stage0/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_trans
+rustc: x86_64-unknown-linux-gnu/stage0/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_driver
+rustc: x86_64-unknown-linux-gnu/stage0/lib/rustlib/x86_64-unknown-linux-gnu/bin/rustc
+cp: x86_64-unknown-linux-gnu/stage1/lib/librustc_trans
+cp: x86_64-unknown-linux-gnu/stage1/lib/librustc_driver
+cp: x86_64-unknown-linux-gnu/stage1/bin/rustc
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/libcore
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/liblibc
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librand
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/liballoc_system
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/liballoc
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_unicode
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/libcollections
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/liballoc_jemalloc
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/libstd
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/libarena
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/libflate
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/libgetopts
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/libgraphviz
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/liblog
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/libterm
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/libserialize
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_bitflags
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/libsyntax
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/libfmt_macros
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librbml
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_front
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_llvm
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_back
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_data_structures
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_borrowck
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_platform_intrinsics
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_typeck
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_mir
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_resolve
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_trans
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_privacy
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_lint
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_metadata
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_plugin
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/libsyntax_ext
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_driver
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/bin/rustc
+cp: x86_64-unknown-linux-gnu/stage2/lib/libstd
+cp: x86_64-unknown-linux-gnu/stage2/lib/libarena
+cp: x86_64-unknown-linux-gnu/stage2/lib/libflate
+cp: x86_64-unknown-linux-gnu/stage2/lib/libgetopts
+cp: x86_64-unknown-linux-gnu/stage2/lib/libgraphviz
+cp: x86_64-unknown-linux-gnu/stage2/lib/liblog
+cp: x86_64-unknown-linux-gnu/stage2/lib/libterm
+cp: x86_64-unknown-linux-gnu/stage2/lib/libserialize
+cp: x86_64-unknown-linux-gnu/stage2/lib/libsyntax
+cp: x86_64-unknown-linux-gnu/stage2/lib/libfmt_macros
+cp: x86_64-unknown-linux-gnu/stage2/lib/librbml
+cp: x86_64-unknown-linux-gnu/stage2/lib/librustc_front
+cp: x86_64-unknown-linux-gnu/stage2/lib/librustc_llvm
+cp: x86_64-unknown-linux-gnu/stage2/lib/librustc_back
+cp: x86_64-unknown-linux-gnu/stage2/lib/librustc_data_structures
+cp: x86_64-unknown-linux-gnu/stage2/lib/librustc
+cp: x86_64-unknown-linux-gnu/stage2/lib/librustc_borrowck
+cp: x86_64-unknown-linux-gnu/stage2/lib/librustc_platform_intrinsics
+cp: x86_64-unknown-linux-gnu/stage2/lib/librustc_typeck
+cp: x86_64-unknown-linux-gnu/stage2/lib/librustc_mir
+cp: x86_64-unknown-linux-gnu/stage2/lib/librustc_resolve
+cp: x86_64-unknown-linux-gnu/stage2/lib/librustc_trans
+cp: x86_64-unknown-linux-gnu/stage2/lib/librustc_privacy
+cp: x86_64-unknown-linux-gnu/stage2/lib/librustc_lint
+cp: x86_64-unknown-linux-gnu/stage2/lib/librustc_metadata
+cp: x86_64-unknown-linux-gnu/stage2/lib/librustc_plugin
+cp: x86_64-unknown-linux-gnu/stage2/lib/libsyntax_ext
+cp: x86_64-unknown-linux-gnu/stage2/lib/librustc_driver
+cp: x86_64-unknown-linux-gnu/stage2/bin/rustc
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/libtest
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustdoc
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/bin/rustdoc
+cp: x86_64-unknown-linux-gnu/stage2/lib/libtest
+cp: x86_64-unknown-linux-gnu/stage2/lib/librustdoc
+cp: x86_64-unknown-linux-gnu/stage2/bin/rustdoc
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/libcore
+time: 0.077; rss: 55MB	parsing
+time: 0.029; rss: 57MB	configuration 1
+time: 0.000; rss: 57MB	recursion limit
+time: 0.002; rss: 57MB	gated macro checking
+time: 0.000; rss: 57MB	crate injection
+time: 0.001; rss: 57MB	macro loading
+time: 0.000; rss: 57MB	plugin loading
+time: 0.000; rss: 57MB	plugin registration
+time: 0.505; rss: 87MB	expansion
+time: 0.012; rss: 87MB	complete gated feature checking 1
+time: 0.122; rss: 87MB	configuration 2
+time: 0.000; rss: 87MB	gated configuration checking
+time: 0.056; rss: 87MB	maybe building test harness
+time: 0.000; rss: 87MB	prelude injection
+time: 0.005; rss: 87MB	checking that all macro invocations are gone
+time: 0.000; rss: 87MB	checking for inline asm in case the target doesn't support it
+time: 0.012; rss: 87MB	complete gated feature checking 2
+time: 0.053; rss: 87MB	assigning node ids
+time: 0.050; rss: 121MB	lowering ast -> hir
+time: 0.024; rss: 136MB	indexing hir
+time: 0.000; rss: 136MB	attribute checking
+time: 0.020; rss: 136MB	early lint checks
+time: 0.000; rss: 136MB	external crate/lib resolution
+time: 0.004; rss: 136MB	language item collection
+time: 0.063; rss: 155MB	resolution
+time: 0.010; rss: 155MB	lifetime resolution
+time: 0.000; rss: 155MB	looking for entry point
+time: 0.000; rss: 155MB	looking for plugin registrar
+time: 0.026; rss: 161MB	region resolution
+time: 0.004; rss: 161MB	loop checking
+time: 0.003; rss: 161MB	static item recursion checking
+time: 0.074; rss: 174MB	type collecting
+time: 0.001; rss: 174MB	variance inference
+time: 0.331; rss: 174MB	coherence checking
+time: 0.420; rss: 178MB	wf checking (old)
+time: 0.577; rss: 183MB	item-types checking
+time: 3.587; rss: 214MB	item-bodies checking
+time: 0.000; rss: 214MB	drop-impl checking
+time: 0.756; rss: 214MB	wf checking (new)
+time: 0.152; rss: 216MB	const checking
+time: 0.051; rss: 216MB	privacy checking
+time: 0.009; rss: 216MB	stability index
+time: 0.033; rss: 216MB	intrinsic checking
+time: 0.010; rss: 216MB	effect checking
+time: 0.054; rss: 216MB	match checking
+time: 0.188; rss: 235MB	MIR dump
+time: 0.022; rss: 235MB	liveness checking
+time: 0.301; rss: 235MB	borrow checking
+time: 0.155; rss: 235MB	rvalue checking
+time: 0.082; rss: 237MB	reachability checking
+time: 0.030; rss: 237MB	death checking
+time: 0.030; rss: 237MB	stability checking
+time: 0.000; rss: 237MB	unused lib feature checking
+time: 0.495; rss: 237MB	lint checking
+time: 0.000; rss: 237MB	resolving dependency formats
+time: 0.021; rss: 239MB	erasing regions from MIR
+time: 1.492; rss: 314MB	translation
+  time: 0.184; rss: 119MB	llvm function passes [0]
+  time: 1.890; rss: 122MB	llvm module passes [0]
+  time: 1.522; rss: 126MB	codegen passes [0]
+  time: 0.003; rss: 120MB	codegen passes [0]
+time: 3.669; rss: 120MB	LLVM passes
+time: 0.055; rss: 119MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/liblibc
+time: 0.002; rss: 35MB	parsing
+time: 0.000; rss: 35MB	configuration 1
+time: 0.000; rss: 35MB	recursion limit
+time: 0.000; rss: 35MB	gated macro checking
+time: 0.000; rss: 35MB	crate injection
+time: 0.001; rss: 35MB	macro loading
+time: 0.000; rss: 35MB	plugin loading
+time: 0.000; rss: 35MB	plugin registration
+time: 0.121; rss: 46MB	expansion
+time: 0.001; rss: 46MB	complete gated feature checking 1
+time: 0.005; rss: 43MB	configuration 2
+time: 0.000; rss: 43MB	gated configuration checking
+time: 0.001; rss: 43MB	maybe building test harness
+time: 0.001; rss: 43MB	prelude injection
+time: 0.000; rss: 43MB	checking that all macro invocations are gone
+time: 0.000; rss: 43MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 43MB	complete gated feature checking 2
+time: 0.001; rss: 43MB	assigning node ids
+time: 0.001; rss: 44MB	lowering ast -> hir
+time: 0.001; rss: 45MB	indexing hir
+time: 0.000; rss: 45MB	attribute checking
+time: 0.001; rss: 45MB	early lint checks
+time: 0.000; rss: 45MB	external crate/lib resolution
+time: 0.000; rss: 45MB	language item collection
+time: 0.004; rss: 49MB	resolution
+time: 0.000; rss: 49MB	lifetime resolution
+time: 0.000; rss: 49MB	looking for entry point
+time: 0.000; rss: 49MB	looking for plugin registrar
+time: 0.000; rss: 49MB	region resolution
+time: 0.000; rss: 49MB	loop checking
+time: 0.000; rss: 49MB	static item recursion checking
+time: 0.002; rss: 52MB	type collecting
+time: 0.000; rss: 52MB	variance inference
+time: 0.004; rss: 58MB	coherence checking
+time: 0.004; rss: 58MB	wf checking (old)
+time: 0.012; rss: 63MB	item-types checking
+time: 0.018; rss: 67MB	item-bodies checking
+time: 0.000; rss: 67MB	drop-impl checking
+time: 0.004; rss: 67MB	wf checking (new)
+time: 0.001; rss: 67MB	const checking
+time: 0.001; rss: 67MB	privacy checking
+time: 0.000; rss: 67MB	stability index
+time: 0.000; rss: 67MB	intrinsic checking
+time: 0.000; rss: 67MB	effect checking
+time: 0.000; rss: 67MB	match checking
+time: 0.001; rss: 68MB	MIR dump
+time: 0.000; rss: 68MB	liveness checking
+time: 0.001; rss: 68MB	borrow checking
+time: 0.000; rss: 68MB	rvalue checking
+time: 0.000; rss: 68MB	reachability checking
+time: 0.001; rss: 68MB	death checking
+time: 0.000; rss: 68MB	stability checking
+time: 0.000; rss: 68MB	unused lib feature checking
+time: 0.004; rss: 68MB	lint checking
+time: 0.000; rss: 68MB	resolving dependency formats
+time: 0.000; rss: 68MB	erasing regions from MIR
+time: 0.036; rss: 81MB	translation
+  time: 0.002; rss: 72MB	llvm function passes [0]
+  time: 0.011; rss: 74MB	llvm module passes [0]
+  time: 0.015; rss: 78MB	codegen passes [0]
+  time: 0.000; rss: 77MB	codegen passes [0]
+time: 0.030; rss: 77MB	LLVM passes
+time: 0.001; rss: 78MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/librand
+time: 0.011; rss: 38MB	parsing
+time: 0.003; rss: 39MB	configuration 1
+time: 0.000; rss: 39MB	recursion limit
+time: 0.000; rss: 39MB	gated macro checking
+time: 0.000; rss: 39MB	crate injection
+time: 0.001; rss: 39MB	macro loading
+time: 0.000; rss: 39MB	plugin loading
+time: 0.000; rss: 39MB	plugin registration
+time: 0.022; rss: 41MB	expansion
+time: 0.000; rss: 41MB	complete gated feature checking 1
+time: 0.005; rss: 41MB	configuration 2
+time: 0.000; rss: 41MB	gated configuration checking
+time: 0.002; rss: 41MB	maybe building test harness
+time: 0.002; rss: 42MB	prelude injection
+time: 0.000; rss: 42MB	checking that all macro invocations are gone
+time: 0.000; rss: 42MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 42MB	complete gated feature checking 2
+time: 0.002; rss: 42MB	assigning node ids
+time: 0.002; rss: 44MB	lowering ast -> hir
+time: 0.001; rss: 44MB	indexing hir
+time: 0.000; rss: 44MB	attribute checking
+time: 0.001; rss: 44MB	early lint checks
+time: 0.000; rss: 44MB	external crate/lib resolution
+time: 0.000; rss: 44MB	language item collection
+time: 0.005; rss: 53MB	resolution
+time: 0.000; rss: 53MB	lifetime resolution
+time: 0.000; rss: 53MB	looking for entry point
+time: 0.000; rss: 53MB	looking for plugin registrar
+time: 0.001; rss: 53MB	region resolution
+time: 0.000; rss: 53MB	loop checking
+time: 0.000; rss: 53MB	static item recursion checking
+time: 0.003; rss: 53MB	type collecting
+time: 0.000; rss: 53MB	variance inference
+time: 0.008; rss: 63MB	coherence checking
+time: 0.007; rss: 63MB	wf checking (old)
+time: 0.016; rss: 65MB	item-types checking
+time: 0.262; rss: 78MB	item-bodies checking
+time: 0.000; rss: 78MB	drop-impl checking
+time: 0.015; rss: 78MB	wf checking (new)
+time: 0.009; rss: 78MB	const checking
+time: 0.001; rss: 78MB	privacy checking
+time: 0.000; rss: 78MB	stability index
+time: 0.001; rss: 78MB	intrinsic checking
+time: 0.000; rss: 78MB	effect checking
+time: 0.002; rss: 78MB	match checking
+time: 0.011; rss: 80MB	MIR dump
+time: 0.001; rss: 80MB	liveness checking
+time: 0.019; rss: 80MB	borrow checking
+time: 0.007; rss: 80MB	rvalue checking
+time: 0.000; rss: 80MB	reachability checking
+time: 0.001; rss: 80MB	death checking
+time: 0.001; rss: 80MB	stability checking
+time: 0.000; rss: 80MB	unused lib feature checking
+time: 0.020; rss: 80MB	lint checking
+time: 0.000; rss: 80MB	resolving dependency formats
+time: 0.001; rss: 80MB	erasing regions from MIR
+time: 0.127; rss: 101MB	translation
+  time: 0.021; rss: 80MB	llvm function passes [0]
+  time: 0.145; rss: 80MB	llvm module passes [0]
+  time: 0.053; rss: 85MB	codegen passes [0]
+  time: 0.001; rss: 85MB	codegen passes [0]
+time: 0.223; rss: 85MB	LLVM passes
+time: 0.003; rss: 85MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/liballoc_system
+time: 0.001; rss: 30MB	parsing
+time: 0.000; rss: 35MB	configuration 1
+time: 0.000; rss: 35MB	recursion limit
+time: 0.000; rss: 35MB	gated macro checking
+time: 0.000; rss: 35MB	crate injection
+time: 0.001; rss: 35MB	macro loading
+time: 0.000; rss: 35MB	plugin loading
+time: 0.000; rss: 35MB	plugin registration
+time: 0.001; rss: 37MB	expansion
+time: 0.000; rss: 37MB	complete gated feature checking 1
+time: 0.000; rss: 37MB	configuration 2
+time: 0.000; rss: 37MB	gated configuration checking
+time: 0.000; rss: 37MB	maybe building test harness
+time: 0.000; rss: 37MB	prelude injection
+time: 0.000; rss: 37MB	checking that all macro invocations are gone
+time: 0.000; rss: 37MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 37MB	complete gated feature checking 2
+time: 0.000; rss: 37MB	assigning node ids
+time: 0.000; rss: 37MB	lowering ast -> hir
+time: 0.000; rss: 37MB	indexing hir
+time: 0.000; rss: 37MB	attribute checking
+time: 0.000; rss: 37MB	early lint checks
+time: 0.000; rss: 37MB	external crate/lib resolution
+time: 0.000; rss: 37MB	language item collection
+time: 0.002; rss: 41MB	resolution
+time: 0.000; rss: 41MB	lifetime resolution
+time: 0.000; rss: 41MB	looking for entry point
+time: 0.000; rss: 41MB	looking for plugin registrar
+time: 0.000; rss: 41MB	region resolution
+time: 0.000; rss: 41MB	loop checking
+time: 0.000; rss: 41MB	static item recursion checking
+time: 0.000; rss: 41MB	type collecting
+time: 0.000; rss: 41MB	variance inference
+time: 0.001; rss: 45MB	coherence checking
+time: 0.000; rss: 45MB	wf checking (old)
+time: 0.000; rss: 45MB	item-types checking
+time: 0.010; rss: 56MB	item-bodies checking
+time: 0.000; rss: 56MB	drop-impl checking
+time: 0.000; rss: 56MB	wf checking (new)
+time: 0.001; rss: 56MB	const checking
+time: 0.000; rss: 56MB	privacy checking
+time: 0.000; rss: 56MB	stability index
+time: 0.000; rss: 56MB	intrinsic checking
+time: 0.000; rss: 56MB	effect checking
+time: 0.000; rss: 56MB	match checking
+time: 0.000; rss: 56MB	MIR dump
+time: 0.000; rss: 56MB	liveness checking
+time: 0.000; rss: 56MB	borrow checking
+time: 0.000; rss: 56MB	rvalue checking
+time: 0.000; rss: 56MB	reachability checking
+time: 0.000; rss: 56MB	death checking
+time: 0.000; rss: 56MB	stability checking
+time: 0.000; rss: 56MB	unused lib feature checking
+time: 0.000; rss: 56MB	lint checking
+time: 0.000; rss: 56MB	resolving dependency formats
+time: 0.000; rss: 56MB	erasing regions from MIR
+time: 0.004; rss: 67MB	translation
+  time: 0.001; rss: 67MB	llvm function passes [0]
+  time: 0.003; rss: 67MB	llvm module passes [0]
+  time: 0.003; rss: 72MB	codegen passes [0]
+  time: 0.000; rss: 72MB	codegen passes [0]
+time: 0.009; rss: 72MB	LLVM passes
+time: 0.001; rss: 72MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/liballoc
+time: 0.010; rss: 33MB	parsing
+time: 0.004; rss: 37MB	configuration 1
+time: 0.000; rss: 37MB	recursion limit
+time: 0.000; rss: 37MB	gated macro checking
+time: 0.000; rss: 37MB	crate injection
+time: 0.001; rss: 37MB	macro loading
+time: 0.000; rss: 37MB	plugin loading
+time: 0.000; rss: 37MB	plugin registration
+time: 0.010; rss: 39MB	expansion
+time: 0.000; rss: 39MB	complete gated feature checking 1
+time: 0.003; rss: 39MB	configuration 2
+time: 0.000; rss: 39MB	gated configuration checking
+time: 0.001; rss: 39MB	maybe building test harness
+time: 0.001; rss: 39MB	prelude injection
+time: 0.000; rss: 39MB	checking that all macro invocations are gone
+time: 0.000; rss: 39MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 39MB	complete gated feature checking 2
+time: 0.001; rss: 39MB	assigning node ids
+time: 0.001; rss: 41MB	lowering ast -> hir
+time: 0.001; rss: 43MB	indexing hir
+time: 0.000; rss: 43MB	attribute checking
+time: 0.001; rss: 43MB	early lint checks
+time: 0.000; rss: 43MB	external crate/lib resolution
+time: 0.000; rss: 43MB	language item collection
+time: 0.005; rss: 49MB	resolution
+time: 0.000; rss: 49MB	lifetime resolution
+time: 0.000; rss: 49MB	looking for entry point
+time: 0.000; rss: 49MB	looking for plugin registrar
+time: 0.001; rss: 49MB	region resolution
+time: 0.000; rss: 49MB	loop checking
+time: 0.000; rss: 49MB	static item recursion checking
+time: 0.003; rss: 53MB	type collecting
+time: 0.000; rss: 53MB	variance inference
+time: 0.019; rss: 67MB	coherence checking
+time: 0.005; rss: 67MB	wf checking (old)
+time: 0.003; rss: 67MB	item-types checking
+time: 0.056; rss: 70MB	item-bodies checking
+time: 0.000; rss: 70MB	drop-impl checking
+time: 0.008; rss: 70MB	wf checking (new)
+time: 0.005; rss: 70MB	const checking
+time: 0.001; rss: 70MB	privacy checking
+time: 0.000; rss: 70MB	stability index
+time: 0.001; rss: 70MB	intrinsic checking
+time: 0.000; rss: 70MB	effect checking
+time: 0.001; rss: 70MB	match checking
+time: 0.005; rss: 70MB	MIR dump
+time: 0.000; rss: 70MB	liveness checking
+time: 0.008; rss: 72MB	borrow checking
+time: 0.004; rss: 72MB	rvalue checking
+time: 0.000; rss: 72MB	reachability checking
+time: 0.000; rss: 72MB	death checking
+time: 0.001; rss: 72MB	stability checking
+time: 0.000; rss: 72MB	unused lib feature checking
+time: 0.007; rss: 72MB	lint checking
+time: 0.000; rss: 72MB	resolving dependency formats
+time: 0.001; rss: 72MB	erasing regions from MIR
+time: 0.049; rss: 85MB	translation
+  time: 0.002; rss: 74MB	llvm function passes [0]
+  time: 0.007; rss: 76MB	llvm module passes [0]
+  time: 0.005; rss: 79MB	codegen passes [0]
+  time: 0.000; rss: 79MB	codegen passes [0]
+time: 0.016; rss: 79MB	LLVM passes
+time: 0.001; rss: 79MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_unicode
+time: 0.037; rss: 42MB	parsing
+time: 0.007; rss: 42MB	configuration 1
+time: 0.000; rss: 42MB	recursion limit
+time: 0.000; rss: 42MB	gated macro checking
+time: 0.000; rss: 42MB	crate injection
+time: 0.001; rss: 44MB	macro loading
+time: 0.000; rss: 44MB	plugin loading
+time: 0.000; rss: 44MB	plugin registration
+time: 0.031; rss: 46MB	expansion
+time: 0.000; rss: 46MB	complete gated feature checking 1
+time: 0.007; rss: 46MB	configuration 2
+time: 0.000; rss: 46MB	gated configuration checking
+time: 0.003; rss: 46MB	maybe building test harness
+time: 0.003; rss: 46MB	prelude injection
+time: 0.000; rss: 46MB	checking that all macro invocations are gone
+time: 0.000; rss: 46MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 46MB	complete gated feature checking 2
+time: 0.003; rss: 46MB	assigning node ids
+time: 0.004; rss: 51MB	lowering ast -> hir
+time: 0.001; rss: 52MB	indexing hir
+time: 0.000; rss: 52MB	attribute checking
+time: 0.002; rss: 52MB	early lint checks
+time: 0.000; rss: 52MB	external crate/lib resolution
+time: 0.000; rss: 52MB	language item collection
+time: 0.002; rss: 58MB	resolution
+time: 0.000; rss: 58MB	lifetime resolution
+time: 0.000; rss: 58MB	looking for entry point
+time: 0.000; rss: 58MB	looking for plugin registrar
+time: 0.003; rss: 60MB	region resolution
+time: 0.000; rss: 60MB	loop checking
+time: 0.000; rss: 60MB	static item recursion checking
+time: 0.001; rss: 60MB	type collecting
+time: 0.000; rss: 60MB	variance inference
+time: 0.006; rss: 67MB	coherence checking
+time: 0.003; rss: 67MB	wf checking (old)
+time: 0.051; rss: 69MB	item-types checking
+time: 0.033; rss: 77MB	item-bodies checking
+time: 0.000; rss: 77MB	drop-impl checking
+time: 0.003; rss: 77MB	wf checking (new)
+time: 0.013; rss: 77MB	const checking
+time: 0.002; rss: 77MB	privacy checking
+time: 0.000; rss: 77MB	stability index
+time: 0.000; rss: 77MB	intrinsic checking
+time: 0.000; rss: 77MB	effect checking
+time: 0.001; rss: 77MB	match checking
+time: 0.002; rss: 77MB	MIR dump
+time: 0.000; rss: 77MB	liveness checking
+time: 0.002; rss: 77MB	borrow checking
+time: 0.001; rss: 77MB	rvalue checking
+time: 0.000; rss: 77MB	reachability checking
+time: 0.000; rss: 77MB	death checking
+time: 0.000; rss: 77MB	stability checking
+time: 0.000; rss: 77MB	unused lib feature checking
+time: 0.015; rss: 77MB	lint checking
+time: 0.000; rss: 77MB	resolving dependency formats
+time: 0.000; rss: 77MB	erasing regions from MIR
+time: 0.197; rss: 107MB	translation
+  time: 0.012; rss: 77MB	llvm function passes [0]
+  time: 0.158; rss: 78MB	llvm module passes [0]
+  time: 0.069; rss: 82MB	codegen passes [0]
+  time: 0.001; rss: 82MB	codegen passes [0]
+time: 0.246; rss: 82MB	LLVM passes
+time: 0.006; rss: 82MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/libcollections
+time: 0.041; rss: 45MB	parsing
+time: 0.016; rss: 45MB	configuration 1
+time: 0.000; rss: 45MB	recursion limit
+time: 0.001; rss: 45MB	gated macro checking
+time: 0.000; rss: 45MB	crate injection
+time: 0.001; rss: 45MB	macro loading
+time: 0.000; rss: 45MB	plugin loading
+time: 0.000; rss: 45MB	plugin registration
+time: 0.080; rss: 49MB	expansion
+time: 0.003; rss: 49MB	complete gated feature checking 1
+time: 0.020; rss: 49MB	configuration 2
+time: 0.000; rss: 49MB	gated configuration checking
+time: 0.009; rss: 49MB	maybe building test harness
+time: 0.009; rss: 49MB	prelude injection
+time: 0.001; rss: 49MB	checking that all macro invocations are gone
+time: 0.000; rss: 49MB	checking for inline asm in case the target doesn't support it
+time: 0.002; rss: 49MB	complete gated feature checking 2
+time: 0.008; rss: 49MB	assigning node ids
+time: 0.010; rss: 55MB	lowering ast -> hir
+time: 0.004; rss: 59MB	indexing hir
+time: 0.000; rss: 59MB	attribute checking
+time: 0.004; rss: 59MB	early lint checks
+time: 0.001; rss: 60MB	external crate/lib resolution
+time: 0.001; rss: 60MB	language item collection
+time: 0.018; rss: 70MB	resolution
+time: 0.002; rss: 70MB	lifetime resolution
+time: 0.000; rss: 70MB	looking for entry point
+time: 0.000; rss: 70MB	looking for plugin registrar
+time: 0.004; rss: 75MB	region resolution
+time: 0.001; rss: 75MB	loop checking
+time: 0.000; rss: 75MB	static item recursion checking
+time: 0.013; rss: 75MB	type collecting
+time: 0.000; rss: 75MB	variance inference
+time: 0.048; rss: 89MB	coherence checking
+time: 0.049; rss: 93MB	wf checking (old)
+time: 0.037; rss: 93MB	item-types checking
+time: 0.955; rss: 108MB	item-bodies checking
+time: 0.000; rss: 108MB	drop-impl checking
+time: 0.115; rss: 108MB	wf checking (new)
+time: 0.060; rss: 108MB	const checking
+time: 0.007; rss: 108MB	privacy checking
+time: 0.001; rss: 108MB	stability index
+time: 0.006; rss: 108MB	intrinsic checking
+time: 0.002; rss: 108MB	effect checking
+time: 0.017; rss: 108MB	match checking
+time: 0.061; rss: 118MB	MIR dump
+time: 0.005; rss: 118MB	liveness checking
+time: 0.123; rss: 118MB	borrow checking
+time: 0.104; rss: 118MB	rvalue checking
+time: 0.004; rss: 118MB	reachability checking
+time: 0.005; rss: 118MB	death checking
+time: 0.006; rss: 118MB	stability checking
+time: 0.000; rss: 118MB	unused lib feature checking
+time: 0.128; rss: 118MB	lint checking
+time: 0.000; rss: 118MB	resolving dependency formats
+time: 0.007; rss: 118MB	erasing regions from MIR
+time: 0.424; rss: 161MB	translation
+  time: 0.036; rss: 92MB	llvm function passes [0]
+  time: 0.411; rss: 94MB	llvm module passes [0]
+  time: 0.150; rss: 97MB	codegen passes [0]
+  time: 0.001; rss: 96MB	codegen passes [0]
+time: 0.607; rss: 96MB	LLVM passes
+time: 0.012; rss: 96MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/liballoc_jemalloc
+time: 0.001; rss: 31MB	parsing
+time: 0.000; rss: 31MB	configuration 1
+time: 0.000; rss: 31MB	recursion limit
+time: 0.000; rss: 31MB	gated macro checking
+time: 0.000; rss: 31MB	crate injection
+time: 0.001; rss: 35MB	macro loading
+time: 0.000; rss: 35MB	plugin loading
+time: 0.000; rss: 35MB	plugin registration
+time: 0.001; rss: 35MB	expansion
+time: 0.000; rss: 35MB	complete gated feature checking 1
+time: 0.000; rss: 35MB	configuration 2
+time: 0.000; rss: 35MB	gated configuration checking
+time: 0.000; rss: 35MB	maybe building test harness
+time: 0.000; rss: 35MB	prelude injection
+time: 0.000; rss: 35MB	checking that all macro invocations are gone
+time: 0.000; rss: 35MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 35MB	complete gated feature checking 2
+time: 0.000; rss: 35MB	assigning node ids
+time: 0.000; rss: 35MB	lowering ast -> hir
+time: 0.000; rss: 35MB	indexing hir
+time: 0.000; rss: 35MB	attribute checking
+time: 0.000; rss: 35MB	early lint checks
+time: 0.000; rss: 35MB	external crate/lib resolution
+time: 0.000; rss: 35MB	language item collection
+time: 0.002; rss: 39MB	resolution
+time: 0.000; rss: 39MB	lifetime resolution
+time: 0.000; rss: 39MB	looking for entry point
+time: 0.000; rss: 39MB	looking for plugin registrar
+time: 0.000; rss: 39MB	region resolution
+time: 0.000; rss: 39MB	loop checking
+time: 0.000; rss: 39MB	static item recursion checking
+time: 0.000; rss: 43MB	type collecting
+time: 0.000; rss: 43MB	variance inference
+time: 0.001; rss: 43MB	coherence checking
+time: 0.000; rss: 43MB	wf checking (old)
+time: 0.000; rss: 43MB	item-types checking
+time: 0.009; rss: 54MB	item-bodies checking
+time: 0.000; rss: 54MB	drop-impl checking
+time: 0.000; rss: 54MB	wf checking (new)
+time: 0.000; rss: 54MB	const checking
+time: 0.000; rss: 54MB	privacy checking
+time: 0.000; rss: 54MB	stability index
+time: 0.000; rss: 54MB	intrinsic checking
+time: 0.000; rss: 54MB	effect checking
+time: 0.000; rss: 54MB	match checking
+time: 0.000; rss: 54MB	MIR dump
+time: 0.000; rss: 54MB	liveness checking
+time: 0.000; rss: 54MB	borrow checking
+time: 0.000; rss: 54MB	rvalue checking
+time: 0.000; rss: 54MB	reachability checking
+time: 0.000; rss: 54MB	death checking
+time: 0.000; rss: 54MB	stability checking
+time: 0.000; rss: 54MB	unused lib feature checking
+time: 0.000; rss: 54MB	lint checking
+time: 0.000; rss: 54MB	resolving dependency formats
+time: 0.000; rss: 54MB	erasing regions from MIR
+time: 0.004; rss: 65MB	translation
+  time: 0.001; rss: 65MB	llvm function passes [0]
+  time: 0.002; rss: 65MB	llvm module passes [0]
+  time: 0.003; rss: 70MB	codegen passes [0]
+  time: 0.000; rss: 70MB	codegen passes [0]
+time: 0.008; rss: 70MB	LLVM passes
+time: 0.002; rss: 70MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/libstd
+time: 0.163; rss: 75MB	parsing
+time: 0.056; rss: 71MB	configuration 1
+time: 0.000; rss: 71MB	recursion limit
+time: 0.003; rss: 71MB	gated macro checking
+time: 0.000; rss: 71MB	crate injection
+time: 0.004; rss: 73MB	macro loading
+time: 0.000; rss: 73MB	plugin loading
+time: 0.000; rss: 73MB	plugin registration
+time: 0.213; rss: 74MB	expansion
+time: 0.008; rss: 74MB	complete gated feature checking 1
+time: 0.057; rss: 74MB	configuration 2
+time: 0.000; rss: 74MB	gated configuration checking
+time: 0.026; rss: 74MB	maybe building test harness
+time: 0.025; rss: 74MB	prelude injection
+time: 0.004; rss: 74MB	checking that all macro invocations are gone
+time: 0.000; rss: 74MB	checking for inline asm in case the target doesn't support it
+time: 0.009; rss: 74MB	complete gated feature checking 2
+time: 0.024; rss: 74MB	assigning node ids
+time: 0.030; rss: 90MB	lowering ast -> hir
+time: 0.011; rss: 96MB	indexing hir
+time: 0.000; rss: 96MB	attribute checking
+time: 0.012; rss: 96MB	early lint checks
+time: 0.001; rss: 96MB	external crate/lib resolution
+time: 0.002; rss: 96MB	language item collection
+time: 0.052; rss: 128MB	resolution
+time: 0.005; rss: 128MB	lifetime resolution
+time: 0.000; rss: 128MB	looking for entry point
+time: 0.000; rss: 128MB	looking for plugin registrar
+time: 0.014; rss: 128MB	region resolution
+time: 0.002; rss: 128MB	loop checking
+time: 0.002; rss: 128MB	static item recursion checking
+time: 0.028; rss: 134MB	type collecting
+time: 0.001; rss: 134MB	variance inference
+time: 0.035; rss: 149MB	coherence checking
+time: 0.046; rss: 151MB	wf checking (old)
+time: 0.064; rss: 151MB	item-types checking
+time: 1.190; rss: 184MB	item-bodies checking
+time: 0.000; rss: 184MB	drop-impl checking
+time: 0.127; rss: 184MB	wf checking (new)
+time: 0.111; rss: 184MB	const checking
+time: 0.025; rss: 184MB	privacy checking
+time: 0.004; rss: 184MB	stability index
+time: 0.011; rss: 184MB	intrinsic checking
+time: 0.005; rss: 184MB	effect checking
+time: 0.027; rss: 184MB	match checking
+time: 0.120; rss: 202MB	MIR dump
+time: 0.014; rss: 202MB	liveness checking
+time: 0.205; rss: 202MB	borrow checking
+time: 0.141; rss: 202MB	rvalue checking
+time: 0.009; rss: 202MB	reachability checking
+time: 0.017; rss: 202MB	death checking
+time: 0.018; rss: 202MB	stability checking
+time: 0.000; rss: 202MB	unused lib feature checking
+time: 0.105; rss: 202MB	lint checking
+time: 0.000; rss: 202MB	resolving dependency formats
+time: 0.017; rss: 206MB	erasing regions from MIR
+time: 1.235; rss: 300MB	translation
+  time: 0.296; rss: 151MB	llvm function passes [0]
+  time: 3.848; rss: 158MB	llvm module passes [0]
+  time: 1.582; rss: 162MB	codegen passes [0]
+  time: 0.002; rss: 151MB	codegen passes [0]
+time: 5.842; rss: 151MB	LLVM passes
+  time: 0.001; rss: 151MB	altering collections-ca1c970e.rlib
+  time: 0.000; rss: 151MB	altering alloc-ca1c970e.rlib
+  time: 0.000; rss: 151MB	altering rustc_unicode-ca1c970e.rlib
+  time: 0.001; rss: 151MB	altering alloc_jemalloc-ca1c970e.rlib
+  time: 0.000; rss: 151MB	altering libc-ca1c970e.rlib
+  time: 0.000; rss: 151MB	altering rand-ca1c970e.rlib
+  time: 0.001; rss: 151MB	altering core-ca1c970e.rlib
+  time: 0.148; rss: 155MB	running linker
+time: 0.222; rss: 155MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/libflate
+time: 0.001; rss: 31MB	parsing
+time: 0.000; rss: 35MB	configuration 1
+time: 0.000; rss: 35MB	recursion limit
+time: 0.000; rss: 35MB	gated macro checking
+time: 0.000; rss: 35MB	crate injection
+time: 0.003; rss: 37MB	macro loading
+time: 0.000; rss: 37MB	plugin loading
+time: 0.000; rss: 37MB	plugin registration
+time: 0.002; rss: 37MB	expansion
+time: 0.000; rss: 37MB	complete gated feature checking 1
+time: 0.000; rss: 37MB	configuration 2
+time: 0.000; rss: 37MB	gated configuration checking
+time: 0.000; rss: 37MB	maybe building test harness
+time: 0.000; rss: 37MB	prelude injection
+time: 0.000; rss: 37MB	checking that all macro invocations are gone
+time: 0.000; rss: 37MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 37MB	complete gated feature checking 2
+time: 0.000; rss: 37MB	assigning node ids
+time: 0.000; rss: 37MB	lowering ast -> hir
+time: 0.000; rss: 37MB	indexing hir
+time: 0.000; rss: 37MB	attribute checking
+time: 0.000; rss: 37MB	early lint checks
+time: 0.001; rss: 37MB	external crate/lib resolution
+time: 0.000; rss: 37MB	language item collection
+time: 0.004; rss: 52MB	resolution
+time: 0.000; rss: 52MB	lifetime resolution
+time: 0.000; rss: 52MB	looking for entry point
+time: 0.000; rss: 52MB	looking for plugin registrar
+time: 0.000; rss: 52MB	region resolution
+time: 0.000; rss: 52MB	loop checking
+time: 0.000; rss: 52MB	static item recursion checking
+time: 0.001; rss: 52MB	type collecting
+time: 0.000; rss: 52MB	variance inference
+time: 0.023; rss: 74MB	coherence checking
+time: 0.001; rss: 74MB	wf checking (old)
+time: 0.001; rss: 74MB	item-types checking
+time: 0.007; rss: 74MB	item-bodies checking
+time: 0.000; rss: 74MB	drop-impl checking
+time: 0.001; rss: 74MB	wf checking (new)
+time: 0.001; rss: 74MB	const checking
+time: 0.000; rss: 78MB	privacy checking
+time: 0.000; rss: 78MB	stability index
+time: 0.000; rss: 78MB	intrinsic checking
+time: 0.000; rss: 78MB	effect checking
+time: 0.000; rss: 78MB	match checking
+time: 0.001; rss: 78MB	MIR dump
+time: 0.000; rss: 78MB	liveness checking
+time: 0.001; rss: 78MB	borrow checking
+time: 0.000; rss: 78MB	rvalue checking
+time: 0.000; rss: 78MB	reachability checking
+time: 0.000; rss: 78MB	death checking
+time: 0.000; rss: 78MB	stability checking
+time: 0.000; rss: 78MB	unused lib feature checking
+time: 0.001; rss: 78MB	lint checking
+time: 0.001; rss: 78MB	resolving dependency formats
+time: 0.000; rss: 78MB	erasing regions from MIR
+time: 0.016; rss: 91MB	translation
+  time: 0.003; rss: 88MB	llvm function passes [0]
+  time: 0.007; rss: 88MB	llvm module passes [0]
+  time: 0.007; rss: 93MB	codegen passes [0]
+  time: 0.000; rss: 93MB	codegen passes [0]
+time: 0.018; rss: 92MB	LLVM passes
+  time: 0.021; rss: 96MB	running linker
+time: 0.022; rss: 96MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/libarena
+time: 0.002; rss: 31MB	parsing
+time: 0.001; rss: 35MB	configuration 1
+time: 0.000; rss: 35MB	recursion limit
+time: 0.000; rss: 35MB	gated macro checking
+time: 0.000; rss: 35MB	crate injection
+time: 0.003; rss: 39MB	macro loading
+time: 0.000; rss: 39MB	plugin loading
+time: 0.000; rss: 39MB	plugin registration
+time: 0.003; rss: 40MB	expansion
+time: 0.000; rss: 40MB	complete gated feature checking 1
+time: 0.001; rss: 40MB	configuration 2
+time: 0.000; rss: 40MB	gated configuration checking
+time: 0.000; rss: 40MB	maybe building test harness
+time: 0.000; rss: 40MB	prelude injection
+time: 0.000; rss: 40MB	checking that all macro invocations are gone
+time: 0.000; rss: 40MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 40MB	complete gated feature checking 2
+time: 0.000; rss: 40MB	assigning node ids
+time: 0.000; rss: 40MB	lowering ast -> hir
+time: 0.000; rss: 40MB	indexing hir
+time: 0.000; rss: 40MB	attribute checking
+time: 0.000; rss: 40MB	early lint checks
+time: 0.001; rss: 40MB	external crate/lib resolution
+time: 0.000; rss: 40MB	language item collection
+time: 0.002; rss: 46MB	resolution
+time: 0.000; rss: 46MB	lifetime resolution
+time: 0.000; rss: 46MB	looking for entry point
+time: 0.000; rss: 46MB	looking for plugin registrar
+time: 0.000; rss: 46MB	region resolution
+time: 0.000; rss: 46MB	loop checking
+time: 0.000; rss: 46MB	static item recursion checking
+time: 0.001; rss: 50MB	type collecting
+time: 0.000; rss: 50MB	variance inference
+time: 0.016; rss: 70MB	coherence checking
+time: 0.001; rss: 70MB	wf checking (old)
+time: 0.000; rss: 70MB	item-types checking
+time: 0.037; rss: 77MB	item-bodies checking
+time: 0.000; rss: 77MB	drop-impl checking
+time: 0.001; rss: 77MB	wf checking (new)
+time: 0.002; rss: 77MB	const checking
+time: 0.000; rss: 77MB	privacy checking
+time: 0.000; rss: 77MB	stability index
+time: 0.000; rss: 77MB	intrinsic checking
+time: 0.000; rss: 77MB	effect checking
+time: 0.000; rss: 77MB	match checking
+time: 0.002; rss: 79MB	MIR dump
+time: 0.000; rss: 79MB	liveness checking
+time: 0.002; rss: 79MB	borrow checking
+time: 0.001; rss: 79MB	rvalue checking
+time: 0.000; rss: 79MB	reachability checking
+time: 0.000; rss: 79MB	death checking
+time: 0.000; rss: 79MB	stability checking
+time: 0.000; rss: 79MB	unused lib feature checking
+time: 0.004; rss: 79MB	lint checking
+time: 0.001; rss: 79MB	resolving dependency formats
+time: 0.000; rss: 79MB	erasing regions from MIR
+time: 0.049; rss: 98MB	translation
+  time: 0.010; rss: 87MB	llvm function passes [0]
+  time: 0.071; rss: 89MB	llvm module passes [0]
+  time: 0.027; rss: 93MB	codegen passes [0]
+  time: 0.000; rss: 92MB	codegen passes [0]
+time: 0.111; rss: 92MB	LLVM passes
+  time: 0.016; rss: 96MB	running linker
+time: 0.018; rss: 96MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/liblog
+time: 0.002; rss: 31MB	parsing
+time: 0.001; rss: 35MB	configuration 1
+time: 0.000; rss: 35MB	recursion limit
+time: 0.000; rss: 35MB	gated macro checking
+time: 0.000; rss: 35MB	crate injection
+time: 0.003; rss: 37MB	macro loading
+time: 0.000; rss: 37MB	plugin loading
+time: 0.000; rss: 37MB	plugin registration
+time: 0.005; rss: 37MB	expansion
+time: 0.000; rss: 37MB	complete gated feature checking 1
+time: 0.001; rss: 37MB	configuration 2
+time: 0.000; rss: 37MB	gated configuration checking
+time: 0.000; rss: 37MB	maybe building test harness
+time: 0.000; rss: 37MB	prelude injection
+time: 0.000; rss: 37MB	checking that all macro invocations are gone
+time: 0.000; rss: 37MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 37MB	complete gated feature checking 2
+time: 0.000; rss: 37MB	assigning node ids
+time: 0.000; rss: 41MB	lowering ast -> hir
+time: 0.000; rss: 43MB	indexing hir
+time: 0.000; rss: 43MB	attribute checking
+time: 0.000; rss: 43MB	early lint checks
+time: 0.001; rss: 43MB	external crate/lib resolution
+time: 0.000; rss: 43MB	language item collection
+time: 0.003; rss: 51MB	resolution
+time: 0.000; rss: 51MB	lifetime resolution
+time: 0.000; rss: 51MB	looking for entry point
+time: 0.000; rss: 51MB	looking for plugin registrar
+time: 0.000; rss: 51MB	region resolution
+time: 0.000; rss: 51MB	loop checking
+time: 0.000; rss: 51MB	static item recursion checking
+time: 0.002; rss: 51MB	type collecting
+time: 0.000; rss: 51MB	variance inference
+time: 0.020; rss: 71MB	coherence checking
+time: 0.001; rss: 71MB	wf checking (old)
+time: 0.002; rss: 71MB	item-types checking
+time: 0.039; rss: 79MB	item-bodies checking
+time: 0.000; rss: 79MB	drop-impl checking
+time: 0.001; rss: 79MB	wf checking (new)
+time: 0.005; rss: 79MB	const checking
+time: 0.000; rss: 79MB	privacy checking
+time: 0.000; rss: 79MB	stability index
+time: 0.000; rss: 79MB	intrinsic checking
+time: 0.000; rss: 79MB	effect checking
+time: 0.000; rss: 79MB	match checking
+time: 0.002; rss: 79MB	MIR dump
+time: 0.000; rss: 79MB	liveness checking
+time: 0.002; rss: 79MB	borrow checking
+time: 0.001; rss: 79MB	rvalue checking
+time: 0.000; rss: 79MB	reachability checking
+time: 0.000; rss: 79MB	death checking
+time: 0.000; rss: 79MB	stability checking
+time: 0.000; rss: 79MB	unused lib feature checking
+time: 0.002; rss: 79MB	lint checking
+time: 0.001; rss: 79MB	resolving dependency formats
+time: 0.000; rss: 79MB	erasing regions from MIR
+time: 0.110; rss: 115MB	translation
+  time: 0.027; rss: 93MB	llvm function passes [0]
+  time: 0.403; rss: 95MB	llvm module passes [0]
+  time: 0.086; rss: 98MB	codegen passes [0]
+  time: 0.000; rss: 98MB	codegen passes [0]
+time: 0.523; rss: 98MB	LLVM passes
+  time: 0.021; rss: 102MB	running linker
+time: 0.026; rss: 102MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/libterm
+time: 0.008; rss: 37MB	parsing
+time: 0.002; rss: 37MB	configuration 1
+time: 0.000; rss: 37MB	recursion limit
+time: 0.000; rss: 37MB	gated macro checking
+time: 0.000; rss: 37MB	crate injection
+time: 0.003; rss: 40MB	macro loading
+time: 0.000; rss: 40MB	plugin loading
+time: 0.000; rss: 40MB	plugin registration
+time: 0.018; rss: 42MB	expansion
+time: 0.000; rss: 42MB	complete gated feature checking 1
+time: 0.003; rss: 42MB	configuration 2
+time: 0.000; rss: 42MB	gated configuration checking
+time: 0.002; rss: 42MB	maybe building test harness
+time: 0.002; rss: 42MB	prelude injection
+time: 0.000; rss: 42MB	checking that all macro invocations are gone
+time: 0.000; rss: 42MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 42MB	complete gated feature checking 2
+time: 0.002; rss: 42MB	assigning node ids
+time: 0.002; rss: 45MB	lowering ast -> hir
+time: 0.001; rss: 45MB	indexing hir
+time: 0.000; rss: 45MB	attribute checking
+time: 0.001; rss: 45MB	early lint checks
+time: 0.001; rss: 45MB	external crate/lib resolution
+time: 0.000; rss: 45MB	language item collection
+time: 0.004; rss: 49MB	resolution
+time: 0.000; rss: 49MB	lifetime resolution
+time: 0.000; rss: 49MB	looking for entry point
+time: 0.000; rss: 49MB	looking for plugin registrar
+time: 0.001; rss: 51MB	region resolution
+time: 0.000; rss: 51MB	loop checking
+time: 0.000; rss: 51MB	static item recursion checking
+time: 0.003; rss: 56MB	type collecting
+time: 0.000; rss: 56MB	variance inference
+time: 0.018; rss: 77MB	coherence checking
+time: 0.002; rss: 77MB	wf checking (old)
+time: 0.019; rss: 79MB	item-types checking
+time: 0.142; rss: 92MB	item-bodies checking
+time: 0.000; rss: 92MB	drop-impl checking
+time: 0.005; rss: 92MB	wf checking (new)
+time: 0.007; rss: 92MB	const checking
+time: 0.001; rss: 92MB	privacy checking
+time: 0.000; rss: 92MB	stability index
+time: 0.000; rss: 92MB	intrinsic checking
+time: 0.000; rss: 92MB	effect checking
+time: 0.002; rss: 92MB	match checking
+time: 0.008; rss: 94MB	MIR dump
+time: 0.001; rss: 94MB	liveness checking
+time: 0.012; rss: 94MB	borrow checking
+time: 0.003; rss: 94MB	rvalue checking
+time: 0.000; rss: 94MB	reachability checking
+time: 0.001; rss: 94MB	death checking
+time: 0.001; rss: 94MB	stability checking
+time: 0.000; rss: 94MB	unused lib feature checking
+time: 0.006; rss: 94MB	lint checking
+time: 0.001; rss: 94MB	resolving dependency formats
+time: 0.001; rss: 94MB	erasing regions from MIR
+time: 0.327; rss: 145MB	translation
+  time: 0.084; rss: 104MB	llvm function passes [0]
+  time: 1.444; rss: 108MB	llvm module passes [0]
+  time: 0.468; rss: 115MB	codegen passes [0]
+  time: 0.001; rss: 113MB	codegen passes [0]
+time: 2.025; rss: 113MB	LLVM passes
+  time: 0.028; rss: 117MB	running linker
+time: 0.047; rss: 116MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/libserialize
+time: 0.019; rss: 40MB	parsing
+time: 0.006; rss: 39MB	configuration 1
+time: 0.000; rss: 39MB	recursion limit
+time: 0.000; rss: 39MB	gated macro checking
+time: 0.000; rss: 39MB	crate injection
+time: 0.003; rss: 42MB	macro loading
+time: 0.000; rss: 42MB	plugin loading
+time: 0.000; rss: 42MB	plugin registration
+time: 0.077; rss: 48MB	expansion
+time: 0.001; rss: 48MB	complete gated feature checking 1
+time: 0.015; rss: 48MB	configuration 2
+time: 0.000; rss: 48MB	gated configuration checking
+time: 0.007; rss: 48MB	maybe building test harness
+time: 0.007; rss: 48MB	prelude injection
+time: 0.000; rss: 48MB	checking that all macro invocations are gone
+time: 0.000; rss: 48MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 48MB	complete gated feature checking 2
+time: 0.007; rss: 48MB	assigning node ids
+time: 0.009; rss: 56MB	lowering ast -> hir
+time: 0.004; rss: 58MB	indexing hir
+time: 0.000; rss: 58MB	attribute checking
+time: 0.004; rss: 58MB	early lint checks
+time: 0.001; rss: 58MB	external crate/lib resolution
+time: 0.001; rss: 58MB	language item collection
+time: 0.017; rss: 75MB	resolution
+time: 0.001; rss: 75MB	lifetime resolution
+time: 0.000; rss: 75MB	looking for entry point
+time: 0.000; rss: 75MB	looking for plugin registrar
+time: 0.004; rss: 77MB	region resolution
+time: 0.001; rss: 77MB	loop checking
+time: 0.000; rss: 77MB	static item recursion checking
+time: 0.009; rss: 77MB	type collecting
+time: 0.000; rss: 77MB	variance inference
+time: 0.028; rss: 101MB	coherence checking
+time: 0.017; rss: 101MB	wf checking (old)
+time: 0.022; rss: 101MB	item-types checking
+time: 0.904; rss: 120MB	item-bodies checking
+time: 0.000; rss: 120MB	drop-impl checking
+time: 0.057; rss: 120MB	wf checking (new)
+time: 0.105; rss: 120MB	const checking
+time: 0.004; rss: 120MB	privacy checking
+time: 0.001; rss: 120MB	stability index
+time: 0.003; rss: 120MB	intrinsic checking
+time: 0.001; rss: 120MB	effect checking
+time: 0.014; rss: 120MB	match checking
+time: 0.071; rss: 134MB	MIR dump
+time: 0.005; rss: 134MB	liveness checking
+time: 0.213; rss: 134MB	borrow checking
+time: 0.148; rss: 134MB	rvalue checking
+time: 0.002; rss: 134MB	reachability checking
+time: 0.004; rss: 134MB	death checking
+time: 0.005; rss: 134MB	stability checking
+time: 0.000; rss: 134MB	unused lib feature checking
+time: 0.031; rss: 134MB	lint checking
+time: 0.001; rss: 134MB	resolving dependency formats
+time: 0.006; rss: 136MB	erasing regions from MIR
+time: 0.461; rss: 189MB	translation
+  time: 0.102; rss: 115MB	llvm function passes [0]
+  time: 2.640; rss: 119MB	llvm module passes [0]
+  time: 0.537; rss: 123MB	codegen passes [0]
+  time: 0.001; rss: 121MB	codegen passes [0]
+time: 3.311; rss: 121MB	LLVM passes
+  time: 0.029; rss: 121MB	running linker
+time: 0.051; rss: 121MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/libgetopts
+time: 0.005; rss: 36MB	parsing
+time: 0.002; rss: 36MB	configuration 1
+time: 0.000; rss: 36MB	recursion limit
+time: 0.000; rss: 36MB	gated macro checking
+time: 0.000; rss: 36MB	crate injection
+time: 0.003; rss: 39MB	macro loading
+time: 0.000; rss: 39MB	plugin loading
+time: 0.000; rss: 39MB	plugin registration
+time: 0.013; rss: 41MB	expansion
+time: 0.000; rss: 41MB	complete gated feature checking 1
+time: 0.003; rss: 41MB	configuration 2
+time: 0.000; rss: 41MB	gated configuration checking
+time: 0.001; rss: 41MB	maybe building test harness
+time: 0.001; rss: 41MB	prelude injection
+time: 0.000; rss: 41MB	checking that all macro invocations are gone
+time: 0.000; rss: 41MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 41MB	complete gated feature checking 2
+time: 0.001; rss: 41MB	assigning node ids
+time: 0.002; rss: 43MB	lowering ast -> hir
+time: 0.000; rss: 43MB	indexing hir
+time: 0.000; rss: 43MB	attribute checking
+time: 0.001; rss: 43MB	early lint checks
+time: 0.001; rss: 43MB	external crate/lib resolution
+time: 0.000; rss: 43MB	language item collection
+time: 0.003; rss: 51MB	resolution
+time: 0.000; rss: 51MB	lifetime resolution
+time: 0.000; rss: 51MB	looking for entry point
+time: 0.000; rss: 51MB	looking for plugin registrar
+time: 0.001; rss: 51MB	region resolution
+time: 0.000; rss: 51MB	loop checking
+time: 0.000; rss: 51MB	static item recursion checking
+time: 0.002; rss: 51MB	type collecting
+time: 0.000; rss: 51MB	variance inference
+time: 0.019; rss: 74MB	coherence checking
+time: 0.002; rss: 74MB	wf checking (old)
+time: 0.002; rss: 74MB	item-types checking
+time: 0.097; rss: 83MB	item-bodies checking
+time: 0.000; rss: 83MB	drop-impl checking
+time: 0.003; rss: 83MB	wf checking (new)
+time: 0.004; rss: 83MB	const checking
+time: 0.001; rss: 83MB	privacy checking
+time: 0.000; rss: 83MB	stability index
+time: 0.000; rss: 83MB	intrinsic checking
+time: 0.000; rss: 83MB	effect checking
+time: 0.001; rss: 83MB	match checking
+time: 0.006; rss: 87MB	MIR dump
+time: 0.001; rss: 87MB	liveness checking
+time: 0.008; rss: 87MB	borrow checking
+time: 0.002; rss: 87MB	rvalue checking
+time: 0.000; rss: 87MB	reachability checking
+time: 0.000; rss: 87MB	death checking
+time: 0.001; rss: 87MB	stability checking
+time: 0.000; rss: 87MB	unused lib feature checking
+time: 0.005; rss: 87MB	lint checking
+time: 0.001; rss: 87MB	resolving dependency formats
+time: 0.001; rss: 87MB	erasing regions from MIR
+time: 0.185; rss: 119MB	translation
+  time: 0.050; rss: 94MB	llvm function passes [0]
+  time: 0.738; rss: 96MB	llvm module passes [0]
+  time: 0.258; rss: 100MB	codegen passes [0]
+  time: 0.001; rss: 99MB	codegen passes [0]
+time: 1.059; rss: 99MB	LLVM passes
+  time: 0.022; rss: 104MB	running linker
+time: 0.032; rss: 103MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/librbml
+time: 0.006; rss: 36MB	parsing
+time: 0.002; rss: 37MB	configuration 1
+time: 0.000; rss: 37MB	recursion limit
+time: 0.000; rss: 37MB	gated macro checking
+time: 0.000; rss: 37MB	crate injection
+time: 0.003; rss: 39MB	macro loading
+time: 0.000; rss: 39MB	plugin loading
+time: 0.000; rss: 39MB	plugin registration
+time: 0.021; rss: 42MB	expansion
+time: 0.000; rss: 42MB	complete gated feature checking 1
+time: 0.004; rss: 42MB	configuration 2
+time: 0.000; rss: 42MB	gated configuration checking
+time: 0.002; rss: 42MB	maybe building test harness
+time: 0.002; rss: 42MB	prelude injection
+time: 0.000; rss: 42MB	checking that all macro invocations are gone
+time: 0.000; rss: 42MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 42MB	complete gated feature checking 2
+time: 0.002; rss: 42MB	assigning node ids
+time: 0.002; rss: 46MB	lowering ast -> hir
+time: 0.001; rss: 46MB	indexing hir
+time: 0.000; rss: 46MB	attribute checking
+time: 0.001; rss: 46MB	early lint checks
+time: 0.002; rss: 46MB	external crate/lib resolution
+time: 0.000; rss: 46MB	language item collection
+time: 0.005; rss: 52MB	resolution
+time: 0.000; rss: 52MB	lifetime resolution
+time: 0.000; rss: 52MB	looking for entry point
+time: 0.000; rss: 52MB	looking for plugin registrar
+time: 0.001; rss: 52MB	region resolution
+time: 0.000; rss: 52MB	loop checking
+time: 0.000; rss: 52MB	static item recursion checking
+time: 0.003; rss: 56MB	type collecting
+time: 0.000; rss: 56MB	variance inference
+time: 0.016; rss: 77MB	coherence checking
+time: 0.003; rss: 77MB	wf checking (old)
+time: 0.012; rss: 77MB	item-types checking
+time: 0.154; rss: 92MB	item-bodies checking
+time: 0.000; rss: 92MB	drop-impl checking
+time: 0.009; rss: 92MB	wf checking (new)
+time: 0.012; rss: 92MB	const checking
+time: 0.001; rss: 92MB	privacy checking
+time: 0.000; rss: 92MB	stability index
+time: 0.001; rss: 92MB	intrinsic checking
+time: 0.000; rss: 92MB	effect checking
+time: 0.002; rss: 92MB	match checking
+time: 0.010; rss: 98MB	MIR dump
+time: 0.001; rss: 98MB	liveness checking
+time: 0.017; rss: 98MB	borrow checking
+time: 0.008; rss: 98MB	rvalue checking
+time: 0.000; rss: 98MB	reachability checking
+time: 0.001; rss: 98MB	death checking
+time: 0.001; rss: 98MB	stability checking
+time: 0.000; rss: 98MB	unused lib feature checking
+time: 0.008; rss: 98MB	lint checking
+time: 0.001; rss: 98MB	resolving dependency formats
+time: 0.001; rss: 98MB	erasing regions from MIR
+time: 0.098; rss: 119MB	translation
+  time: 0.022; rss: 96MB	llvm function passes [0]
+  time: 0.199; rss: 97MB	llvm module passes [0]
+  time: 0.114; rss: 102MB	codegen passes [0]
+  time: 0.000; rss: 101MB	codegen passes [0]
+time: 0.342; rss: 101MB	LLVM passes
+  time: 0.025; rss: 105MB	running linker
+time: 0.031; rss: 105MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/libtest
+time: 0.007; rss: 36MB	parsing
+time: 0.002; rss: 36MB	configuration 1
+time: 0.000; rss: 36MB	recursion limit
+time: 0.000; rss: 36MB	gated macro checking
+time: 0.000; rss: 36MB	crate injection
+time: 0.003; rss: 40MB	macro loading
+time: 0.000; rss: 40MB	plugin loading
+time: 0.000; rss: 40MB	plugin registration
+time: 0.017; rss: 41MB	expansion
+time: 0.000; rss: 41MB	complete gated feature checking 1
+time: 0.004; rss: 41MB	configuration 2
+time: 0.000; rss: 41MB	gated configuration checking
+time: 0.002; rss: 41MB	maybe building test harness
+time: 0.002; rss: 41MB	prelude injection
+time: 0.000; rss: 41MB	checking that all macro invocations are gone
+time: 0.000; rss: 41MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 41MB	complete gated feature checking 2
+time: 0.002; rss: 41MB	assigning node ids
+time: 0.003; rss: 45MB	lowering ast -> hir
+time: 0.001; rss: 45MB	indexing hir
+time: 0.000; rss: 45MB	attribute checking
+time: 0.001; rss: 45MB	early lint checks
+time: 0.002; rss: 45MB	external crate/lib resolution
+time: 0.000; rss: 45MB	language item collection
+time: 0.007; rss: 55MB	resolution
+time: 0.000; rss: 55MB	lifetime resolution
+time: 0.000; rss: 55MB	looking for entry point
+time: 0.000; rss: 55MB	looking for plugin registrar
+time: 0.001; rss: 55MB	region resolution
+time: 0.000; rss: 55MB	loop checking
+time: 0.000; rss: 55MB	static item recursion checking
+time: 0.004; rss: 59MB	type collecting
+time: 0.000; rss: 59MB	variance inference
+time: 0.021; rss: 80MB	coherence checking
+time: 0.002; rss: 80MB	wf checking (old)
+time: 0.004; rss: 83MB	item-types checking
+time: 0.149; rss: 95MB	item-bodies checking
+time: 0.000; rss: 95MB	drop-impl checking
+time: 0.006; rss: 95MB	wf checking (new)
+time: 0.007; rss: 95MB	const checking
+time: 0.001; rss: 95MB	privacy checking
+time: 0.000; rss: 95MB	stability index
+time: 0.001; rss: 95MB	intrinsic checking
+time: 0.000; rss: 95MB	effect checking
+time: 0.002; rss: 95MB	match checking
+time: 0.009; rss: 97MB	MIR dump
+time: 0.001; rss: 97MB	liveness checking
+time: 0.013; rss: 97MB	borrow checking
+time: 0.005; rss: 97MB	rvalue checking
+time: 0.000; rss: 97MB	reachability checking
+time: 0.001; rss: 97MB	death checking
+time: 0.001; rss: 97MB	stability checking
+time: 0.000; rss: 97MB	unused lib feature checking
+time: 0.009; rss: 97MB	lint checking
+time: 0.001; rss: 97MB	resolving dependency formats
+time: 0.002; rss: 97MB	erasing regions from MIR
+time: 0.443; rss: 161MB	translation
+  time: 0.125; rss: 113MB	llvm function passes [0]
+  time: 2.625; rss: 117MB	llvm module passes [0]
+  time: 0.815; rss: 123MB	codegen passes [0]
+  time: 0.001; rss: 119MB	codegen passes [0]
+time: 3.617; rss: 119MB	LLVM passes
+  time: 0.029; rss: 123MB	running linker
+time: 0.059; rss: 123MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/libgraphviz
+time: 0.003; rss: 31MB	parsing
+time: 0.001; rss: 35MB	configuration 1
+time: 0.000; rss: 35MB	recursion limit
+time: 0.000; rss: 35MB	gated macro checking
+time: 0.000; rss: 35MB	crate injection
+time: 0.003; rss: 38MB	macro loading
+time: 0.000; rss: 38MB	plugin loading
+time: 0.000; rss: 38MB	plugin registration
+time: 0.005; rss: 39MB	expansion
+time: 0.000; rss: 39MB	complete gated feature checking 1
+time: 0.001; rss: 39MB	configuration 2
+time: 0.000; rss: 39MB	gated configuration checking
+time: 0.001; rss: 39MB	maybe building test harness
+time: 0.000; rss: 39MB	prelude injection
+time: 0.000; rss: 39MB	checking that all macro invocations are gone
+time: 0.000; rss: 39MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 39MB	complete gated feature checking 2
+time: 0.000; rss: 39MB	assigning node ids
+time: 0.001; rss: 41MB	lowering ast -> hir
+time: 0.000; rss: 43MB	indexing hir
+time: 0.000; rss: 43MB	attribute checking
+time: 0.000; rss: 43MB	early lint checks
+time: 0.001; rss: 43MB	external crate/lib resolution
+time: 0.000; rss: 43MB	language item collection
+time: 0.002; rss: 48MB	resolution
+time: 0.000; rss: 48MB	lifetime resolution
+time: 0.000; rss: 48MB	looking for entry point
+time: 0.000; rss: 48MB	looking for plugin registrar
+time: 0.000; rss: 48MB	region resolution
+time: 0.000; rss: 48MB	loop checking
+time: 0.000; rss: 48MB	static item recursion checking
+time: 0.002; rss: 52MB	type collecting
+time: 0.000; rss: 52MB	variance inference
+time: 0.019; rss: 71MB	coherence checking
+time: 0.001; rss: 71MB	wf checking (old)
+time: 0.001; rss: 71MB	item-types checking
+time: 0.041; rss: 79MB	item-bodies checking
+time: 0.000; rss: 79MB	drop-impl checking
+time: 0.002; rss: 79MB	wf checking (new)
+time: 0.002; rss: 79MB	const checking
+time: 0.000; rss: 79MB	privacy checking
+time: 0.000; rss: 79MB	stability index
+time: 0.000; rss: 79MB	intrinsic checking
+time: 0.000; rss: 79MB	effect checking
+time: 0.001; rss: 79MB	match checking
+time: 0.003; rss: 79MB	MIR dump
+time: 0.000; rss: 79MB	liveness checking
+time: 0.003; rss: 79MB	borrow checking
+time: 0.002; rss: 79MB	rvalue checking
+time: 0.000; rss: 79MB	reachability checking
+time: 0.000; rss: 79MB	death checking
+time: 0.000; rss: 79MB	stability checking
+time: 0.000; rss: 79MB	unused lib feature checking
+time: 0.002; rss: 79MB	lint checking
+time: 0.001; rss: 79MB	resolving dependency formats
+time: 0.000; rss: 79MB	erasing regions from MIR
+time: 0.057; rss: 100MB	translation
+  time: 0.011; rss: 87MB	llvm function passes [0]
+  time: 0.084; rss: 89MB	llvm module passes [0]
+  time: 0.038; rss: 93MB	codegen passes [0]
+  time: 0.000; rss: 93MB	codegen passes [0]
+time: 0.137; rss: 92MB	LLVM passes
+  time: 0.022; rss: 96MB	running linker
+time: 0.024; rss: 97MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_bitflags
+time: 0.001; rss: 31MB	parsing
+time: 0.000; rss: 31MB	configuration 1
+time: 0.000; rss: 35MB	recursion limit
+time: 0.000; rss: 35MB	gated macro checking
+time: 0.000; rss: 35MB	crate injection
+time: 0.001; rss: 35MB	macro loading
+time: 0.000; rss: 35MB	plugin loading
+time: 0.000; rss: 35MB	plugin registration
+time: 0.001; rss: 35MB	expansion
+time: 0.000; rss: 35MB	complete gated feature checking 1
+time: 0.000; rss: 35MB	configuration 2
+time: 0.000; rss: 35MB	gated configuration checking
+time: 0.000; rss: 35MB	maybe building test harness
+time: 0.000; rss: 35MB	prelude injection
+time: 0.000; rss: 35MB	checking that all macro invocations are gone
+time: 0.000; rss: 37MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 37MB	complete gated feature checking 2
+time: 0.000; rss: 37MB	assigning node ids
+time: 0.000; rss: 37MB	lowering ast -> hir
+time: 0.000; rss: 37MB	indexing hir
+time: 0.000; rss: 37MB	attribute checking
+time: 0.000; rss: 37MB	early lint checks
+time: 0.000; rss: 37MB	external crate/lib resolution
+time: 0.000; rss: 37MB	language item collection
+time: 0.000; rss: 37MB	resolution
+time: 0.000; rss: 37MB	lifetime resolution
+time: 0.000; rss: 37MB	looking for entry point
+time: 0.000; rss: 37MB	looking for plugin registrar
+time: 0.000; rss: 37MB	region resolution
+time: 0.000; rss: 37MB	loop checking
+time: 0.000; rss: 37MB	static item recursion checking
+time: 0.000; rss: 41MB	type collecting
+time: 0.000; rss: 41MB	variance inference
+time: 0.001; rss: 41MB	coherence checking
+time: 0.000; rss: 41MB	wf checking (old)
+time: 0.000; rss: 41MB	item-types checking
+time: 0.000; rss: 41MB	item-bodies checking
+time: 0.000; rss: 41MB	drop-impl checking
+time: 0.000; rss: 41MB	wf checking (new)
+time: 0.000; rss: 41MB	const checking
+time: 0.000; rss: 41MB	privacy checking
+time: 0.000; rss: 41MB	stability index
+time: 0.000; rss: 41MB	intrinsic checking
+time: 0.000; rss: 41MB	effect checking
+time: 0.000; rss: 41MB	match checking
+time: 0.000; rss: 41MB	MIR dump
+time: 0.000; rss: 41MB	liveness checking
+time: 0.000; rss: 41MB	borrow checking
+time: 0.000; rss: 41MB	rvalue checking
+time: 0.000; rss: 41MB	reachability checking
+time: 0.000; rss: 41MB	death checking
+time: 0.000; rss: 41MB	stability checking
+time: 0.000; rss: 41MB	unused lib feature checking
+time: 0.000; rss: 41MB	lint checking
+time: 0.000; rss: 41MB	resolving dependency formats
+time: 0.000; rss: 41MB	erasing regions from MIR
+time: 0.002; rss: 53MB	translation
+  time: 0.000; rss: 54MB	llvm function passes [0]
+  time: 0.000; rss: 54MB	llvm module passes [0]
+  time: 0.001; rss: 54MB	codegen passes [0]
+  time: 0.000; rss: 55MB	codegen passes [0]
+time: 0.002; rss: 55MB	LLVM passes
+time: 0.001; rss: 55MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/libsyntax
+time: 0.117; rss: 66MB	parsing
+time: 0.045; rss: 68MB	configuration 1
+time: 0.000; rss: 68MB	recursion limit
+time: 0.003; rss: 68MB	gated macro checking
+time: 0.000; rss: 68MB	crate injection
+time: 0.006; rss: 71MB	macro loading
+time: 0.000; rss: 71MB	plugin loading
+time: 0.000; rss: 71MB	plugin registration
+time: 0.573; rss: 105MB	expansion
+time: 0.018; rss: 105MB	complete gated feature checking 1
+time: 0.129; rss: 105MB	configuration 2
+time: 0.000; rss: 105MB	gated configuration checking
+time: 0.062; rss: 105MB	maybe building test harness
+time: 0.058; rss: 105MB	prelude injection
+time: 0.008; rss: 105MB	checking that all macro invocations are gone
+time: 0.000; rss: 105MB	checking for inline asm in case the target doesn't support it
+time: 0.018; rss: 105MB	complete gated feature checking 2
+time: 0.059; rss: 105MB	assigning node ids
+time: 0.082; rss: 152MB	lowering ast -> hir
+time: 0.031; rss: 165MB	indexing hir
+time: 0.000; rss: 165MB	attribute checking
+time: 0.028; rss: 165MB	early lint checks
+time: 0.002; rss: 165MB	external crate/lib resolution
+time: 0.006; rss: 165MB	language item collection
+time: 0.135; rss: 203MB	resolution
+time: 0.011; rss: 203MB	lifetime resolution
+time: 0.000; rss: 203MB	looking for entry point
+time: 0.000; rss: 203MB	looking for plugin registrar
+time: 0.049; rss: 218MB	region resolution
+time: 0.006; rss: 218MB	loop checking
+time: 0.006; rss: 218MB	static item recursion checking
+time: 0.043; rss: 225MB	type collecting
+time: 0.001; rss: 225MB	variance inference
+time: 0.044; rss: 246MB	coherence checking
+time: 0.048; rss: 248MB	wf checking (old)
+time: 0.092; rss: 250MB	item-types checking
+time: 7.235; rss: 335MB	item-bodies checking
+time: 0.000; rss: 335MB	drop-impl checking
+time: 0.375; rss: 335MB	wf checking (new)
+time: 0.371; rss: 339MB	const checking
+time: 0.068; rss: 339MB	privacy checking
+time: 0.010; rss: 339MB	stability index
+time: 0.022; rss: 339MB	intrinsic checking
+time: 0.019; rss: 339MB	effect checking
+time: 0.081; rss: 339MB	match checking
+time: 0.407; rss: 415MB	MIR dump
+time: 0.058; rss: 420MB	liveness checking
+time: 0.807; rss: 420MB	borrow checking
+time: 0.390; rss: 420MB	rvalue checking
+time: 0.020; rss: 420MB	reachability checking
+time: 0.049; rss: 420MB	death checking
+time: 0.047; rss: 420MB	stability checking
+time: 0.000; rss: 420MB	unused lib feature checking
+time: 0.256; rss: 420MB	lint checking
+time: 0.001; rss: 420MB	resolving dependency formats
+time: 0.053; rss: 428MB	erasing regions from MIR
+time: 5.108; rss: 745MB	translation
+  time: 1.825; rss: 381MB	llvm function passes [0]
+  time: 45.618; rss: 465MB	llvm module passes [0]
+  time: 15.841; rss: 522MB	codegen passes [0]
+  time: 0.003; rss: 480MB	codegen passes [0]
+time: 64.456; rss: 480MB	LLVM passes
+  time: 0.131; rss: 480MB	running linker
+time: 0.638; rss: 481MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/libfmt_macros
+time: 0.002; rss: 31MB	parsing
+time: 0.001; rss: 35MB	configuration 1
+time: 0.000; rss: 35MB	recursion limit
+time: 0.000; rss: 35MB	gated macro checking
+time: 0.000; rss: 35MB	crate injection
+time: 0.003; rss: 37MB	macro loading
+time: 0.000; rss: 37MB	plugin loading
+time: 0.000; rss: 37MB	plugin registration
+time: 0.005; rss: 40MB	expansion
+time: 0.000; rss: 40MB	complete gated feature checking 1
+time: 0.001; rss: 40MB	configuration 2
+time: 0.000; rss: 40MB	gated configuration checking
+time: 0.001; rss: 40MB	maybe building test harness
+time: 0.001; rss: 40MB	prelude injection
+time: 0.000; rss: 40MB	checking that all macro invocations are gone
+time: 0.000; rss: 40MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 40MB	complete gated feature checking 2
+time: 0.001; rss: 40MB	assigning node ids
+time: 0.001; rss: 40MB	lowering ast -> hir
+time: 0.000; rss: 42MB	indexing hir
+time: 0.000; rss: 42MB	attribute checking
+time: 0.000; rss: 42MB	early lint checks
+time: 0.001; rss: 42MB	external crate/lib resolution
+time: 0.000; rss: 42MB	language item collection
+time: 0.002; rss: 46MB	resolution
+time: 0.000; rss: 46MB	lifetime resolution
+time: 0.000; rss: 46MB	looking for entry point
+time: 0.000; rss: 46MB	looking for plugin registrar
+time: 0.000; rss: 46MB	region resolution
+time: 0.000; rss: 46MB	loop checking
+time: 0.000; rss: 46MB	static item recursion checking
+time: 0.001; rss: 50MB	type collecting
+time: 0.000; rss: 50MB	variance inference
+time: 0.019; rss: 72MB	coherence checking
+time: 0.002; rss: 72MB	wf checking (old)
+time: 0.001; rss: 72MB	item-types checking
+time: 0.036; rss: 76MB	item-bodies checking
+time: 0.000; rss: 76MB	drop-impl checking
+time: 0.001; rss: 76MB	wf checking (new)
+time: 0.002; rss: 80MB	const checking
+time: 0.000; rss: 80MB	privacy checking
+time: 0.000; rss: 80MB	stability index
+time: 0.000; rss: 80MB	intrinsic checking
+time: 0.000; rss: 80MB	effect checking
+time: 0.001; rss: 80MB	match checking
+time: 0.003; rss: 80MB	MIR dump
+time: 0.000; rss: 80MB	liveness checking
+time: 0.003; rss: 80MB	borrow checking
+time: 0.001; rss: 80MB	rvalue checking
+time: 0.000; rss: 80MB	reachability checking
+time: 0.000; rss: 80MB	death checking
+time: 0.000; rss: 80MB	stability checking
+time: 0.000; rss: 80MB	unused lib feature checking
+time: 0.002; rss: 80MB	lint checking
+time: 0.001; rss: 80MB	resolving dependency formats
+time: 0.000; rss: 80MB	erasing regions from MIR
+time: 0.056; rss: 98MB	translation
+  time: 0.013; rss: 86MB	llvm function passes [0]
+  time: 0.241; rss: 101MB	llvm module passes [0]
+  time: 0.083; rss: 105MB	codegen passes [0]
+  time: 0.000; rss: 105MB	codegen passes [0]
+time: 0.342; rss: 105MB	LLVM passes
+  time: 0.021; rss: 109MB	running linker
+time: 0.025; rss: 109MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/libsyntax_ext
+time: 0.017; rss: 37MB	parsing
+time: 0.006; rss: 41MB	configuration 1
+time: 0.000; rss: 41MB	recursion limit
+time: 0.000; rss: 41MB	gated macro checking
+time: 0.000; rss: 41MB	crate injection
+time: 0.003; rss: 45MB	macro loading
+time: 0.000; rss: 45MB	plugin loading
+time: 0.000; rss: 45MB	plugin registration
+time: 0.048; rss: 46MB	expansion
+time: 0.001; rss: 46MB	complete gated feature checking 1
+time: 0.008; rss: 46MB	configuration 2
+time: 0.000; rss: 46MB	gated configuration checking
+time: 0.004; rss: 46MB	maybe building test harness
+time: 0.004; rss: 46MB	prelude injection
+time: 0.000; rss: 46MB	checking that all macro invocations are gone
+time: 0.000; rss: 46MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 46MB	complete gated feature checking 2
+time: 0.004; rss: 46MB	assigning node ids
+time: 0.007; rss: 51MB	lowering ast -> hir
+time: 0.002; rss: 51MB	indexing hir
+time: 0.000; rss: 51MB	attribute checking
+time: 0.002; rss: 51MB	early lint checks
+time: 0.003; rss: 51MB	external crate/lib resolution
+time: 0.000; rss: 51MB	language item collection
+time: 0.016; rss: 76MB	resolution
+time: 0.001; rss: 76MB	lifetime resolution
+time: 0.000; rss: 76MB	looking for entry point
+time: 0.000; rss: 76MB	looking for plugin registrar
+time: 0.002; rss: 76MB	region resolution
+time: 0.000; rss: 76MB	loop checking
+time: 0.000; rss: 76MB	static item recursion checking
+time: 0.006; rss: 80MB	type collecting
+time: 0.000; rss: 80MB	variance inference
+time: 0.021; rss: 99MB	coherence checking
+time: 0.007; rss: 103MB	wf checking (old)
+time: 0.004; rss: 103MB	item-types checking
+time: 0.858; rss: 130MB	item-bodies checking
+time: 0.000; rss: 130MB	drop-impl checking
+time: 0.035; rss: 130MB	wf checking (new)
+time: 0.019; rss: 130MB	const checking
+time: 0.003; rss: 130MB	privacy checking
+time: 0.000; rss: 130MB	stability index
+time: 0.001; rss: 130MB	intrinsic checking
+time: 0.001; rss: 130MB	effect checking
+time: 0.003; rss: 130MB	match checking
+time: 0.024; rss: 137MB	MIR dump
+time: 0.004; rss: 137MB	liveness checking
+time: 0.033; rss: 137MB	borrow checking
+time: 0.013; rss: 137MB	rvalue checking
+time: 0.000; rss: 137MB	reachability checking
+time: 0.002; rss: 137MB	death checking
+time: 0.004; rss: 137MB	stability checking
+time: 0.000; rss: 137MB	unused lib feature checking
+time: 0.028; rss: 139MB	lint checking
+time: 0.001; rss: 139MB	resolving dependency formats
+time: 0.006; rss: 139MB	erasing regions from MIR
+time: 1.353; rss: 285MB	translation
+  time: 0.430; rss: 175MB	llvm function passes [0]
+  time: 8.891; rss: 189MB	llvm module passes [0]
+  time: 3.023; rss: 204MB	codegen passes [0]
+  time: 0.001; rss: 197MB	codegen passes [0]
+time: 12.567; rss: 197MB	LLVM passes
+  time: 0.040; rss: 199MB	running linker
+time: 0.143; rss: 199MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_front
+time: 0.028; rss: 44MB	parsing
+time: 0.010; rss: 44MB	configuration 1
+time: 0.000; rss: 44MB	recursion limit
+time: 0.000; rss: 44MB	gated macro checking
+time: 0.000; rss: 44MB	crate injection
+time: 0.006; rss: 49MB	macro loading
+time: 0.000; rss: 49MB	plugin loading
+time: 0.000; rss: 49MB	plugin registration
+time: 0.212; rss: 67MB	expansion
+time: 0.006; rss: 67MB	complete gated feature checking 1
+time: 0.051; rss: 67MB	configuration 2
+time: 0.000; rss: 67MB	gated configuration checking
+time: 0.024; rss: 67MB	maybe building test harness
+time: 0.023; rss: 67MB	prelude injection
+time: 0.003; rss: 67MB	checking that all macro invocations are gone
+time: 0.000; rss: 67MB	checking for inline asm in case the target doesn't support it
+time: 0.005; rss: 67MB	complete gated feature checking 2
+time: 0.023; rss: 67MB	assigning node ids
+time: 0.033; rss: 84MB	lowering ast -> hir
+time: 0.012; rss: 90MB	indexing hir
+time: 0.000; rss: 90MB	attribute checking
+time: 0.010; rss: 90MB	early lint checks
+time: 0.002; rss: 90MB	external crate/lib resolution
+time: 0.002; rss: 90MB	language item collection
+time: 0.053; rss: 125MB	resolution
+time: 0.004; rss: 125MB	lifetime resolution
+time: 0.000; rss: 125MB	looking for entry point
+time: 0.000; rss: 125MB	looking for plugin registrar
+time: 0.016; rss: 125MB	region resolution
+time: 0.002; rss: 125MB	loop checking
+time: 0.002; rss: 125MB	static item recursion checking
+time: 0.018; rss: 127MB	type collecting
+time: 0.000; rss: 127MB	variance inference
+time: 0.032; rss: 155MB	coherence checking
+time: 0.019; rss: 155MB	wf checking (old)
+time: 0.022; rss: 155MB	item-types checking
+time: 2.813; rss: 204MB	item-bodies checking
+time: 0.000; rss: 204MB	drop-impl checking
+time: 0.088; rss: 204MB	wf checking (new)
+time: 0.170; rss: 204MB	const checking
+time: 0.024; rss: 204MB	privacy checking
+time: 0.003; rss: 204MB	stability index
+time: 0.009; rss: 204MB	intrinsic checking
+time: 0.007; rss: 204MB	effect checking
+time: 0.034; rss: 204MB	match checking
+time: 0.180; rss: 236MB	MIR dump
+time: 0.024; rss: 238MB	liveness checking
+time: 0.388; rss: 240MB	borrow checking
+time: 0.199; rss: 240MB	rvalue checking
+time: 0.007; rss: 240MB	reachability checking
+time: 0.017; rss: 240MB	death checking
+time: 0.018; rss: 240MB	stability checking
+time: 0.000; rss: 240MB	unused lib feature checking
+time: 0.094; rss: 240MB	lint checking
+time: 0.001; rss: 240MB	resolving dependency formats
+time: 0.021; rss: 242MB	erasing regions from MIR
+time: 2.215; rss: 427MB	translation
+  time: 0.597; rss: 216MB	llvm function passes [0]
+  time: 9.231; rss: 238MB	llvm module passes [0]
+  time: 3.594; rss: 246MB	codegen passes [0]
+  time: 0.001; rss: 241MB	codegen passes [0]
+time: 13.705; rss: 241MB	LLVM passes
+  time: 0.057; rss: 241MB	running linker
+time: 0.186; rss: 242MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_llvm
+time: 0.008; rss: 38MB	parsing
+time: 0.002; rss: 38MB	configuration 1
+time: 0.000; rss: 38MB	recursion limit
+time: 0.000; rss: 38MB	gated macro checking
+time: 0.000; rss: 38MB	crate injection
+time: 0.003; rss: 42MB	macro loading
+time: 0.000; rss: 42MB	plugin loading
+time: 0.000; rss: 42MB	plugin registration
+time: 0.015; rss: 44MB	expansion
+time: 0.000; rss: 44MB	complete gated feature checking 1
+time: 0.003; rss: 44MB	configuration 2
+time: 0.000; rss: 44MB	gated configuration checking
+time: 0.001; rss: 44MB	maybe building test harness
+time: 0.002; rss: 44MB	prelude injection
+time: 0.000; rss: 44MB	checking that all macro invocations are gone
+time: 0.000; rss: 44MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 44MB	complete gated feature checking 2
+time: 0.002; rss: 45MB	assigning node ids
+time: 0.002; rss: 45MB	lowering ast -> hir
+time: 0.001; rss: 48MB	indexing hir
+time: 0.000; rss: 48MB	attribute checking
+time: 0.001; rss: 48MB	early lint checks
+time: 0.001; rss: 48MB	external crate/lib resolution
+time: 0.000; rss: 48MB	language item collection
+time: 0.008; rss: 60MB	resolution
+time: 0.000; rss: 60MB	lifetime resolution
+time: 0.000; rss: 60MB	looking for entry point
+time: 0.000; rss: 60MB	looking for plugin registrar
+time: 0.001; rss: 62MB	region resolution
+time: 0.000; rss: 62MB	loop checking
+time: 0.000; rss: 62MB	static item recursion checking
+time: 0.004; rss: 62MB	type collecting
+time: 0.000; rss: 62MB	variance inference
+time: 0.027; rss: 84MB	coherence checking
+time: 0.003; rss: 84MB	wf checking (old)
+time: 0.011; rss: 88MB	item-types checking
+time: 0.083; rss: 90MB	item-bodies checking
+time: 0.000; rss: 90MB	drop-impl checking
+time: 0.003; rss: 90MB	wf checking (new)
+time: 0.004; rss: 90MB	const checking
+time: 0.001; rss: 90MB	privacy checking
+time: 0.000; rss: 90MB	stability index
+time: 0.000; rss: 90MB	intrinsic checking
+time: 0.000; rss: 90MB	effect checking
+time: 0.002; rss: 90MB	match checking
+time: 0.004; rss: 90MB	MIR dump
+time: 0.000; rss: 90MB	liveness checking
+time: 0.005; rss: 90MB	borrow checking
+time: 0.002; rss: 90MB	rvalue checking
+time: 0.000; rss: 90MB	reachability checking
+time: 0.001; rss: 90MB	death checking
+time: 0.001; rss: 90MB	stability checking
+time: 0.000; rss: 90MB	unused lib feature checking
+time: 0.006; rss: 90MB	lint checking
+time: 0.001; rss: 90MB	resolving dependency formats
+time: 0.000; rss: 90MB	erasing regions from MIR
+time: 0.086; rss: 110MB	translation
+  time: 0.016; rss: 92MB	llvm function passes [0]
+  time: 0.076; rss: 93MB	llvm module passes [0]
+  time: 0.046; rss: 97MB	codegen passes [0]
+  time: 0.000; rss: 97MB	codegen passes [0]
+time: 0.142; rss: 96MB	LLVM passes
+  time: 1.416; rss: 100MB	running linker
+time: 1.474; rss: 100MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_back
+time: 0.007; rss: 33MB	parsing
+time: 0.002; rss: 37MB	configuration 1
+time: 0.000; rss: 37MB	recursion limit
+time: 0.000; rss: 37MB	gated macro checking
+time: 0.000; rss: 37MB	crate injection
+time: 0.003; rss: 40MB	macro loading
+time: 0.000; rss: 40MB	plugin loading
+time: 0.000; rss: 40MB	plugin registration
+time: 0.032; rss: 44MB	expansion
+time: 0.000; rss: 44MB	complete gated feature checking 1
+time: 0.005; rss: 44MB	configuration 2
+time: 0.000; rss: 44MB	gated configuration checking
+time: 0.003; rss: 44MB	maybe building test harness
+time: 0.002; rss: 44MB	prelude injection
+time: 0.000; rss: 44MB	checking that all macro invocations are gone
+time: 0.000; rss: 44MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 44MB	complete gated feature checking 2
+time: 0.003; rss: 44MB	assigning node ids
+time: 0.003; rss: 47MB	lowering ast -> hir
+time: 0.001; rss: 47MB	indexing hir
+time: 0.000; rss: 47MB	attribute checking
+time: 0.001; rss: 47MB	early lint checks
+time: 0.005; rss: 79MB	external crate/lib resolution
+time: 0.000; rss: 79MB	language item collection
+time: 0.014; rss: 114MB	resolution
+time: 0.000; rss: 114MB	lifetime resolution
+time: 0.000; rss: 114MB	looking for entry point
+time: 0.000; rss: 114MB	looking for plugin registrar
+time: 0.002; rss: 114MB	region resolution
+time: 0.000; rss: 114MB	loop checking
+time: 0.000; rss: 114MB	static item recursion checking
+time: 0.005; rss: 114MB	type collecting
+time: 0.000; rss: 114MB	variance inference
+time: 0.026; rss: 137MB	coherence checking
+time: 0.003; rss: 137MB	wf checking (old)
+time: 0.012; rss: 139MB	item-types checking
+time: 0.272; rss: 162MB	item-bodies checking
+time: 0.000; rss: 162MB	drop-impl checking
+time: 0.005; rss: 162MB	wf checking (new)
+time: 0.011; rss: 162MB	const checking
+time: 0.001; rss: 162MB	privacy checking
+time: 0.000; rss: 162MB	stability index
+time: 0.001; rss: 162MB	intrinsic checking
+time: 0.000; rss: 162MB	effect checking
+time: 0.002; rss: 162MB	match checking
+time: 0.015; rss: 164MB	MIR dump
+time: 0.003; rss: 168MB	liveness checking
+time: 0.023; rss: 168MB	borrow checking
+time: 0.006; rss: 168MB	rvalue checking
+time: 0.000; rss: 168MB	reachability checking
+time: 0.001; rss: 168MB	death checking
+time: 0.002; rss: 168MB	stability checking
+time: 0.000; rss: 168MB	unused lib feature checking
+time: 0.013; rss: 168MB	lint checking
+time: 0.001; rss: 168MB	resolving dependency formats
+time: 0.003; rss: 168MB	erasing regions from MIR
+time: 0.479; rss: 232MB	translation
+  time: 0.135; rss: 170MB	llvm function passes [0]
+  time: 2.558; rss: 179MB	llvm module passes [0]
+  time: 1.090; rss: 198MB	codegen passes [0]
+  time: 0.001; rss: 196MB	codegen passes [0]
+time: 3.852; rss: 196MB	LLVM passes
+  time: 0.044; rss: 198MB	running linker
+time: 0.082; rss: 198MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_data_structures
+time: 0.007; rss: 33MB	parsing
+time: 0.002; rss: 37MB	configuration 1
+time: 0.000; rss: 37MB	recursion limit
+time: 0.000; rss: 37MB	gated macro checking
+time: 0.000; rss: 37MB	crate injection
+time: 0.003; rss: 40MB	macro loading
+time: 0.000; rss: 40MB	plugin loading
+time: 0.000; rss: 40MB	plugin registration
+time: 0.024; rss: 43MB	expansion
+time: 0.000; rss: 43MB	complete gated feature checking 1
+time: 0.004; rss: 43MB	configuration 2
+time: 0.000; rss: 43MB	gated configuration checking
+time: 0.002; rss: 43MB	maybe building test harness
+time: 0.001; rss: 43MB	prelude injection
+time: 0.000; rss: 43MB	checking that all macro invocations are gone
+time: 0.000; rss: 43MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 43MB	complete gated feature checking 2
+time: 0.001; rss: 43MB	assigning node ids
+time: 0.002; rss: 43MB	lowering ast -> hir
+time: 0.001; rss: 46MB	indexing hir
+time: 0.000; rss: 46MB	attribute checking
+time: 0.001; rss: 46MB	early lint checks
+time: 0.002; rss: 46MB	external crate/lib resolution
+time: 0.000; rss: 46MB	language item collection
+time: 0.005; rss: 54MB	resolution
+time: 0.000; rss: 54MB	lifetime resolution
+time: 0.000; rss: 54MB	looking for entry point
+time: 0.000; rss: 54MB	looking for plugin registrar
+time: 0.001; rss: 54MB	region resolution
+time: 0.000; rss: 54MB	loop checking
+time: 0.000; rss: 54MB	static item recursion checking
+time: 0.003; rss: 58MB	type collecting
+time: 0.000; rss: 58MB	variance inference
+time: 0.026; rss: 81MB	coherence checking
+time: 0.005; rss: 81MB	wf checking (old)
+time: 0.005; rss: 84MB	item-types checking
+time: 0.143; rss: 90MB	item-bodies checking
+time: 0.000; rss: 90MB	drop-impl checking
+time: 0.024; rss: 90MB	wf checking (new)
+time: 0.011; rss: 90MB	const checking
+time: 0.001; rss: 90MB	privacy checking
+time: 0.000; rss: 90MB	stability index
+time: 0.001; rss: 90MB	intrinsic checking
+time: 0.000; rss: 90MB	effect checking
+time: 0.002; rss: 90MB	match checking
+time: 0.010; rss: 90MB	MIR dump
+time: 0.001; rss: 90MB	liveness checking
+time: 0.019; rss: 94MB	borrow checking
+time: 0.014; rss: 94MB	rvalue checking
+time: 0.000; rss: 94MB	reachability checking
+time: 0.001; rss: 94MB	death checking
+time: 0.001; rss: 94MB	stability checking
+time: 0.000; rss: 94MB	unused lib feature checking
+time: 0.008; rss: 94MB	lint checking
+time: 0.001; rss: 94MB	resolving dependency formats
+time: 0.001; rss: 94MB	erasing regions from MIR
+time: 0.096; rss: 112MB	translation
+  time: 0.012; rss: 93MB	llvm function passes [0]
+  time: 0.071; rss: 94MB	llvm module passes [0]
+  time: 0.032; rss: 98MB	codegen passes [0]
+  time: 0.000; rss: 98MB	codegen passes [0]
+time: 0.118; rss: 98MB	LLVM passes
+  time: 0.022; rss: 102MB	running linker
+time: 0.025; rss: 102MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc
+time: 0.158; rss: 76MB	parsing
+time: 0.061; rss: 76MB	configuration 1
+time: 0.000; rss: 76MB	recursion limit
+time: 0.003; rss: 76MB	gated macro checking
+time: 0.000; rss: 76MB	crate injection
+time: 0.008; rss: 82MB	macro loading
+time: 0.000; rss: 82MB	plugin loading
+time: 0.000; rss: 82MB	plugin registration
+time: 0.754; rss: 119MB	expansion
+time: 0.023; rss: 119MB	complete gated feature checking 1
+time: 0.161; rss: 119MB	configuration 2
+time: 0.000; rss: 119MB	gated configuration checking
+time: 0.077; rss: 119MB	maybe building test harness
+time: 0.073; rss: 119MB	prelude injection
+time: 0.011; rss: 119MB	checking that all macro invocations are gone
+time: 0.000; rss: 119MB	checking for inline asm in case the target doesn't support it
+time: 0.024; rss: 119MB	complete gated feature checking 2
+time: 0.074; rss: 119MB	assigning node ids
+time: 0.103; rss: 185MB	lowering ast -> hir
+time: 0.040; rss: 200MB	indexing hir
+time: 0.000; rss: 200MB	attribute checking
+time: 0.035; rss: 200MB	early lint checks
+time: 0.006; rss: 233MB	external crate/lib resolution
+time: 0.007; rss: 233MB	language item collection
+time: 0.180; rss: 310MB	resolution
+time: 0.015; rss: 312MB	lifetime resolution
+time: 0.000; rss: 312MB	looking for entry point
+time: 0.000; rss: 312MB	looking for plugin registrar
+time: 0.062; rss: 333MB	region resolution
+time: 0.007; rss: 333MB	loop checking
+time: 0.007; rss: 333MB	static item recursion checking
+time: 0.067; rss: 337MB	type collecting
+time: 0.002; rss: 337MB	variance inference
+time: 0.058; rss: 366MB	coherence checking
+time: 0.109; rss: 370MB	wf checking (old)
+time: 0.188; rss: 374MB	item-types checking
+time: 6.255; rss: 511MB	item-bodies checking
+time: 0.000; rss: 511MB	drop-impl checking
+time: 0.287; rss: 511MB	wf checking (new)
+time: 0.413; rss: 519MB	const checking
+time: 0.087; rss: 519MB	privacy checking
+time: 0.014; rss: 519MB	stability index
+time: 0.029; rss: 519MB	intrinsic checking
+time: 0.022; rss: 519MB	effect checking
+time: 0.091; rss: 519MB	match checking
+time: 0.454; rss: 589MB	MIR dump
+time: 0.058; rss: 591MB	liveness checking
+time: 0.735; rss: 591MB	borrow checking
+time: 0.406; rss: 591MB	rvalue checking
+time: 0.033; rss: 591MB	reachability checking
+time: 0.060; rss: 591MB	death checking
+time: 0.060; rss: 593MB	stability checking
+time: 0.000; rss: 593MB	unused lib feature checking
+time: 0.334; rss: 593MB	lint checking
+time: 0.002; rss: 593MB	resolving dependency formats
+time: 0.069; rss: 604MB	erasing regions from MIR
+time: 9.065; rss: 1165MB	translation
+  time: 2.784; rss: 600MB	llvm function passes [0]
+  time: 51.314; rss: 710MB	llvm module passes [0]
+  time: 16.302; rss: 720MB	codegen passes [0]
+  time: 0.003; rss: 604MB	codegen passes [0]
+time: 71.908; rss: 604MB	LLVM passes
+  time: 0.217; rss: 604MB	running linker
+time: 0.834; rss: 615MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_platform_intrinsics
+time: 0.033; rss: 45MB	parsing
+time: 0.011; rss: 46MB	configuration 1
+time: 0.000; rss: 46MB	recursion limit
+time: 0.000; rss: 46MB	gated macro checking
+time: 0.000; rss: 46MB	crate injection
+time: 0.003; rss: 48MB	macro loading
+time: 0.000; rss: 48MB	plugin loading
+time: 0.000; rss: 48MB	plugin registration
+time: 0.113; rss: 53MB	expansion
+time: 0.002; rss: 53MB	complete gated feature checking 1
+time: 0.018; rss: 53MB	configuration 2
+time: 0.000; rss: 53MB	gated configuration checking
+time: 0.009; rss: 53MB	maybe building test harness
+time: 0.008; rss: 53MB	prelude injection
+time: 0.001; rss: 53MB	checking that all macro invocations are gone
+time: 0.000; rss: 53MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 53MB	complete gated feature checking 2
+time: 0.009; rss: 53MB	assigning node ids
+time: 0.012; rss: 61MB	lowering ast -> hir
+time: 0.002; rss: 61MB	indexing hir
+time: 0.000; rss: 61MB	attribute checking
+time: 0.005; rss: 61MB	early lint checks
+time: 0.057; rss: 96MB	external crate/lib resolution
+time: 0.001; rss: 96MB	language item collection
+time: 0.014; rss: 113MB	resolution
+time: 0.001; rss: 113MB	lifetime resolution
+time: 0.000; rss: 113MB	looking for entry point
+time: 0.000; rss: 113MB	looking for plugin registrar
+time: 0.006; rss: 115MB	region resolution
+time: 0.001; rss: 115MB	loop checking
+time: 0.001; rss: 115MB	static item recursion checking
+time: 0.008; rss: 132MB	type collecting
+time: 0.000; rss: 132MB	variance inference
+time: 0.030; rss: 167MB	coherence checking
+time: 0.002; rss: 167MB	wf checking (old)
+time: 0.001; rss: 167MB	item-types checking
+time: 0.472; rss: 184MB	item-bodies checking
+time: 0.000; rss: 184MB	drop-impl checking
+time: 0.002; rss: 184MB	wf checking (new)
+time: 0.026; rss: 185MB	const checking
+time: 0.006; rss: 185MB	privacy checking
+time: 0.001; rss: 185MB	stability index
+time: 0.002; rss: 185MB	intrinsic checking
+time: 0.003; rss: 185MB	effect checking
+time: 0.027; rss: 185MB	match checking
+time: 0.067; rss: 203MB	MIR dump
+time: 0.005; rss: 203MB	liveness checking
+time: 0.057; rss: 204MB	borrow checking
+time: 0.017; rss: 204MB	rvalue checking
+time: 0.000; rss: 204MB	reachability checking
+time: 0.005; rss: 204MB	death checking
+time: 0.007; rss: 204MB	stability checking
+time: 0.000; rss: 204MB	unused lib feature checking
+time: 0.045; rss: 207MB	lint checking
+time: 0.002; rss: 207MB	resolving dependency formats
+time: 0.004; rss: 207MB	erasing regions from MIR
+time: 0.435; rss: 239MB	translation
+  time: 0.197; rss: 187MB	llvm function passes [0]
+  time: 20.755; rss: 271MB	llvm module passes [0]
+  time: 9.287; rss: 397MB	codegen passes [0]
+  time: 0.001; rss: 397MB	codegen passes [0]
+time: 30.445; rss: 397MB	LLVM passes
+  time: 0.068; rss: 397MB	running linker
+time: 0.175; rss: 395MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_typeck
+time: 0.074; rss: 55MB	parsing
+time: 0.028; rss: 55MB	configuration 1
+time: 0.000; rss: 55MB	recursion limit
+time: 0.001; rss: 55MB	gated macro checking
+time: 0.000; rss: 55MB	crate injection
+time: 0.006; rss: 60MB	macro loading
+time: 0.000; rss: 60MB	plugin loading
+time: 0.000; rss: 60MB	plugin registration
+time: 0.289; rss: 71MB	expansion
+time: 0.008; rss: 71MB	complete gated feature checking 1
+time: 0.052; rss: 71MB	configuration 2
+time: 0.000; rss: 71MB	gated configuration checking
+time: 0.025; rss: 71MB	maybe building test harness
+time: 0.023; rss: 71MB	prelude injection
+time: 0.004; rss: 71MB	checking that all macro invocations are gone
+time: 0.000; rss: 71MB	checking for inline asm in case the target doesn't support it
+time: 0.008; rss: 71MB	complete gated feature checking 2
+time: 0.024; rss: 71MB	assigning node ids
+time: 0.041; rss: 97MB	lowering ast -> hir
+time: 0.013; rss: 101MB	indexing hir
+time: 0.000; rss: 101MB	attribute checking
+time: 0.012; rss: 101MB	early lint checks
+time: 0.049; rss: 136MB	external crate/lib resolution
+time: 0.003; rss: 136MB	language item collection
+time: 0.072; rss: 191MB	resolution
+time: 0.005; rss: 191MB	lifetime resolution
+time: 0.000; rss: 191MB	looking for entry point
+time: 0.000; rss: 191MB	looking for plugin registrar
+time: 0.019; rss: 191MB	region resolution
+time: 0.003; rss: 191MB	loop checking
+time: 0.003; rss: 191MB	static item recursion checking
+time: 0.024; rss: 197MB	type collecting
+time: 0.000; rss: 197MB	variance inference
+time: 0.045; rss: 228MB	coherence checking
+time: 0.027; rss: 230MB	wf checking (old)
+time: 0.074; rss: 235MB	item-types checking
+time: 2.583; rss: 315MB	item-bodies checking
+time: 0.000; rss: 315MB	drop-impl checking
+time: 0.059; rss: 315MB	wf checking (new)
+time: 0.132; rss: 315MB	const checking
+time: 0.027; rss: 315MB	privacy checking
+time: 0.004; rss: 315MB	stability index
+time: 0.008; rss: 315MB	intrinsic checking
+time: 0.008; rss: 315MB	effect checking
+time: 0.023; rss: 315MB	match checking
+time: 0.156; rss: 332MB	MIR dump
+time: 0.023; rss: 338MB	liveness checking
+time: 0.210; rss: 338MB	borrow checking
+time: 0.088; rss: 338MB	rvalue checking
+time: 0.001; rss: 338MB	reachability checking
+time: 0.020; rss: 338MB	death checking
+time: 0.027; rss: 338MB	stability checking
+time: 0.000; rss: 338MB	unused lib feature checking
+time: 0.111; rss: 338MB	lint checking
+time: 0.002; rss: 338MB	resolving dependency formats
+time: 0.028; rss: 343MB	erasing regions from MIR
+time: 4.127; rss: 648MB	translation
+  time: 1.268; rss: 364MB	llvm function passes [0]
+  time: 30.704; rss: 404MB	llvm module passes [0]
+  time: 8.793; rss: 426MB	codegen passes [0]
+  time: 0.001; rss: 408MB	codegen passes [0]
+time: 41.459; rss: 408MB	LLVM passes
+  time: 0.088; rss: 408MB	running linker
+time: 0.427; rss: 408MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_mir
+time: 0.017; rss: 35MB	parsing
+time: 0.005; rss: 39MB	configuration 1
+time: 0.000; rss: 39MB	recursion limit
+time: 0.000; rss: 39MB	gated macro checking
+time: 0.000; rss: 39MB	crate injection
+time: 0.003; rss: 41MB	macro loading
+time: 0.000; rss: 41MB	plugin loading
+time: 0.000; rss: 41MB	plugin registration
+time: 0.053; rss: 46MB	expansion
+time: 0.001; rss: 46MB	complete gated feature checking 1
+time: 0.010; rss: 46MB	configuration 2
+time: 0.000; rss: 46MB	gated configuration checking
+time: 0.005; rss: 46MB	maybe building test harness
+time: 0.004; rss: 46MB	prelude injection
+time: 0.000; rss: 46MB	checking that all macro invocations are gone
+time: 0.000; rss: 46MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 46MB	complete gated feature checking 2
+time: 0.005; rss: 46MB	assigning node ids
+time: 0.007; rss: 51MB	lowering ast -> hir
+time: 0.002; rss: 54MB	indexing hir
+time: 0.000; rss: 54MB	attribute checking
+time: 0.003; rss: 54MB	early lint checks
+time: 0.055; rss: 89MB	external crate/lib resolution
+time: 0.001; rss: 89MB	language item collection
+time: 0.021; rss: 127MB	resolution
+time: 0.001; rss: 127MB	lifetime resolution
+time: 0.000; rss: 127MB	looking for entry point
+time: 0.000; rss: 127MB	looking for plugin registrar
+time: 0.003; rss: 129MB	region resolution
+time: 0.000; rss: 129MB	loop checking
+time: 0.000; rss: 129MB	static item recursion checking
+time: 0.011; rss: 133MB	type collecting
+time: 0.000; rss: 133MB	variance inference
+time: 0.035; rss: 165MB	coherence checking
+time: 0.010; rss: 165MB	wf checking (old)
+time: 0.009; rss: 165MB	item-types checking
+time: 0.791; rss: 201MB	item-bodies checking
+time: 0.000; rss: 201MB	drop-impl checking
+time: 0.022; rss: 201MB	wf checking (new)
+time: 0.027; rss: 201MB	const checking
+time: 0.004; rss: 201MB	privacy checking
+time: 0.000; rss: 201MB	stability index
+time: 0.001; rss: 201MB	intrinsic checking
+time: 0.001; rss: 201MB	effect checking
+time: 0.006; rss: 201MB	match checking
+time: 0.028; rss: 203MB	MIR dump
+time: 0.005; rss: 205MB	liveness checking
+time: 0.042; rss: 206MB	borrow checking
+time: 0.028; rss: 206MB	rvalue checking
+time: 0.000; rss: 206MB	reachability checking
+time: 0.003; rss: 206MB	death checking
+time: 0.004; rss: 206MB	stability checking
+time: 0.000; rss: 206MB	unused lib feature checking
+time: 0.027; rss: 206MB	lint checking
+time: 0.002; rss: 206MB	resolving dependency formats
+time: 0.006; rss: 208MB	erasing regions from MIR
+time: 1.413; rss: 336MB	translation
+  time: 0.396; rss: 227MB	llvm function passes [0]
+  time: 7.589; rss: 241MB	llvm module passes [0]
+  time: 2.266; rss: 246MB	codegen passes [0]
+  time: 0.001; rss: 229MB	codegen passes [0]
+time: 10.423; rss: 229MB	LLVM passes
+  time: 0.059; rss: 233MB	running linker
+time: 0.140; rss: 233MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_borrowck
+time: 0.015; rss: 38MB	parsing
+time: 0.005; rss: 39MB	configuration 1
+time: 0.000; rss: 39MB	recursion limit
+time: 0.000; rss: 39MB	gated macro checking
+time: 0.000; rss: 39MB	crate injection
+time: 0.005; rss: 44MB	macro loading
+time: 0.000; rss: 44MB	plugin loading
+time: 0.000; rss: 44MB	plugin registration
+time: 0.060; rss: 48MB	expansion
+time: 0.001; rss: 48MB	complete gated feature checking 1
+time: 0.011; rss: 48MB	configuration 2
+time: 0.000; rss: 48MB	gated configuration checking
+time: 0.005; rss: 48MB	maybe building test harness
+time: 0.005; rss: 48MB	prelude injection
+time: 0.000; rss: 48MB	checking that all macro invocations are gone
+time: 0.000; rss: 48MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 48MB	complete gated feature checking 2
+time: 0.005; rss: 48MB	assigning node ids
+time: 0.008; rss: 53MB	lowering ast -> hir
+time: 0.003; rss: 55MB	indexing hir
+time: 0.000; rss: 55MB	attribute checking
+time: 0.003; rss: 55MB	early lint checks
+time: 0.054; rss: 90MB	external crate/lib resolution
+time: 0.001; rss: 90MB	language item collection
+time: 0.018; rss: 126MB	resolution
+time: 0.001; rss: 126MB	lifetime resolution
+time: 0.000; rss: 126MB	looking for entry point
+time: 0.000; rss: 126MB	looking for plugin registrar
+time: 0.003; rss: 128MB	region resolution
+time: 0.000; rss: 128MB	loop checking
+time: 0.000; rss: 128MB	static item recursion checking
+time: 0.011; rss: 132MB	type collecting
+time: 0.000; rss: 132MB	variance inference
+time: 0.042; rss: 168MB	coherence checking
+time: 0.008; rss: 168MB	wf checking (old)
+time: 0.018; rss: 168MB	item-types checking
+time: 0.420; rss: 193MB	item-bodies checking
+time: 0.000; rss: 193MB	drop-impl checking
+time: 0.013; rss: 193MB	wf checking (new)
+time: 0.025; rss: 193MB	const checking
+time: 0.003; rss: 193MB	privacy checking
+time: 0.000; rss: 193MB	stability index
+time: 0.001; rss: 193MB	intrinsic checking
+time: 0.001; rss: 193MB	effect checking
+time: 0.005; rss: 193MB	match checking
+time: 0.029; rss: 198MB	MIR dump
+time: 0.004; rss: 200MB	liveness checking
+time: 0.040; rss: 200MB	borrow checking
+time: 0.013; rss: 200MB	rvalue checking
+time: 0.000; rss: 200MB	reachability checking
+time: 0.003; rss: 200MB	death checking
+time: 0.004; rss: 200MB	stability checking
+time: 0.000; rss: 200MB	unused lib feature checking
+time: 0.023; rss: 200MB	lint checking
+time: 0.002; rss: 200MB	resolving dependency formats
+time: 0.005; rss: 200MB	erasing regions from MIR
+time: 0.880; rss: 325MB	translation
+  time: 0.250; rss: 216MB	llvm function passes [0]
+  time: 4.744; rss: 224MB	llvm module passes [0]
+  time: 1.681; rss: 233MB	codegen passes [0]
+  time: 0.001; rss: 226MB	codegen passes [0]
+time: 6.790; rss: 226MB	LLVM passes
+  time: 0.057; rss: 230MB	running linker
+time: 0.119; rss: 230MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_resolve
+time: 0.019; rss: 40MB	parsing
+time: 0.006; rss: 40MB	configuration 1
+time: 0.000; rss: 40MB	recursion limit
+time: 0.000; rss: 40MB	gated macro checking
+time: 0.000; rss: 40MB	crate injection
+time: 0.006; rss: 44MB	macro loading
+time: 0.000; rss: 44MB	plugin loading
+time: 0.000; rss: 44MB	plugin registration
+time: 0.077; rss: 52MB	expansion
+time: 0.002; rss: 52MB	complete gated feature checking 1
+time: 0.013; rss: 51MB	configuration 2
+time: 0.000; rss: 51MB	gated configuration checking
+time: 0.006; rss: 51MB	maybe building test harness
+time: 0.006; rss: 51MB	prelude injection
+time: 0.000; rss: 51MB	checking that all macro invocations are gone
+time: 0.000; rss: 51MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 51MB	complete gated feature checking 2
+time: 0.006; rss: 51MB	assigning node ids
+time: 0.010; rss: 57MB	lowering ast -> hir
+time: 0.003; rss: 57MB	indexing hir
+time: 0.000; rss: 57MB	attribute checking
+time: 0.003; rss: 57MB	early lint checks
+time: 0.054; rss: 93MB	external crate/lib resolution
+time: 0.001; rss: 93MB	language item collection
+time: 0.023; rss: 130MB	resolution
+time: 0.001; rss: 130MB	lifetime resolution
+time: 0.000; rss: 130MB	looking for entry point
+time: 0.000; rss: 130MB	looking for plugin registrar
+time: 0.005; rss: 132MB	region resolution
+time: 0.001; rss: 132MB	loop checking
+time: 0.000; rss: 132MB	static item recursion checking
+time: 0.008; rss: 136MB	type collecting
+time: 0.000; rss: 136MB	variance inference
+time: 0.046; rss: 177MB	coherence checking
+time: 0.007; rss: 177MB	wf checking (old)
+time: 0.022; rss: 179MB	item-types checking
+time: 0.547; rss: 205MB	item-bodies checking
+time: 0.000; rss: 205MB	drop-impl checking
+time: 0.015; rss: 205MB	wf checking (new)
+time: 0.037; rss: 205MB	const checking
+time: 0.005; rss: 205MB	privacy checking
+time: 0.001; rss: 205MB	stability index
+time: 0.001; rss: 205MB	intrinsic checking
+time: 0.001; rss: 205MB	effect checking
+time: 0.006; rss: 205MB	match checking
+time: 0.038; rss: 210MB	MIR dump
+time: 0.006; rss: 212MB	liveness checking
+time: 0.053; rss: 212MB	borrow checking
+time: 0.020; rss: 212MB	rvalue checking
+time: 0.000; rss: 212MB	reachability checking
+time: 0.004; rss: 212MB	death checking
+time: 0.005; rss: 212MB	stability checking
+time: 0.000; rss: 212MB	unused lib feature checking
+time: 0.031; rss: 212MB	lint checking
+time: 0.002; rss: 212MB	resolving dependency formats
+time: 0.006; rss: 212MB	erasing regions from MIR
+time: 1.144; rss: 329MB	translation
+  time: 0.377; rss: 227MB	llvm function passes [0]
+  time: 7.066; rss: 240MB	llvm module passes [0]
+  time: 2.107; rss: 244MB	codegen passes [0]
+  time: 0.001; rss: 230MB	codegen passes [0]
+time: 9.716; rss: 230MB	LLVM passes
+  time: 0.060; rss: 234MB	running linker
+time: 0.140; rss: 235MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_trans
+time: 0.132; rss: 70MB	parsing
+time: 0.050; rss: 70MB	configuration 1
+time: 0.000; rss: 70MB	recursion limit
+time: 0.003; rss: 70MB	gated macro checking
+time: 0.000; rss: 70MB	crate injection
+time: 0.008; rss: 76MB	macro loading
+time: 0.000; rss: 76MB	plugin loading
+time: 0.000; rss: 76MB	plugin registration
+time: 0.437; rss: 88MB	expansion
+time: 0.013; rss: 88MB	complete gated feature checking 1
+time: 0.083; rss: 88MB	configuration 2
+time: 0.000; rss: 88MB	gated configuration checking
+time: 0.039; rss: 88MB	maybe building test harness
+time: 0.037; rss: 88MB	prelude injection
+time: 0.006; rss: 88MB	checking that all macro invocations are gone
+time: 0.000; rss: 88MB	checking for inline asm in case the target doesn't support it
+time: 0.013; rss: 88MB	complete gated feature checking 2
+time: 0.038; rss: 88MB	assigning node ids
+time: 0.072; rss: 129MB	lowering ast -> hir
+time: 0.021; rss: 133MB	indexing hir
+time: 0.000; rss: 133MB	attribute checking
+time: 0.019; rss: 133MB	early lint checks
+time: 0.048; rss: 169MB	external crate/lib resolution
+time: 0.004; rss: 169MB	language item collection
+time: 0.123; rss: 243MB	resolution
+time: 0.008; rss: 243MB	lifetime resolution
+time: 0.000; rss: 243MB	looking for entry point
+time: 0.000; rss: 243MB	looking for plugin registrar
+time: 0.033; rss: 249MB	region resolution
+time: 0.004; rss: 249MB	loop checking
+time: 0.004; rss: 249MB	static item recursion checking
+time: 0.036; rss: 254MB	type collecting
+time: 0.001; rss: 254MB	variance inference
+time: 0.042; rss: 278MB	coherence checking
+time: 0.036; rss: 280MB	wf checking (old)
+time: 0.085; rss: 284MB	item-types checking
+time: 3.571; rss: 390MB	item-bodies checking
+time: 0.000; rss: 390MB	drop-impl checking
+time: 0.077; rss: 390MB	wf checking (new)
+time: 0.193; rss: 390MB	const checking
+time: 0.043; rss: 390MB	privacy checking
+time: 0.007; rss: 390MB	stability index
+time: 0.015; rss: 390MB	intrinsic checking
+time: 0.013; rss: 390MB	effect checking
+time: 0.036; rss: 390MB	match checking
+time: 0.237; rss: 418MB	MIR dump
+time: 0.038; rss: 424MB	liveness checking
+time: 0.328; rss: 424MB	borrow checking
+time: 0.123; rss: 424MB	rvalue checking
+time: 0.001; rss: 424MB	reachability checking
+time: 0.031; rss: 424MB	death checking
+time: 0.041; rss: 424MB	stability checking
+time: 0.000; rss: 424MB	unused lib feature checking
+time: 0.162; rss: 424MB	lint checking
+time: 0.002; rss: 424MB	resolving dependency formats
+time: 0.044; rss: 428MB	erasing regions from MIR
+time: 4.988; rss: 831MB	translation
+  time: 1.649; rss: 425MB	llvm function passes [0]
+  time: 33.490; rss: 479MB	llvm module passes [0]
+  time: 11.225; rss: 498MB	codegen passes [0]
+  time: 0.001; rss: 442MB	codegen passes [0]
+time: 47.264; rss: 442MB	LLVM passes
+  time: 0.137; rss: 442MB	running linker
+time: 0.536; rss: 442MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_privacy
+time: 0.005; rss: 36MB	parsing
+time: 0.002; rss: 36MB	configuration 1
+time: 0.000; rss: 36MB	recursion limit
+time: 0.000; rss: 36MB	gated macro checking
+time: 0.000; rss: 36MB	crate injection
+time: 0.005; rss: 41MB	macro loading
+time: 0.000; rss: 41MB	plugin loading
+time: 0.000; rss: 41MB	plugin registration
+time: 0.016; rss: 44MB	expansion
+time: 0.000; rss: 44MB	complete gated feature checking 1
+time: 0.003; rss: 44MB	configuration 2
+time: 0.000; rss: 44MB	gated configuration checking
+time: 0.001; rss: 44MB	maybe building test harness
+time: 0.001; rss: 44MB	prelude injection
+time: 0.000; rss: 44MB	checking that all macro invocations are gone
+time: 0.000; rss: 44MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 44MB	complete gated feature checking 2
+time: 0.001; rss: 44MB	assigning node ids
+time: 0.002; rss: 45MB	lowering ast -> hir
+time: 0.001; rss: 47MB	indexing hir
+time: 0.000; rss: 47MB	attribute checking
+time: 0.001; rss: 47MB	early lint checks
+time: 0.056; rss: 82MB	external crate/lib resolution
+time: 0.000; rss: 82MB	language item collection
+time: 0.008; rss: 108MB	resolution
+time: 0.000; rss: 108MB	lifetime resolution
+time: 0.000; rss: 108MB	looking for entry point
+time: 0.000; rss: 108MB	looking for plugin registrar
+time: 0.001; rss: 110MB	region resolution
+time: 0.000; rss: 110MB	loop checking
+time: 0.000; rss: 110MB	static item recursion checking
+time: 0.007; rss: 119MB	type collecting
+time: 0.000; rss: 119MB	variance inference
+time: 0.015; rss: 140MB	coherence checking
+time: 0.002; rss: 140MB	wf checking (old)
+time: 0.005; rss: 140MB	item-types checking
+time: 0.149; rss: 164MB	item-bodies checking
+time: 0.000; rss: 164MB	drop-impl checking
+time: 0.003; rss: 164MB	wf checking (new)
+time: 0.008; rss: 164MB	const checking
+time: 0.001; rss: 164MB	privacy checking
+time: 0.000; rss: 164MB	stability index
+time: 0.000; rss: 164MB	intrinsic checking
+time: 0.000; rss: 164MB	effect checking
+time: 0.001; rss: 164MB	match checking
+time: 0.008; rss: 166MB	MIR dump
+time: 0.001; rss: 166MB	liveness checking
+time: 0.011; rss: 166MB	borrow checking
+time: 0.003; rss: 166MB	rvalue checking
+time: 0.000; rss: 166MB	reachability checking
+time: 0.001; rss: 166MB	death checking
+time: 0.001; rss: 166MB	stability checking
+time: 0.000; rss: 166MB	unused lib feature checking
+time: 0.006; rss: 166MB	lint checking
+time: 0.002; rss: 166MB	resolving dependency formats
+time: 0.001; rss: 166MB	erasing regions from MIR
+time: 0.482; rss: 233MB	translation
+  time: 0.144; rss: 186MB	llvm function passes [0]
+  time: 1.654; rss: 189MB	llvm module passes [0]
+  time: 0.472; rss: 190MB	codegen passes [0]
+  time: 0.000; rss: 189MB	codegen passes [0]
+time: 2.310; rss: 189MB	LLVM passes
+  time: 0.050; rss: 193MB	running linker
+time: 0.071; rss: 193MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_lint
+time: 0.010; rss: 36MB	parsing
+time: 0.003; rss: 36MB	configuration 1
+time: 0.000; rss: 36MB	recursion limit
+time: 0.000; rss: 36MB	gated macro checking
+time: 0.000; rss: 36MB	crate injection
+time: 0.056; rss: 77MB	macro loading
+time: 0.000; rss: 77MB	plugin loading
+time: 0.000; rss: 77MB	plugin registration
+time: 0.025; rss: 80MB	expansion
+time: 0.000; rss: 80MB	complete gated feature checking 1
+time: 0.005; rss: 80MB	configuration 2
+time: 0.000; rss: 80MB	gated configuration checking
+time: 0.002; rss: 80MB	maybe building test harness
+time: 0.002; rss: 80MB	prelude injection
+time: 0.000; rss: 80MB	checking that all macro invocations are gone
+time: 0.000; rss: 80MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 80MB	complete gated feature checking 2
+time: 0.002; rss: 80MB	assigning node ids
+time: 0.003; rss: 81MB	lowering ast -> hir
+time: 0.001; rss: 84MB	indexing hir
+time: 0.000; rss: 84MB	attribute checking
+time: 0.001; rss: 84MB	early lint checks
+time: 0.003; rss: 84MB	external crate/lib resolution
+time: 0.000; rss: 84MB	language item collection
+time: 0.012; rss: 118MB	resolution
+time: 0.000; rss: 118MB	lifetime resolution
+time: 0.000; rss: 118MB	looking for entry point
+time: 0.000; rss: 118MB	looking for plugin registrar
+time: 0.001; rss: 118MB	region resolution
+time: 0.000; rss: 118MB	loop checking
+time: 0.000; rss: 118MB	static item recursion checking
+time: 0.008; rss: 121MB	type collecting
+time: 0.000; rss: 121MB	variance inference
+time: 0.029; rss: 150MB	coherence checking
+time: 0.004; rss: 150MB	wf checking (old)
+time: 0.010; rss: 150MB	item-types checking
+time: 0.198; rss: 175MB	item-bodies checking
+time: 0.000; rss: 175MB	drop-impl checking
+time: 0.007; rss: 175MB	wf checking (new)
+time: 0.014; rss: 175MB	const checking
+time: 0.001; rss: 175MB	privacy checking
+time: 0.000; rss: 175MB	stability index
+time: 0.000; rss: 175MB	intrinsic checking
+time: 0.000; rss: 175MB	effect checking
+time: 0.002; rss: 175MB	match checking
+time: 0.013; rss: 178MB	MIR dump
+time: 0.001; rss: 178MB	liveness checking
+time: 0.016; rss: 178MB	borrow checking
+time: 0.005; rss: 178MB	rvalue checking
+time: 0.000; rss: 178MB	reachability checking
+time: 0.001; rss: 178MB	death checking
+time: 0.002; rss: 178MB	stability checking
+time: 0.000; rss: 178MB	unused lib feature checking
+time: 0.010; rss: 178MB	lint checking
+time: 0.002; rss: 178MB	resolving dependency formats
+time: 0.002; rss: 178MB	erasing regions from MIR
+time: 0.805; rss: 281MB	translation
+  time: 0.209; rss: 200MB	llvm function passes [0]
+  time: 2.579; rss: 205MB	llvm module passes [0]
+  time: 0.915; rss: 210MB	codegen passes [0]
+  time: 0.001; rss: 206MB	codegen passes [0]
+time: 3.770; rss: 206MB	LLVM passes
+  time: 0.062; rss: 208MB	running linker
+time: 0.103; rss: 208MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_metadata
+time: 0.035; rss: 43MB	parsing
+time: 0.013; rss: 45MB	configuration 1
+time: 0.000; rss: 45MB	recursion limit
+time: 0.000; rss: 45MB	gated macro checking
+time: 0.000; rss: 45MB	crate injection
+time: 0.006; rss: 50MB	macro loading
+time: 0.000; rss: 50MB	plugin loading
+time: 0.000; rss: 50MB	plugin registration
+time: 0.111; rss: 55MB	expansion
+time: 0.003; rss: 55MB	complete gated feature checking 1
+time: 0.022; rss: 55MB	configuration 2
+time: 0.000; rss: 55MB	gated configuration checking
+time: 0.010; rss: 55MB	maybe building test harness
+time: 0.009; rss: 55MB	prelude injection
+time: 0.001; rss: 55MB	checking that all macro invocations are gone
+time: 0.000; rss: 55MB	checking for inline asm in case the target doesn't support it
+time: 0.002; rss: 55MB	complete gated feature checking 2
+time: 0.009; rss: 55MB	assigning node ids
+time: 0.016; rss: 64MB	lowering ast -> hir
+time: 0.006; rss: 68MB	indexing hir
+time: 0.000; rss: 68MB	attribute checking
+time: 0.005; rss: 68MB	early lint checks
+time: 0.053; rss: 103MB	external crate/lib resolution
+time: 0.001; rss: 103MB	language item collection
+time: 0.036; rss: 150MB	resolution
+time: 0.002; rss: 150MB	lifetime resolution
+time: 0.000; rss: 150MB	looking for entry point
+time: 0.000; rss: 150MB	looking for plugin registrar
+time: 0.008; rss: 152MB	region resolution
+time: 0.001; rss: 152MB	loop checking
+time: 0.001; rss: 152MB	static item recursion checking
+time: 0.016; rss: 161MB	type collecting
+time: 0.000; rss: 161MB	variance inference
+time: 0.041; rss: 188MB	coherence checking
+time: 0.015; rss: 188MB	wf checking (old)
+time: 0.028; rss: 188MB	item-types checking
+time: 0.982; rss: 240MB	item-bodies checking
+time: 0.000; rss: 240MB	drop-impl checking
+time: 0.027; rss: 240MB	wf checking (new)
+time: 0.055; rss: 240MB	const checking
+time: 0.010; rss: 240MB	privacy checking
+time: 0.001; rss: 240MB	stability index
+time: 0.004; rss: 240MB	intrinsic checking
+time: 0.003; rss: 240MB	effect checking
+time: 0.010; rss: 240MB	match checking
+time: 0.063; rss: 246MB	MIR dump
+time: 0.009; rss: 248MB	liveness checking
+time: 0.086; rss: 248MB	borrow checking
+time: 0.032; rss: 248MB	rvalue checking
+time: 0.000; rss: 248MB	reachability checking
+time: 0.008; rss: 248MB	death checking
+time: 0.011; rss: 248MB	stability checking
+time: 0.000; rss: 248MB	unused lib feature checking
+time: 0.048; rss: 248MB	lint checking
+time: 0.002; rss: 248MB	resolving dependency formats
+time: 0.012; rss: 250MB	erasing regions from MIR
+time: 4.116; rss: 628MB	translation
+  time: 1.376; rss: 382MB	llvm function passes [0]
+  time: 67.831; rss: 429MB	llvm module passes [0]
+  time: 8.216; rss: 455MB	codegen passes [0]
+  time: 0.001; rss: 416MB	codegen passes [0]
+time: 78.235; rss: 416MB	LLVM passes
+  time: 0.130; rss: 418MB	running linker
+time: 0.455; rss: 419MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_plugin
+time: 0.001; rss: 31MB	parsing
+time: 0.000; rss: 35MB	configuration 1
+time: 0.000; rss: 35MB	recursion limit
+time: 0.000; rss: 35MB	gated macro checking
+time: 0.000; rss: 35MB	crate injection
+time: 0.005; rss: 40MB	macro loading
+time: 0.000; rss: 40MB	plugin loading
+time: 0.000; rss: 40MB	plugin registration
+time: 0.003; rss: 41MB	expansion
+time: 0.000; rss: 41MB	complete gated feature checking 1
+time: 0.000; rss: 41MB	configuration 2
+time: 0.000; rss: 41MB	gated configuration checking
+time: 0.000; rss: 41MB	maybe building test harness
+time: 0.000; rss: 42MB	prelude injection
+time: 0.000; rss: 42MB	checking that all macro invocations are gone
+time: 0.000; rss: 42MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 42MB	complete gated feature checking 2
+time: 0.000; rss: 42MB	assigning node ids
+time: 0.000; rss: 42MB	lowering ast -> hir
+time: 0.000; rss: 42MB	indexing hir
+time: 0.000; rss: 42MB	attribute checking
+time: 0.000; rss: 42MB	early lint checks
+time: 0.055; rss: 78MB	external crate/lib resolution
+time: 0.000; rss: 78MB	language item collection
+time: 0.006; rss: 105MB	resolution
+time: 0.000; rss: 105MB	lifetime resolution
+time: 0.000; rss: 105MB	looking for entry point
+time: 0.000; rss: 105MB	looking for plugin registrar
+time: 0.000; rss: 105MB	region resolution
+time: 0.000; rss: 105MB	loop checking
+time: 0.000; rss: 105MB	static item recursion checking
+time: 0.004; rss: 110MB	type collecting
+time: 0.000; rss: 110MB	variance inference
+time: 0.011; rss: 131MB	coherence checking
+time: 0.001; rss: 131MB	wf checking (old)
+time: 0.000; rss: 131MB	item-types checking
+time: 0.047; rss: 150MB	item-bodies checking
+time: 0.000; rss: 150MB	drop-impl checking
+time: 0.001; rss: 150MB	wf checking (new)
+time: 0.002; rss: 150MB	const checking
+time: 0.000; rss: 150MB	privacy checking
+time: 0.000; rss: 150MB	stability index
+time: 0.000; rss: 150MB	intrinsic checking
+time: 0.000; rss: 150MB	effect checking
+time: 0.000; rss: 150MB	match checking
+time: 0.001; rss: 152MB	MIR dump
+time: 0.000; rss: 152MB	liveness checking
+time: 0.001; rss: 152MB	borrow checking
+time: 0.000; rss: 152MB	rvalue checking
+time: 0.000; rss: 152MB	reachability checking
+time: 0.000; rss: 152MB	death checking
+time: 0.000; rss: 152MB	stability checking
+time: 0.000; rss: 152MB	unused lib feature checking
+time: 0.001; rss: 152MB	lint checking
+time: 0.002; rss: 152MB	resolving dependency formats
+time: 0.000; rss: 152MB	erasing regions from MIR
+time: 0.221; rss: 200MB	translation
+  time: 0.051; rss: 170MB	llvm function passes [0]
+  time: 0.583; rss: 172MB	llvm module passes [0]
+  time: 0.135; rss: 175MB	codegen passes [0]
+  time: 0.000; rss: 174MB	codegen passes [0]
+time: 0.779; rss: 174MB	LLVM passes
+  time: 0.044; rss: 178MB	running linker
+time: 0.052; rss: 178MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustc_driver
+time: 0.013; rss: 39MB	parsing
+time: 0.004; rss: 38MB	configuration 1
+time: 0.000; rss: 38MB	recursion limit
+time: 0.000; rss: 38MB	gated macro checking
+time: 0.000; rss: 38MB	crate injection
+time: 0.005; rss: 43MB	macro loading
+time: 0.000; rss: 43MB	plugin loading
+time: 0.000; rss: 43MB	plugin registration
+time: 0.029; rss: 45MB	expansion
+time: 0.000; rss: 45MB	complete gated feature checking 1
+time: 0.006; rss: 45MB	configuration 2
+time: 0.000; rss: 45MB	gated configuration checking
+time: 0.003; rss: 45MB	maybe building test harness
+time: 0.003; rss: 45MB	prelude injection
+time: 0.000; rss: 45MB	checking that all macro invocations are gone
+time: 0.000; rss: 45MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 45MB	complete gated feature checking 2
+time: 0.003; rss: 45MB	assigning node ids
+time: 0.004; rss: 49MB	lowering ast -> hir
+time: 0.001; rss: 49MB	indexing hir
+time: 0.000; rss: 49MB	attribute checking
+time: 0.001; rss: 49MB	early lint checks
+time: 0.057; rss: 84MB	external crate/lib resolution
+time: 0.000; rss: 84MB	language item collection
+time: 0.018; rss: 133MB	resolution
+time: 0.000; rss: 133MB	lifetime resolution
+time: 0.000; rss: 133MB	looking for entry point
+time: 0.000; rss: 133MB	looking for plugin registrar
+time: 0.001; rss: 133MB	region resolution
+time: 0.000; rss: 133MB	loop checking
+time: 0.000; rss: 133MB	static item recursion checking
+time: 0.010; rss: 139MB	type collecting
+time: 0.000; rss: 139MB	variance inference
+time: 0.040; rss: 173MB	coherence checking
+time: 0.006; rss: 175MB	wf checking (old)
+time: 0.009; rss: 175MB	item-types checking
+time: 0.354; rss: 202MB	item-bodies checking
+time: 0.000; rss: 202MB	drop-impl checking
+time: 0.010; rss: 202MB	wf checking (new)
+time: 0.022; rss: 202MB	const checking
+time: 0.002; rss: 202MB	privacy checking
+time: 0.000; rss: 202MB	stability index
+time: 0.001; rss: 202MB	intrinsic checking
+time: 0.000; rss: 202MB	effect checking
+time: 0.002; rss: 202MB	match checking
+time: 0.017; rss: 204MB	MIR dump
+time: 0.002; rss: 204MB	liveness checking
+time: 0.023; rss: 204MB	borrow checking
+time: 0.010; rss: 204MB	rvalue checking
+time: 0.000; rss: 204MB	reachability checking
+time: 0.001; rss: 204MB	death checking
+time: 0.003; rss: 204MB	stability checking
+time: 0.000; rss: 204MB	unused lib feature checking
+time: 0.010; rss: 204MB	lint checking
+time: 0.002; rss: 204MB	resolving dependency formats
+time: 0.004; rss: 204MB	erasing regions from MIR
+time: 2.997; rss: 473MB	translation
+  time: 1.201; rss: 349MB	llvm function passes [0]
+  time: 33.949; rss: 442MB	llvm module passes [0]
+  time: 12.553; rss: 507MB	codegen passes [0]
+  time: 0.001; rss: 427MB	codegen passes [0]
+time: 48.442; rss: 427MB	LLVM passes
+  time: 0.120; rss: 429MB	running linker
+time: 0.477; rss: 426MB	linking
+rustc: x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-unknown-linux-gnu/lib/librustdoc
+time: 0.040; rss: 45MB	parsing
+time: 0.015; rss: 45MB	configuration 1
+time: 0.000; rss: 45MB	recursion limit
+time: 0.001; rss: 45MB	gated macro checking
+time: 0.000; rss: 45MB	crate injection
+time: 0.004; rss: 48MB	macro loading
+time: 0.000; rss: 48MB	plugin loading
+time: 0.000; rss: 48MB	plugin registration
+time: 0.193; rss: 61MB	expansion
+time: 0.006; rss: 61MB	complete gated feature checking 1
+time: 0.045; rss: 61MB	configuration 2
+time: 0.000; rss: 61MB	gated configuration checking
+time: 0.021; rss: 61MB	maybe building test harness
+time: 0.020; rss: 61MB	prelude injection
+time: 0.002; rss: 61MB	checking that all macro invocations are gone
+time: 0.000; rss: 61MB	checking for inline asm in case the target doesn't support it
+time: 0.005; rss: 61MB	complete gated feature checking 2
+time: 0.021; rss: 61MB	assigning node ids
+time: 0.028; rss: 78MB	lowering ast -> hir
+time: 0.010; rss: 84MB	indexing hir
+time: 0.000; rss: 84MB	attribute checking
+time: 0.010; rss: 84MB	early lint checks
+time: 0.059; rss: 121MB	external crate/lib resolution
+time: 0.002; rss: 121MB	language item collection
+time: 0.055; rss: 181MB	resolution
+time: 0.004; rss: 181MB	lifetime resolution
+time: 0.000; rss: 181MB	looking for entry point
+time: 0.000; rss: 181MB	looking for plugin registrar
+time: 0.014; rss: 181MB	region resolution
+time: 0.002; rss: 181MB	loop checking
+time: 0.002; rss: 181MB	static item recursion checking
+time: 0.020; rss: 191MB	type collecting
+time: 0.000; rss: 191MB	variance inference
+time: 0.049; rss: 227MB	coherence checking
+time: 0.020; rss: 229MB	wf checking (old)
+time: 0.058; rss: 231MB	item-types checking
+time: 2.232; rss: 294MB	item-bodies checking
+time: 0.000; rss: 294MB	drop-impl checking
+time: 0.100; rss: 294MB	wf checking (new)
+time: 0.139; rss: 294MB	const checking
+time: 0.021; rss: 294MB	privacy checking
+time: 0.003; rss: 294MB	stability index
+time: 0.005; rss: 294MB	intrinsic checking
+time: 0.005; rss: 294MB	effect checking
+time: 0.022; rss: 294MB	match checking
+time: 0.131; rss: 315MB	MIR dump
+time: 0.016; rss: 317MB	liveness checking
+time: 0.271; rss: 317MB	borrow checking
+time: 0.139; rss: 317MB	rvalue checking
+time: 0.003; rss: 317MB	reachability checking
+time: 0.014; rss: 317MB	death checking
+time: 0.017; rss: 317MB	stability checking
+time: 0.000; rss: 317MB	unused lib feature checking
+time: 0.084; rss: 317MB	lint checking
+time: 0.002; rss: 317MB	resolving dependency formats
+time: 0.021; rss: 317MB	erasing regions from MIR
+time: 4.561; rss: 644MB	translation
+  time: 1.493; rss: 394MB	llvm function passes [0]
+  time: 37.985; rss: 436MB	llvm module passes [0]
+  time: 12.269; rss: 482MB	codegen passes [0]
+  time: 0.001; rss: 395MB	codegen passes [0]
+time: 52.574; rss: 395MB	LLVM passes
+  time: 0.135; rss: 397MB	running linker
+time: 0.536; rss: 397MB	linking
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/bin/rustbook
+cp: x86_64-unknown-linux-gnu/stage2/bin/rustbook
+rustbook: doc/book/index.html
+rustbook: doc/nomicon/index.html
+rustbook: doc/style/index.html
+rustc: x86_64-unknown-linux-gnu/stage1/lib/rustlib/x86_64-unknown-linux-gnu/bin/error-index-generator
+cp: x86_64-unknown-linux-gnu/stage2/bin/error-index-generator
+error-index-generator: doc/error-index.html
+rustdoc: doc/not_found.html
+rustdoc: doc/index.html
+rustdoc: doc/complement-lang-faq.html
+rustdoc: doc/complement-design-faq.html
+rustdoc: doc/complement-project-faq.html
+rustdoc: doc/rustdoc.html
+rustdoc: doc/reference.html
+rustdoc: doc/grammar.html
+rustdoc: doc/guide-crates.html
+rustdoc: doc/guide-error-handling.html
+rustdoc: doc/guide-ffi.html
+rustdoc: doc/guide-macros.html
+rustdoc: doc/guide.html
+rustdoc: doc/guide-ownership.html
+rustdoc: doc/guide-plugins.html
+rustdoc: doc/guide-pointers.html
+rustdoc: doc/guide-strings.html
+rustdoc: doc/guide-tasks.html
+rustdoc: doc/guide-testing.html
+rustdoc: doc/tutorial.html
+rustdoc: doc/intro.html
+rustdoc: doc/std/index.html
+rustdoc: doc/alloc/index.html
+rustdoc: doc/collections/index.html
+rustdoc: doc/core/index.html
+rustdoc: doc/libc/index.html
+rustdoc: doc/rustc_unicode/index.html
