@@ -1,0 +1,80 @@
+commit 440ef8b1548edf9d03a5b880d77a8b476cfb7fa2
+Merge: 8ad12c3 95fdaf2
+Author: bors <bors@rust-lang.org>
+Date:   Sat Dec 19 02:45:15 2015 +0000
+
+    Auto merge of #30184 - petrochenkov:ascr, r=nikomatsakis
+    
+    This PR is a rebase of the original PR by @eddyb https://github.com/rust-lang/rust/pull/21836 with some unrebasable parts manually reapplied, feature gate added + type equality restriction added as described below.
+    
+    This implementation is partial because the type equality restriction is applied to all type ascription expressions and not only those in lvalue contexts. Thus, all difficulties with detection of these contexts and translation of coercions having effect in runtime are avoided.
+    So, you can't write things with coercions like `let slice = &[1, 2, 3]: &[u8];`. It obviously makes type ascription less useful than it should be, but it's still much more useful than not having type ascription at all.
+    In particular, things like `let v = something.iter().collect(): Vec<_>;` and `let u = t.into(): U;` work as expected and I'm pretty happy with these improvements alone.
+    
+    Part of https://github.com/rust-lang/rust/issues/23416
+rustc: ./piston-image-0.3.11
+cargo rustc -- -Ztime-passes
+   Compiling image v0.3.11 (file:///root/benchmarks/piston-image-0.3.11)
+time: 0.060; rss: 41MB	parsing
+time: 0.016; rss: 42MB	configuration 1
+time: 0.000; rss: 42MB	recursion limit
+time: 0.001; rss: 42MB	gated macro checking
+time: 0.000; rss: 42MB	crate injection
+time: 0.004; rss: 47MB	macro loading
+time: 0.000; rss: 47MB	plugin loading
+time: 0.000; rss: 47MB	plugin registration
+time: 0.130; rss: 51MB	expansion
+time: 0.004; rss: 51MB	complete gated feature checking 1
+time: 0.027; rss: 51MB	configuration 2
+time: 0.000; rss: 51MB	gated configuration checking
+time: 0.013; rss: 51MB	maybe building test harness
+time: 0.012; rss: 51MB	prelude injection
+time: 0.002; rss: 51MB	checking that all macro invocations are gone
+time: 0.000; rss: 51MB	checking for inline asm in case the target doesn't support it
+time: 0.003; rss: 51MB	complete gated feature checking 2
+time: 0.013; rss: 51MB	assigning node ids
+time: 0.036; rss: 64MB	lowering ast -> hir
+time: 0.008; rss: 66MB	indexing hir
+time: 0.000; rss: 66MB	attribute checking
+time: 0.007; rss: 66MB	early lint checks
+time: 0.002; rss: 67MB	external crate/lib resolution
+time: 0.002; rss: 67MB	language item collection
+time: 0.038; rss: 88MB	resolution
+time: 0.003; rss: 88MB	lifetime resolution
+time: 0.000; rss: 88MB	looking for entry point
+time: 0.000; rss: 88MB	looking for plugin registrar
+time: 0.018; rss: 94MB	region resolution
+time: 0.001; rss: 94MB	loop checking
+time: 0.001; rss: 94MB	static item recursion checking
+time: 0.013; rss: 98MB	type collecting
+time: 0.000; rss: 98MB	variance inference
+time: 0.045; rss: 119MB	coherence checking
+time: 0.135; rss: 122MB	wf checking
+time: 0.054; rss: 127MB	item-types checking
+time: 1.664; rss: 154MB	item-bodies checking
+time: 0.000; rss: 154MB	drop-impl checking
+time: 0.077; rss: 155MB	const checking
+time: 0.012; rss: 156MB	privacy checking
+time: 0.001; rss: 156MB	stability index
+time: 0.010; rss: 156MB	intrinsic checking
+time: 0.003; rss: 156MB	effect checking
+time: 0.025; rss: 156MB	match checking
+time: 0.121; rss: 167MB	MIR dump
+time: 0.012; rss: 168MB	liveness checking
+time: 0.156; rss: 168MB	borrow checking
+time: 0.079; rss: 168MB	rvalue checking
+time: 0.003; rss: 168MB	reachability checking
+time: 0.009; rss: 168MB	death checking
+time: 0.011; rss: 168MB	stability checking
+time: 0.000; rss: 168MB	unused lib feature checking
+time: 0.087; rss: 168MB	lint checking
+time: 0.000; rss: 168MB	resolving dependency formats
+time: 0.012; rss: 169MB	erasing regions from MIR
+time: 3.060; rss: 285MB	translation
+  time: 0.098; rss: 172MB	llvm function passes [0]
+  time: 0.044; rss: 173MB	llvm module passes [0]
+  time: 1.737; rss: 224MB	codegen passes [0]
+  time: 0.001; rss: 192MB	codegen passes [0]
+time: 2.102; rss: 192MB	LLVM passes
+time: 0.154; rss: 191MB	linking
+done
