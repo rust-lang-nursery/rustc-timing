@@ -1,0 +1,56 @@
+commit 191ff2d8fd57a8238d85302a8f06e2bd11b2f6d2
+Merge: 99e59de add7410
+Author: bors <bors@rust-lang.org>
+Date:   Mon Jan 4 03:07:59 2016 +0000
+
+    Auto merge of #30651 - nagisa:mir-fix-equality-checks, r=eddyb
+    
+    This is not a fix to checks themselves per se (though we still use `Eq` MIR test instead of calling `PartialEq::eq`), but rather how we handle items we encounter in pattern position.
+    
+    Previously we would just call `PartialEq` with the constant and the matchee, but now we essentially inline the constant instead. E.g. these two snippets are functionally equivalent at MIR level:
+    
+    ```
+    match val { Some(42) => true, _ => false }
+    ```
+    and
+    ```
+    const SECRET: Option<u8> = Some(42);
+    match val { SECRET => true, _ => false }
+    ```
+    
+    This approach also allows for more optimizations of matches. I.e. It can now exploit `SwitchInt` to switch on number inside a `Some` regardless of whether the value being an item or not.
+    
+    This is based on @tsion’s already approved PR so I could reuse the file for more tests.
+    
+    r? @eddyb
+    cc @nikomatsakis @tsion
+rustc: ./html5ever-2015-05-15
+cargo rustc -- -Ztime-passes -Zinput-stats
+    Updating git repository `https://github.com/reem/rust-mac`
+    Updating registry `https://github.com/rust-lang/crates.io-index`
+    Updating git repository `https://github.com/servo/string-cache`
+   Compiling winapi v0.2.5
+   Compiling libc v0.2.4
+   Compiling winapi-build v0.1.1
+   Compiling phf_shared v0.7.10
+   Compiling rustc-serialize v0.3.16
+   Compiling mac v0.0.2 (https://github.com/reem/rust-mac#6316d3f4)
+   Compiling void v0.0.5
+   Compiling lazy_static v0.1.15
+   Compiling unreachable v0.0.2
+   Compiling debug_unreachable v0.0.6
+   Compiling phf v0.7.10
+   Compiling kernel32-sys v0.2.1
+   Compiling advapi32-sys v0.1.2
+   Compiling log v0.3.4
+   Compiling rand v0.3.12
+   Compiling time v0.1.34
+   Compiling phf_generator v0.7.10
+   Compiling string_cache_shared v0.1.12
+   Compiling phf_macros v0.7.10
+   Compiling string_cache v0.1.17
+   Compiling html5ever_macros v0.0.0 (file:///root/benchmarks/html5ever-2015-05-15)
+   Compiling num v0.1.29
+Build failed, waiting for other jobs to finish...
+makefile:2: recipe for target 'all' failed
+done
