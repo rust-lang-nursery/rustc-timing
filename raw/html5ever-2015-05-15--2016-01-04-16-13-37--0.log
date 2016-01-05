@@ -1,0 +1,40 @@
+commit 41611baececec41b54730079a53afb43ac7f9e49
+Merge: badc23b ff93fc8
+Author: bors <bors@rust-lang.org>
+Date:   Mon Jan 4 22:09:52 2016 +0000
+
+    Auto merge of #30661 - michaelwoerister:trans_fn_attrs, r=nrc
+    
+    So far `librustc::trans::base::trans_fn()` and `trans_closure()` have been passed the list of attributes on the function being translated *only* if the function was local and non-generic. For generic functions, functions inlined from other crates, functions with foreign ABI and for closures, only an empty list of attributes was ever passed to `trans_fn()`.
+    This led to the case that generic functions marked with `#[rustc_mir]` where not actually translated via MIR but via the legacy translation path.
+    
+    This PR makes function/closure attributes always be passed to `trans_fn()` and disables the one test where this makes a difference.
+    
+    If there is an actual reason why attributes were not passed along in these cases, let me know.
+    
+    cc @rust-lang/compiler
+    cc @luqmana regarding the test case
+rustc: ./html5ever-2015-05-15
+cargo rustc -- -Ztime-passes -Zinput-stats
+    Updating registry `https://github.com/rust-lang/crates.io-index`
+    Updating git repository `https://github.com/reem/rust-mac`
+    Updating git repository `https://github.com/servo/string-cache`
+   Compiling winapi v0.2.5
+   Compiling void v0.0.5
+   Compiling mac v0.0.2 (https://github.com/reem/rust-mac#6316d3f4)
+   Compiling libc v0.2.4
+   Compiling phf_shared v0.7.10
+   Compiling winapi-build v0.1.1
+   Compiling rustc-serialize v0.3.16
+   Compiling lazy_static v0.1.15
+   Compiling unreachable v0.0.2
+   Compiling phf v0.7.10
+   Compiling debug_unreachable v0.0.6
+   Compiling advapi32-sys v0.1.2
+   Compiling kernel32-sys v0.2.1
+   Compiling log v0.3.4
+   Compiling rand v0.3.12
+   Compiling time v0.1.34
+Build failed, waiting for other jobs to finish...
+makefile:2: recipe for target 'all' failed
+done

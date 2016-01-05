@@ -1,0 +1,86 @@
+commit 41611baececec41b54730079a53afb43ac7f9e49
+Merge: badc23b ff93fc8
+Author: bors <bors@rust-lang.org>
+Date:   Mon Jan 4 22:09:52 2016 +0000
+
+    Auto merge of #30661 - michaelwoerister:trans_fn_attrs, r=nrc
+    
+    So far `librustc::trans::base::trans_fn()` and `trans_closure()` have been passed the list of attributes on the function being translated *only* if the function was local and non-generic. For generic functions, functions inlined from other crates, functions with foreign ABI and for closures, only an empty list of attributes was ever passed to `trans_fn()`.
+    This led to the case that generic functions marked with `#[rustc_mir]` where not actually translated via MIR but via the legacy translation path.
+    
+    This PR makes function/closure attributes always be passed to `trans_fn()` and disables the one test where this makes a difference.
+    
+    If there is an actual reason why attributes were not passed along in these cases, let me know.
+    
+    cc @rust-lang/compiler
+    cc @luqmana regarding the test case
+rustc: ./rust-encoding.0.2.32
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling encoding v0.2.32 (file:///root/benchmarks/rust-encoding.0.2.32)
+time: 0.026; rss: 36MB	parsing
+Lines of code:             6441
+Pre-expansion node count:  30335
+time: 0.006; rss: 36MB	configuration 1
+time: 0.000; rss: 36MB	recursion limit
+time: 0.000; rss: 36MB	gated macro checking
+time: 0.000; rss: 36MB	crate injection
+time: 0.003; rss: 39MB	macro loading
+time: 0.000; rss: 39MB	plugin loading
+time: 0.000; rss: 39MB	plugin registration
+time: 0.050; rss: 42MB	expansion
+time: 0.001; rss: 42MB	complete gated feature checking 1
+time: 0.008; rss: 42MB	configuration 2
+time: 0.000; rss: 42MB	gated configuration checking
+time: 0.004; rss: 42MB	maybe building test harness
+time: 0.004; rss: 42MB	prelude injection
+time: 0.000; rss: 42MB	checking that all macro invocations are gone
+time: 0.000; rss: 42MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 42MB	complete gated feature checking 2
+Post-expansion node count: 41783
+time: 0.004; rss: 42MB	assigning node ids
+time: 0.004; rss: 45MB	lowering ast -> hir
+time: 0.001; rss: 45MB	indexing hir
+time: 0.000; rss: 45MB	attribute checking
+time: 0.002; rss: 45MB	early lint checks
+time: 0.001; rss: 45MB	external crate/lib resolution
+time: 0.000; rss: 45MB	language item collection
+time: 0.008; rss: 53MB	resolution
+time: 0.000; rss: 53MB	lifetime resolution
+time: 0.000; rss: 53MB	looking for entry point
+time: 0.000; rss: 53MB	looking for plugin registrar
+time: 0.002; rss: 55MB	region resolution
+time: 0.000; rss: 55MB	loop checking
+time: 0.000; rss: 55MB	static item recursion checking
+time: 0.005; rss: 57MB	type collecting
+time: 0.000; rss: 57MB	variance inference
+time: 0.019; rss: 71MB	coherence checking
+time: 0.014; rss: 71MB	wf checking
+time: 0.013; rss: 73MB	item-types checking
+time: 0.196; rss: 85MB	item-bodies checking
+time: 0.000; rss: 85MB	drop-impl checking
+time: 0.011; rss: 85MB	const checking
+time: 0.002; rss: 85MB	privacy checking
+time: 0.000; rss: 85MB	stability index
+time: 0.001; rss: 85MB	intrinsic checking
+time: 0.000; rss: 85MB	effect checking
+time: 0.006; rss: 85MB	match checking
+time: 0.019; rss: 91MB	MIR dump
+time: 0.003; rss: 91MB	liveness checking
+time: 0.023; rss: 91MB	borrow checking
+time: 0.007; rss: 91MB	rvalue checking
+time: 0.000; rss: 91MB	reachability checking
+time: 0.002; rss: 91MB	death checking
+time: 0.002; rss: 91MB	stability checking
+time: 0.000; rss: 91MB	unused lib feature checking
+time: 0.018; rss: 91MB	lint checking
+time: 0.000; rss: 91MB	resolving dependency formats
+time: 0.002; rss: 91MB	erasing regions from MIR
+  time: 0.057; rss: 141MB	write metadata
+time: 0.329; rss: 141MB	translation
+  time: 0.027; rss: 103MB	llvm function passes [0]
+  time: 0.062; rss: 105MB	llvm module passes [0]
+  time: 0.561; rss: 127MB	codegen passes [0]
+  time: 0.000; rss: 125MB	codegen passes [0]
+time: 0.720; rss: 125MB	LLVM passes
+time: 0.054; rss: 126MB	linking
+done
