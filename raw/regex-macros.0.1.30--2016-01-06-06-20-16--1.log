@@ -1,0 +1,59 @@
+commit 7312e0a16328e6227d7fc593176a1fd12fea4342
+Merge: dc1f442 e281509
+Author: bors <bors@rust-lang.org>
+Date:   Wed Jan 6 09:00:57 2016 +0000
+
+    Auto merge of #30692 - michaelwoerister:mir-overloaded-fn-calls, r=nikomatsakis
+    
+    So far, calls going through `Fn::call`, `FnMut::call_mut`, or `FnOnce::call_once` have not been translated properly into MIR:
+    The call `f(a, b, c)` where `f: Fn(T1, T2, T3)` would end up in MIR as:
+    ```
+    call `f` with arguments  `a`, `b`, `c`
+    ```
+    What we really want is:
+    ```
+    call `Fn::call` with arguments  `f`, `a`, `b`, `c`
+    ```
+    This PR transforms these kinds of overloaded calls during `HIR -> HAIR` translation.
+    
+    What's still a bit funky is that the `Fn` traits expect arguments to be tupled but due to special handling type-checking and trans, we do not actually tuple arguments and everything still checks out fine. So, after this PR we end up with MIR containing calls where function signature and arguments seemingly don't match:
+    ```
+    call Fn::call(&self, args: (T1, T2, T3)) with arguments `f`, `a`, `b`, `c`
+    ```
+    instead of
+    ```
+    call Fn::call(&self, args: (T1, T2, T3)) with arguments `f`, (`a`, `b`, `c`)  //  <- args tupled!
+    ```
+    It would be nice if the call traits could go without special handling in MIR and later on.
+rustc: ./regex-macros.0.1.30
+cd regex_macros && cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling regex_macros v0.1.17 (file:///root/benchmarks/regex-macros.0.1.30/regex_macros)
+time: 0.002; rss: 32MB	parsing
+Lines of code:             639
+Pre-expansion node count:  2170
+time: 0.001; rss: 32MB	configuration 1
+time: 0.000; rss: 32MB	recursion limit
+time: 0.000; rss: 32MB	gated macro checking
+time: 0.000; rss: 32MB	crate injection
+time: 0.003; rss: 35MB	macro loading
+time: 0.000; rss: 35MB	plugin loading
+time: 0.000; rss: 35MB	plugin registration
+time: 0.036; rss: 39MB	expansion
+time: 0.001; rss: 39MB	complete gated feature checking 1
+time: 0.011; rss: 39MB	configuration 2
+time: 0.000; rss: 39MB	gated configuration checking
+time: 0.005; rss: 39MB	maybe building test harness
+time: 0.005; rss: 39MB	prelude injection
+time: 0.000; rss: 39MB	checking that all macro invocations are gone
+time: 0.000; rss: 39MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 39MB	complete gated feature checking 2
+Post-expansion node count: 76201
+time: 0.005; rss: 39MB	assigning node ids
+time: 0.004; rss: 43MB	lowering ast -> hir
+time: 0.001; rss: 43MB	indexing hir
+time: 0.000; rss: 43MB	attribute checking
+time: 0.002; rss: 43MB	early lint checks
+time: 0.052; rss: 80MB	external crate/lib resolution
+time: 0.001; rss: 80MB	language item collection
+makefile:2: recipe for target 'all' failed
+done

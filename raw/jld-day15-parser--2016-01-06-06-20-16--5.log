@@ -1,0 +1,98 @@
+commit 7312e0a16328e6227d7fc593176a1fd12fea4342
+Merge: dc1f442 e281509
+Author: bors <bors@rust-lang.org>
+Date:   Wed Jan 6 09:00:57 2016 +0000
+
+    Auto merge of #30692 - michaelwoerister:mir-overloaded-fn-calls, r=nikomatsakis
+    
+    So far, calls going through `Fn::call`, `FnMut::call_mut`, or `FnOnce::call_once` have not been translated properly into MIR:
+    The call `f(a, b, c)` where `f: Fn(T1, T2, T3)` would end up in MIR as:
+    ```
+    call `f` with arguments  `a`, `b`, `c`
+    ```
+    What we really want is:
+    ```
+    call `Fn::call` with arguments  `f`, `a`, `b`, `c`
+    ```
+    This PR transforms these kinds of overloaded calls during `HIR -> HAIR` translation.
+    
+    What's still a bit funky is that the `Fn` traits expect arguments to be tupled but due to special handling type-checking and trans, we do not actually tuple arguments and everything still checks out fine. So, after this PR we end up with MIR containing calls where function signature and arguments seemingly don't match:
+    ```
+    call Fn::call(&self, args: (T1, T2, T3)) with arguments `f`, `a`, `b`, `c`
+    ```
+    instead of
+    ```
+    call Fn::call(&self, args: (T1, T2, T3)) with arguments `f`, (`a`, `b`, `c`)  //  <- args tupled!
+    ```
+    It would be nice if the call traits could go without special handling in MIR and later on.
+rustc: ./jld-day15-parser
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling day15 v0.1.0 (file:///root/benchmarks/jld-day15-parser)
+time: 0.001; rss: 30MB	parsing
+Lines of code:             72
+Pre-expansion node count:  673
+time: 0.000; rss: 30MB	configuration 1
+time: 0.000; rss: 30MB	recursion limit
+time: 0.000; rss: 30MB	gated macro checking
+time: 0.000; rss: 30MB	crate injection
+time: 0.003; rss: 33MB	macro loading
+time: 0.000; rss: 33MB	plugin loading
+time: 0.000; rss: 33MB	plugin registration
+time: 0.002; rss: 33MB	expansion
+time: 0.000; rss: 33MB	complete gated feature checking 1
+time: 0.000; rss: 33MB	configuration 2
+time: 0.000; rss: 33MB	gated configuration checking
+time: 0.000; rss: 33MB	maybe building test harness
+time: 0.000; rss: 33MB	prelude injection
+time: 0.000; rss: 33MB	checking that all macro invocations are gone
+time: 0.000; rss: 33MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 33MB	complete gated feature checking 2
+Post-expansion node count: 1176
+time: 0.000; rss: 33MB	assigning node ids
+time: 0.000; rss: 33MB	lowering ast -> hir
+time: 0.000; rss: 33MB	indexing hir
+time: 0.000; rss: 33MB	attribute checking
+time: 0.000; rss: 33MB	early lint checks
+time: 0.002; rss: 33MB	external crate/lib resolution
+time: 0.000; rss: 33MB	language item collection
+time: 0.001; rss: 41MB	resolution
+time: 0.000; rss: 41MB	lifetime resolution
+time: 0.000; rss: 41MB	looking for entry point
+time: 0.000; rss: 41MB	looking for plugin registrar
+time: 0.000; rss: 41MB	region resolution
+time: 0.000; rss: 41MB	loop checking
+time: 0.000; rss: 41MB	static item recursion checking
+time: 0.001; rss: 46MB	type collecting
+time: 0.000; rss: 46MB	variance inference
+time: 0.006; rss: 56MB	coherence checking
+time: 0.005; rss: 56MB	wf checking
+time: 0.000; rss: 56MB	item-types checking
+time: 1.113; rss: 99MB	item-bodies checking
+time: 0.000; rss: 99MB	drop-impl checking
+time: 0.001; rss: 99MB	const checking
+time: 0.000; rss: 99MB	privacy checking
+time: 0.000; rss: 99MB	stability index
+time: 0.000; rss: 99MB	intrinsic checking
+time: 0.000; rss: 99MB	effect checking
+time: 0.000; rss: 99MB	match checking
+time: 0.001; rss: 99MB	MIR dump
+time: 0.000; rss: 99MB	liveness checking
+time: 0.001; rss: 100MB	borrow checking
+time: 0.002; rss: 100MB	rvalue checking
+time: 0.000; rss: 100MB	reachability checking
+time: 0.000; rss: 100MB	death checking
+time: 0.000; rss: 100MB	stability checking
+time: 0.000; rss: 100MB	unused lib feature checking
+time: 0.003; rss: 97MB	lint checking
+time: 0.001; rss: 97MB	resolving dependency formats
+time: 0.000; rss: 97MB	erasing regions from MIR
+  time: 0.000; rss: 157MB	write metadata
+time: 16.009; rss: 157MB	translation
+  time: 0.015; rss: 90MB	llvm function passes [0]
+  time: 0.002; rss: 90MB	llvm module passes [0]
+  time: 0.262; rss: 100MB	codegen passes [0]
+  time: 0.000; rss: 98MB	codegen passes [0]
+time: 0.288; rss: 98MB	LLVM passes
+  time: 0.036; rss: 102MB	running linker
+time: 0.037; rss: 102MB	linking
+done

@@ -1,0 +1,56 @@
+commit 7312e0a16328e6227d7fc593176a1fd12fea4342
+Merge: dc1f442 e281509
+Author: bors <bors@rust-lang.org>
+Date:   Wed Jan 6 09:00:57 2016 +0000
+
+    Auto merge of #30692 - michaelwoerister:mir-overloaded-fn-calls, r=nikomatsakis
+    
+    So far, calls going through `Fn::call`, `FnMut::call_mut`, or `FnOnce::call_once` have not been translated properly into MIR:
+    The call `f(a, b, c)` where `f: Fn(T1, T2, T3)` would end up in MIR as:
+    ```
+    call `f` with arguments  `a`, `b`, `c`
+    ```
+    What we really want is:
+    ```
+    call `Fn::call` with arguments  `f`, `a`, `b`, `c`
+    ```
+    This PR transforms these kinds of overloaded calls during `HIR -> HAIR` translation.
+    
+    What's still a bit funky is that the `Fn` traits expect arguments to be tupled but due to special handling type-checking and trans, we do not actually tuple arguments and everything still checks out fine. So, after this PR we end up with MIR containing calls where function signature and arguments seemingly don't match:
+    ```
+    call Fn::call(&self, args: (T1, T2, T3)) with arguments `f`, `a`, `b`, `c`
+    ```
+    instead of
+    ```
+    call Fn::call(&self, args: (T1, T2, T3)) with arguments `f`, (`a`, `b`, `c`)  //  <- args tupled!
+    ```
+    It would be nice if the call traits could go without special handling in MIR and later on.
+rustc: ./hyper.0.5.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+    Updating registry `https://github.com/rust-lang/crates.io-index`
+   Compiling typeable v0.1.2
+   Compiling httparse v0.1.6
+   Compiling winapi v0.2.5
+   Compiling rustc-serialize v0.3.16
+   Compiling traitobject v0.0.1
+   Compiling libc v0.2.4
+   Compiling unicase v0.1.0
+   Compiling libc v0.1.12
+   Compiling bitflags v0.3.3
+   Compiling pkg-config v0.3.6
+   Compiling matches v0.1.2
+   Compiling winapi-build v0.1.1
+   Compiling lazy_static v0.1.15
+   Compiling gcc v0.3.21
+   Compiling kernel32-sys v0.2.1
+   Compiling advapi32-sys v0.1.2
+   Compiling time v0.1.34
+   Compiling num_cpus v0.2.10
+   Compiling rand v0.3.12
+   Compiling log v0.3.4
+   Compiling mime v0.0.11
+   Compiling openssl-sys v0.6.7
+   Compiling openssl v0.6.7
+Build failed, waiting for other jobs to finish...
+makefile:2: recipe for target 'all' failed
+done
