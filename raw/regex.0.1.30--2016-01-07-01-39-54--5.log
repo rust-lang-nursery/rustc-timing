@@ -1,0 +1,85 @@
+commit 91b27ec9beb8455426da3efd26dfc9155058f5bd
+Merge: 4406717 6dd3f61
+Author: bors <bors@rust-lang.org>
+Date:   Thu Jan 7 06:32:56 2016 +0000
+
+    Auto merge of #30724 - nikomatsakis:feature-gate-defaulted-type-parameters, r=pnkfelix
+    
+    It was recently realized that we accept defaulted type parameters everywhere, without feature gate, even though the only place that we really *intended* to accept them were on types. This PR adds a lint warning unless the "type-parameter-defaults" feature is enabled. This should eventually become a hard error.
+    
+    This is a [breaking-change] in that new feature gates are required (or simply removing the defaults, which is probably a better choice as they have little effect at this time). Results of a [crater run][crater] suggest that approximately 5-15 crates are affected. I didn't do the measurement quite right so that run cannot distinguish "true" regressions from "non-root" regressions, but even the upper bound of 15 affected crates seems relatively minimal.
+    
+    [crater]: https://gist.github.com/nikomatsakis/760c6a67698bd24253bf
+    
+    cc @rust-lang/lang
+    r? @pnkfelix
+rustc: ./regex.0.1.30
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling regex v0.1.30 (file:///root/benchmarks/regex.0.1.30)
+time: 0.095; rss: 36MB	parsing
+Lines of code:             8558
+Pre-expansion node count:  58217
+time: 0.011; rss: 36MB	configuration 1
+time: 0.000; rss: 36MB	recursion limit
+time: 0.001; rss: 36MB	gated macro checking
+time: 0.000; rss: 36MB	crate injection
+time: 0.003; rss: 39MB	macro loading
+time: 0.000; rss: 39MB	plugin loading
+time: 0.000; rss: 39MB	plugin registration
+time: 0.064; rss: 43MB	expansion
+time: 0.001; rss: 43MB	complete gated feature checking 1
+time: 0.013; rss: 43MB	configuration 2
+time: 0.000; rss: 43MB	gated configuration checking
+time: 0.006; rss: 43MB	maybe building test harness
+time: 0.006; rss: 43MB	prelude injection
+time: 0.000; rss: 43MB	checking that all macro invocations are gone
+time: 0.000; rss: 43MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 43MB	complete gated feature checking 2
+Post-expansion node count: 68727
+time: 0.006; rss: 43MB	assigning node ids
+time: 0.009; rss: 50MB	lowering ast -> hir
+time: 0.005; rss: 51MB	indexing hir
+time: 0.000; rss: 51MB	attribute checking
+time: 0.004; rss: 51MB	early lint checks
+time: 0.001; rss: 44MB	external crate/lib resolution
+time: 0.001; rss: 44MB	language item collection
+time: 0.010; rss: 51MB	resolution
+time: 0.001; rss: 51MB	lifetime resolution
+time: 0.000; rss: 51MB	looking for entry point
+time: 0.000; rss: 51MB	looking for plugin registrar
+time: 0.010; rss: 54MB	region resolution
+time: 0.001; rss: 54MB	loop checking
+time: 0.001; rss: 54MB	static item recursion checking
+time: 0.004; rss: 57MB	type collecting
+time: 0.000; rss: 57MB	variance inference
+time: 0.023; rss: 74MB	coherence checking
+time: 0.008; rss: 74MB	wf checking
+time: 0.095; rss: 79MB	item-types checking
+time: 0.221; rss: 91MB	item-bodies checking
+time: 0.000; rss: 91MB	drop-impl checking
+time: 0.033; rss: 92MB	const checking
+time: 0.005; rss: 92MB	privacy checking
+time: 0.000; rss: 92MB	stability index
+time: 0.001; rss: 92MB	intrinsic checking
+time: 0.001; rss: 92MB	effect checking
+time: 0.003; rss: 92MB	match checking
+time: 0.016; rss: 94MB	MIR dump
+time: 0.003; rss: 95MB	liveness checking
+time: 0.021; rss: 95MB	borrow checking
+time: 0.008; rss: 95MB	rvalue checking
+time: 0.000; rss: 95MB	reachability checking
+time: 0.002; rss: 95MB	death checking
+time: 0.003; rss: 96MB	stability checking
+time: 0.000; rss: 96MB	unused lib feature checking
+time: 0.029; rss: 96MB	lint checking
+time: 0.000; rss: 96MB	resolving dependency formats
+time: 0.002; rss: 96MB	erasing regions from MIR
+  time: 0.139; rss: 159MB	write metadata
+time: 0.670; rss: 159MB	translation
+  time: 0.038; rss: 104MB	llvm function passes [0]
+  time: 0.020; rss: 105MB	llvm module passes [0]
+  time: 0.610; rss: 131MB	codegen passes [0]
+  time: 0.001; rss: 118MB	codegen passes [0]
+time: 0.752; rss: 118MB	LLVM passes
+time: 0.068; rss: 116MB	linking
+done
