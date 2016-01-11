@@ -1,0 +1,85 @@
+commit 69e1f57dfbd32a1a342d696a3e79624da97ebe1b
+Merge: d70ab2b 834fb17
+Author: bors <bors@rust-lang.org>
+Date:   Mon Jan 11 06:40:58 2016 +0000
+
+    Auto merge of #30295 - jseyfried:fix_extern_crate_duplicate, r=nrc
+    
+    Fix a bug allowing an item and an external crate to collide so long as the external crate is declared after the item. For example,
+    ```rust
+    mod core { pub fn f() {} } // This would be an error if it followed the `extern crate`
+    extern crate core; // This declaration is shadowed by the preceding module
+    
+    fn main() { core::f(); }
+    ```
+    This is a [breaking-change], but it looks unlikely to cause breakage in practice, and any breakage can be fixed by removing colliding `extern crate` declarations, which are shadowed and hence unused.
+rustc: ./rust-encoding.0.2.32
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling encoding v0.2.32 (file:///root/benchmarks/rust-encoding.0.2.32)
+time: 0.023; rss: 36MB	parsing
+Lines of code:             6441
+Pre-expansion node count:  30335
+time: 0.006; rss: 36MB	configuration 1
+time: 0.000; rss: 36MB	recursion limit
+time: 0.000; rss: 36MB	gated macro checking
+time: 0.000; rss: 36MB	crate injection
+time: 0.003; rss: 39MB	macro loading
+time: 0.000; rss: 39MB	plugin loading
+time: 0.000; rss: 39MB	plugin registration
+time: 0.049; rss: 41MB	expansion
+time: 0.001; rss: 41MB	complete gated feature checking 1
+time: 0.008; rss: 41MB	configuration 2
+time: 0.000; rss: 41MB	gated configuration checking
+time: 0.004; rss: 41MB	maybe building test harness
+time: 0.004; rss: 41MB	prelude injection
+time: 0.000; rss: 41MB	checking that all macro invocations are gone
+time: 0.000; rss: 41MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 41MB	complete gated feature checking 2
+Post-expansion node count: 41783
+time: 0.004; rss: 41MB	assigning node ids
+time: 0.005; rss: 45MB	lowering ast -> hir
+time: 0.001; rss: 45MB	indexing hir
+time: 0.000; rss: 45MB	attribute checking
+time: 0.002; rss: 45MB	early lint checks
+time: 0.001; rss: 44MB	external crate/lib resolution
+time: 0.000; rss: 44MB	language item collection
+time: 0.008; rss: 53MB	resolution
+time: 0.000; rss: 53MB	lifetime resolution
+time: 0.000; rss: 53MB	looking for entry point
+time: 0.000; rss: 53MB	looking for plugin registrar
+time: 0.002; rss: 55MB	region resolution
+time: 0.000; rss: 55MB	loop checking
+time: 0.000; rss: 55MB	static item recursion checking
+time: 0.005; rss: 57MB	type collecting
+time: 0.000; rss: 57MB	variance inference
+time: 0.019; rss: 71MB	coherence checking
+time: 0.015; rss: 71MB	wf checking
+time: 0.013; rss: 73MB	item-types checking
+time: 0.199; rss: 84MB	item-bodies checking
+time: 0.000; rss: 84MB	drop-impl checking
+time: 0.012; rss: 84MB	const checking
+time: 0.002; rss: 84MB	privacy checking
+time: 0.000; rss: 84MB	stability index
+time: 0.001; rss: 84MB	intrinsic checking
+time: 0.000; rss: 84MB	effect checking
+time: 0.006; rss: 84MB	match checking
+time: 0.018; rss: 88MB	MIR dump
+time: 0.002; rss: 88MB	liveness checking
+time: 0.024; rss: 88MB	borrow checking
+time: 0.007; rss: 88MB	rvalue checking
+time: 0.000; rss: 88MB	reachability checking
+time: 0.002; rss: 88MB	death checking
+time: 0.002; rss: 88MB	stability checking
+time: 0.000; rss: 88MB	unused lib feature checking
+time: 0.018; rss: 90MB	lint checking
+time: 0.000; rss: 90MB	resolving dependency formats
+time: 0.002; rss: 90MB	erasing regions from MIR
+  time: 0.057; rss: 139MB	write metadata
+time: 0.334; rss: 139MB	translation
+  time: 0.027; rss: 102MB	llvm function passes [0]
+  time: 0.062; rss: 104MB	llvm module passes [0]
+  time: 0.559; rss: 126MB	codegen passes [0]
+  time: 0.000; rss: 124MB	codegen passes [0]
+time: 0.719; rss: 124MB	LLVM passes
+time: 0.054; rss: 124MB	linking
+done
