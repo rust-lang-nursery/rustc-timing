@@ -1,0 +1,114 @@
+commit 1586005a1d15e7d26b6c46a33e7a9643de9a77ac
+Merge: 0672ed4 52883ab
+Author: bors <bors@rust-lang.org>
+Date:   Mon Jan 11 19:03:18 2016 +0000
+
+    Auto merge of #30534 - bluss:binary-heap-fast-pop, r=Gankro
+    
+    BinaryHeap: Use full sift down in .pop()
+    
+    .sift_down can either choose to compare the element on the way down (and
+    place it during descent), or to sift down an element fully, then sift
+    back up to place it.
+    
+    A previous PR changed .sift_down() to the former behavior, which is much
+    faster for relatively small heaps and for elements that are cheap to
+    compare.
+    
+    A benchmarking run suggested that BinaryHeap::pop() suffers
+    improportionally from this, and that it should use the second strategy
+    instead. It's logical since .pop() brings last element from the
+    heapified vector into index 0, it's very likely that this element will
+    end up at the bottom again.
+    
+    Closes #29969
+    Previous PR #29811
+rustc: ./piston-image-0.3.11
+cargo rustc -- -Ztime-passes -Zinput-stats
+    Updating registry `https://github.com/rust-lang/crates.io-index`
+   Compiling bitflags v0.3.3
+   Compiling byteorder v0.3.13
+   Compiling rustc-serialize v0.3.16
+   Compiling winapi-build v0.1.1
+   Compiling winapi v0.2.5
+   Compiling lzw v0.8.0
+   Compiling libc v0.2.4
+   Compiling glob v0.2.10
+   Compiling gcc v0.3.21
+   Compiling advapi32-sys v0.1.2
+   Compiling color_quant v1.0.0
+   Compiling rand v0.3.13
+   Compiling gif v0.5.1
+   Compiling miniz-sys v0.1.7
+   Compiling flate2 v0.2.11
+   Compiling num v0.1.30
+   Compiling png v0.3.1
+   Compiling enum_primitive v0.0.1
+   Compiling image v0.3.11 (file:///root/benchmarks/piston-image-0.3.11)
+time: 0.046; rss: 42MB	parsing
+Lines of code:             10676
+Pre-expansion node count:  84646
+time: 0.016; rss: 42MB	configuration 1
+time: 0.000; rss: 42MB	recursion limit
+time: 0.001; rss: 42MB	gated macro checking
+time: 0.000; rss: 42MB	crate injection
+time: 0.005; rss: 48MB	macro loading
+time: 0.000; rss: 48MB	plugin loading
+time: 0.000; rss: 48MB	plugin registration
+time: 0.125; rss: 52MB	expansion
+time: 0.004; rss: 52MB	complete gated feature checking 1
+time: 0.028; rss: 52MB	configuration 2
+time: 0.000; rss: 52MB	gated configuration checking
+time: 0.013; rss: 52MB	maybe building test harness
+time: 0.012; rss: 52MB	prelude injection
+time: 0.001; rss: 52MB	checking that all macro invocations are gone
+time: 0.000; rss: 52MB	checking for inline asm in case the target doesn't support it
+time: 0.003; rss: 52MB	complete gated feature checking 2
+Post-expansion node count: 144338
+time: 0.013; rss: 52MB	assigning node ids
+time: 0.020; rss: 65MB	lowering ast -> hir
+time: 0.006; rss: 67MB	indexing hir
+time: 0.000; rss: 67MB	attribute checking
+time: 0.007; rss: 67MB	early lint checks
+time: 0.003; rss: 57MB	external crate/lib resolution
+time: 0.001; rss: 57MB	language item collection
+time: 0.030; rss: 75MB	resolution
+time: 0.003; rss: 76MB	lifetime resolution
+time: 0.000; rss: 76MB	looking for entry point
+time: 0.000; rss: 76MB	looking for plugin registrar
+time: 0.011; rss: 83MB	region resolution
+time: 0.001; rss: 83MB	loop checking
+time: 0.001; rss: 83MB	static item recursion checking
+time: 0.011; rss: 87MB	type collecting
+time: 0.000; rss: 87MB	variance inference
+time: 0.031; rss: 103MB	coherence checking
+time: 0.146; rss: 107MB	wf checking
+time: 0.051; rss: 110MB	item-types checking
+time: 1.686; rss: 141MB	item-bodies checking
+time: 0.000; rss: 141MB	drop-impl checking
+time: 0.076; rss: 141MB	const checking
+time: 0.012; rss: 141MB	privacy checking
+time: 0.001; rss: 141MB	stability index
+time: 0.011; rss: 141MB	intrinsic checking
+time: 0.004; rss: 141MB	effect checking
+time: 0.027; rss: 141MB	match checking
+time: 0.094; rss: 149MB	MIR dump
+time: 0.011; rss: 151MB	liveness checking
+time: 0.161; rss: 151MB	borrow checking
+time: 0.083; rss: 151MB	rvalue checking
+time: 0.004; rss: 151MB	reachability checking
+time: 0.010; rss: 151MB	death checking
+time: 0.011; rss: 151MB	stability checking
+time: 0.000; rss: 151MB	unused lib feature checking
+time: 0.088; rss: 151MB	lint checking
+time: 0.000; rss: 151MB	resolving dependency formats
+time: 0.009; rss: 154MB	erasing regions from MIR
+  time: 0.214; rss: 277MB	write metadata
+time: 2.890; rss: 272MB	translation
+  time: 0.095; rss: 163MB	llvm function passes [0]
+  time: 0.045; rss: 164MB	llvm module passes [0]
+  time: 1.697; rss: 215MB	codegen passes [0]
+  time: 0.001; rss: 182MB	codegen passes [0]
+time: 2.046; rss: 182MB	LLVM passes
+time: 0.154; rss: 181MB	linking
+done
