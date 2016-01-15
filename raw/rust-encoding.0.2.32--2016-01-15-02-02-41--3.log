@@ -1,0 +1,107 @@
+commit a70a60a02bca4c1fb75a0eb0ecf80acb73972f66
+Merge: d8869d3 acc9428
+Author: bors <bors@rust-lang.org>
+Date:   Fri Jan 15 06:38:26 2016 +0000
+
+    Auto merge of #30763 - gchp:issue/30033, r=nagisa
+    
+    This is achieved by adding the scan_back method. This method looks back
+    through the source_text of the StringReader until it finds the target
+    char, returning it's offset in the source. We use this method to find
+    the offset of the opening single quote, and use that offset as the start
+    of the error.
+    
+    Given this code:
+    
+    ```rust
+    fn main() {
+        let _ = 'abcd';
+    }
+    ```
+    
+    The compiler would give a message like:
+    
+    ```
+    error: character literal may only contain one codepoint: ';
+    let _ = 'abcd';
+                 ^~
+    ```
+    With this change, the message now displays:
+    
+    ```
+    error: character literal may only contain one codepoint: 'abcd';
+    let _ = 'abcd';
+            ^~~~~~~
+    ```
+    
+    Fixes #30033
+rustc: ./rust-encoding.0.2.32
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling encoding v0.2.32 (file:///root/benchmarks/rust-encoding.0.2.32)
+time: 0.022; rss: 41MB	parsing
+Lines of code:             6441
+Pre-expansion node count:  30335
+time: 0.006; rss: 41MB	configuration 1
+time: 0.000; rss: 41MB	recursion limit
+time: 0.000; rss: 41MB	gated macro checking
+time: 0.000; rss: 41MB	crate injection
+time: 0.003; rss: 44MB	macro loading
+time: 0.000; rss: 44MB	plugin loading
+time: 0.000; rss: 44MB	plugin registration
+time: 0.046; rss: 47MB	expansion
+time: 0.001; rss: 47MB	complete gated feature checking 1
+time: 0.007; rss: 47MB	configuration 2
+time: 0.000; rss: 47MB	gated configuration checking
+time: 0.004; rss: 47MB	maybe building test harness
+time: 0.003; rss: 47MB	prelude injection
+time: 0.000; rss: 47MB	checking that all macro invocations are gone
+time: 0.000; rss: 47MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 47MB	complete gated feature checking 2
+Post-expansion node count: 41783
+time: 0.004; rss: 47MB	assigning node ids
+time: 0.004; rss: 50MB	lowering ast -> hir
+time: 0.001; rss: 50MB	indexing hir
+time: 0.000; rss: 50MB	attribute checking
+time: 0.002; rss: 50MB	early lint checks
+time: 0.001; rss: 50MB	external crate/lib resolution
+time: 0.000; rss: 50MB	language item collection
+time: 0.008; rss: 57MB	resolution
+time: 0.000; rss: 57MB	lifetime resolution
+time: 0.000; rss: 57MB	looking for entry point
+time: 0.000; rss: 57MB	looking for plugin registrar
+time: 0.002; rss: 59MB	region resolution
+time: 0.000; rss: 59MB	loop checking
+time: 0.000; rss: 59MB	static item recursion checking
+time: 0.005; rss: 62MB	type collecting
+time: 0.000; rss: 62MB	variance inference
+time: 0.019; rss: 76MB	coherence checking
+time: 0.015; rss: 76MB	wf checking
+time: 0.013; rss: 79MB	item-types checking
+time: 0.199; rss: 88MB	item-bodies checking
+time: 0.000; rss: 88MB	drop-impl checking
+time: 0.011; rss: 88MB	const checking
+time: 0.002; rss: 88MB	privacy checking
+time: 0.000; rss: 88MB	stability index
+time: 0.001; rss: 88MB	intrinsic checking
+time: 0.000; rss: 88MB	effect checking
+time: 0.006; rss: 88MB	match checking
+time: 0.017; rss: 92MB	MIR dump
+time: 0.002; rss: 92MB	liveness checking
+time: 0.023; rss: 92MB	borrow checking
+time: 0.006; rss: 92MB	rvalue checking
+time: 0.000; rss: 92MB	reachability checking
+time: 0.002; rss: 92MB	death checking
+time: 0.002; rss: 92MB	stability checking
+time: 0.000; rss: 92MB	unused lib feature checking
+time: 0.018; rss: 94MB	lint checking
+time: 0.000; rss: 94MB	resolving dependency formats
+time: 0.002; rss: 94MB	erasing regions from MIR
+  time: 0.056; rss: 143MB	write metadata
+time: 0.338; rss: 143MB	translation
+  time: 0.027; rss: 107MB	llvm function passes [0]
+  time: 0.060; rss: 109MB	llvm module passes [0]
+  time: 0.565; rss: 131MB	codegen passes [0]
+  time: 0.001; rss: 127MB	codegen passes [0]
+time: 0.722; rss: 127MB	LLVM passes
+time: 0.052; rss: 125MB	linking
+done

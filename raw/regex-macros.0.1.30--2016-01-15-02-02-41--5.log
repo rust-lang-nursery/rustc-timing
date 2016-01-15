@@ -1,0 +1,69 @@
+commit a70a60a02bca4c1fb75a0eb0ecf80acb73972f66
+Merge: d8869d3 acc9428
+Author: bors <bors@rust-lang.org>
+Date:   Fri Jan 15 06:38:26 2016 +0000
+
+    Auto merge of #30763 - gchp:issue/30033, r=nagisa
+    
+    This is achieved by adding the scan_back method. This method looks back
+    through the source_text of the StringReader until it finds the target
+    char, returning it's offset in the source. We use this method to find
+    the offset of the opening single quote, and use that offset as the start
+    of the error.
+    
+    Given this code:
+    
+    ```rust
+    fn main() {
+        let _ = 'abcd';
+    }
+    ```
+    
+    The compiler would give a message like:
+    
+    ```
+    error: character literal may only contain one codepoint: ';
+    let _ = 'abcd';
+                 ^~
+    ```
+    With this change, the message now displays:
+    
+    ```
+    error: character literal may only contain one codepoint: 'abcd';
+    let _ = 'abcd';
+            ^~~~~~~
+    ```
+    
+    Fixes #30033
+rustc: ./regex-macros.0.1.30
+cd regex_macros && cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling regex_macros v0.1.17 (file:///root/benchmarks/regex-macros.0.1.30/regex_macros)
+time: 0.002; rss: 37MB	parsing
+Lines of code:             639
+Pre-expansion node count:  2170
+time: 0.001; rss: 37MB	configuration 1
+time: 0.000; rss: 37MB	recursion limit
+time: 0.000; rss: 37MB	gated macro checking
+time: 0.000; rss: 37MB	crate injection
+time: 0.003; rss: 40MB	macro loading
+time: 0.000; rss: 40MB	plugin loading
+time: 0.000; rss: 40MB	plugin registration
+time: 0.036; rss: 47MB	expansion
+time: 0.001; rss: 47MB	complete gated feature checking 1
+time: 0.011; rss: 47MB	configuration 2
+time: 0.000; rss: 47MB	gated configuration checking
+time: 0.006; rss: 47MB	maybe building test harness
+time: 0.005; rss: 47MB	prelude injection
+time: 0.000; rss: 47MB	checking that all macro invocations are gone
+time: 0.000; rss: 47MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 47MB	complete gated feature checking 2
+Post-expansion node count: 76201
+time: 0.005; rss: 47MB	assigning node ids
+time: 0.004; rss: 51MB	lowering ast -> hir
+time: 0.001; rss: 51MB	indexing hir
+time: 0.000; rss: 51MB	attribute checking
+time: 0.002; rss: 51MB	early lint checks
+time: 0.056; rss: 84MB	external crate/lib resolution
+time: 0.001; rss: 84MB	language item collection
+makefile:2: recipe for target 'all' failed
+done
