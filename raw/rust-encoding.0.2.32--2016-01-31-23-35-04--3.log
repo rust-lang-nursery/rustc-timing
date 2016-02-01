@@ -1,0 +1,94 @@
+commit 654f68dd50b72d1d812b0760f1b71d7c366f6f55
+Merge: 094c5b0 7a69ee0
+Author: bors <bors@rust-lang.org>
+Date:   Mon Feb 1 04:52:12 2016 +0000
+
+    Auto merge of #30866 - jseyfried:fix_shadowed_use_visibility, r=nrc
+    
+    This reverts PR #30324, fixing bug #30159 in which a public a glob import makes public any preceding imports that share a name with an item in the module being glob imported from.
+    
+    For example,
+    ```rust
+    pub fn f() {}
+    pub mod foo {
+        fn f() {}
+    }
+    
+    mod bar {
+        use f;
+        use f as g;
+        pub use foo::*; // This makes the first import public but does not affect the second import.
+    }
+    ```
+    
+    This is a [breaking-change].
+rustc: ./rust-encoding.0.2.32
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling encoding v0.2.32 (file:///root/benchmarks/rust-encoding.0.2.32)
+time: 0.023; rss: 40MB	parsing
+Lines of code:             6441
+Pre-expansion node count:  30335
+time: 0.006; rss: 40MB	configuration 1
+time: 0.000; rss: 40MB	recursion limit
+time: 0.000; rss: 40MB	gated macro checking
+time: 0.000; rss: 40MB	crate injection
+time: 0.003; rss: 44MB	macro loading
+time: 0.000; rss: 44MB	plugin loading
+time: 0.000; rss: 44MB	plugin registration
+time: 0.047; rss: 46MB	expansion
+time: 0.001; rss: 46MB	complete gated feature checking 1
+time: 0.008; rss: 46MB	configuration 2
+time: 0.000; rss: 46MB	gated configuration checking
+time: 0.004; rss: 46MB	maybe building test harness
+time: 0.004; rss: 46MB	prelude injection
+time: 0.000; rss: 46MB	checking that all macro invocations are gone
+time: 0.000; rss: 46MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 46MB	complete gated feature checking 2
+Post-expansion node count: 41783
+time: 0.004; rss: 46MB	assigning node ids
+time: 0.004; rss: 50MB	lowering ast -> hir
+time: 0.001; rss: 50MB	indexing hir
+time: 0.000; rss: 50MB	attribute checking
+time: 0.002; rss: 50MB	early lint checks
+time: 0.001; rss: 50MB	external crate/lib resolution
+time: 0.000; rss: 50MB	language item collection
+time: 0.008; rss: 57MB	resolution
+time: 0.000; rss: 57MB	lifetime resolution
+time: 0.000; rss: 57MB	looking for entry point
+time: 0.000; rss: 57MB	looking for plugin registrar
+time: 0.002; rss: 59MB	region resolution
+time: 0.000; rss: 59MB	loop checking
+time: 0.000; rss: 59MB	static item recursion checking
+time: 0.005; rss: 62MB	type collecting
+time: 0.000; rss: 62MB	variance inference
+time: 0.019; rss: 75MB	coherence checking
+time: 0.014; rss: 76MB	wf checking
+time: 0.013; rss: 78MB	item-types checking
+time: 0.200; rss: 88MB	item-bodies checking
+time: 0.000; rss: 88MB	drop-impl checking
+time: 0.011; rss: 88MB	const checking
+time: 0.002; rss: 88MB	privacy checking
+time: 0.000; rss: 88MB	stability index
+time: 0.001; rss: 88MB	intrinsic checking
+time: 0.000; rss: 88MB	effect checking
+time: 0.006; rss: 88MB	match checking
+time: 0.017; rss: 93MB	MIR dump
+time: 0.002; rss: 93MB	liveness checking
+time: 0.023; rss: 93MB	borrow checking
+time: 0.006; rss: 93MB	rvalue checking
+time: 0.000; rss: 93MB	reachability checking
+time: 0.002; rss: 93MB	death checking
+time: 0.002; rss: 93MB	stability checking
+time: 0.000; rss: 93MB	unused lib feature checking
+time: 0.017; rss: 93MB	lint checking
+time: 0.000; rss: 93MB	resolving dependency formats
+time: 0.002; rss: 93MB	erasing regions from MIR
+  time: 0.056; rss: 142MB	write metadata
+time: 0.338; rss: 142MB	translation
+  time: 0.027; rss: 106MB	llvm function passes [0]
+  time: 0.060; rss: 108MB	llvm module passes [0]
+  time: 0.567; rss: 129MB	codegen passes [0]
+  time: 0.000; rss: 126MB	codegen passes [0]
+time: 0.721; rss: 126MB	LLVM passes
+time: 0.052; rss: 126MB	linking
+done
