@@ -1,0 +1,63 @@
+commit 35635aebab321ff2a4708aeb172351356ad63cf7
+Merge: 5147c1f ee79bfa
+Author: bors <bors@rust-lang.org>
+Date:   Sat Feb 6 09:24:04 2016 +0000
+
+    Auto merge of #31333 - lambda:31273-abort-on-stack-overflow, r=brson
+    
+    Abort on stack overflow instead of re-raising SIGSEGV
+    
+    We use guard pages that cause the process to abort to protect against
+    undefined behavior in the event of stack overflow.  We have a handler
+    that catches segfaults, prints out an error message if the segfault was
+    due to a stack overflow, then unregisters itself and returns to allow
+    the signal to be re-raised and kill the process.
+    
+    This caused some confusion, as it was unexpected that safe code would be
+    able to cause a segfault, while it's easy to overflow the stack in safe
+    code.  To avoid this confusion, when we detect a segfault in the guard
+    page, abort instead of the previous behavior of re-raising SIGSEGV.
+    
+    To test this, we need to adapt the tests for segfault to actually check
+    the exit status.  Doing so revealed that the existing test for segfault
+    behavior was actually invalid; LLVM optimizes the explicit null pointer
+    reference down to an illegal instruction, so the program aborts with
+    SIGILL instead of SIGSEGV and the test didn't actually trigger the
+    signal handler at all.  Use a C helper function to get a null pointer
+    that LLVM can't optimize away, so we get our segfault instead.
+    
+    This is a [breaking-change] if anyone is relying on the exact signal
+    raised to kill a process on stack overflow.
+    
+    Closes #31273
+rustc: ./html5ever-2015-05-15
+cargo rustc -- -Ztime-passes -Zinput-stats
+    Updating git repository `https://github.com/reem/rust-mac`
+    Updating registry `https://github.com/rust-lang/crates.io-index`
+    Updating git repository `https://github.com/servo/string-cache`
+   Compiling winapi-build v0.1.1
+   Compiling lazy_static v0.1.15
+   Compiling winapi v0.2.5
+   Compiling num v0.1.30
+   Compiling phf_shared v0.7.12
+   Compiling mac v0.0.2 (https://github.com/reem/rust-mac#6316d3f4)
+   Compiling libc v0.2.6
+   Compiling void v0.0.5
+   Compiling rustc-serialize v0.3.16
+   Compiling unreachable v0.0.2
+   Compiling phf v0.7.12
+   Compiling debug_unreachable v0.0.6
+   Compiling kernel32-sys v0.2.1
+   Compiling advapi32-sys v0.1.2
+   Compiling log v0.3.5
+   Compiling rand v0.3.13
+   Compiling time v0.1.34
+   Compiling serde v0.6.11
+   Compiling phf_generator v0.7.12
+   Compiling string_cache_shared v0.1.12
+   Compiling phf_macros v0.7.12
+   Compiling string_cache v0.1.17
+   Compiling html5ever_macros v0.0.0 (file:///root/benchmarks/html5ever-2015-05-15)
+Build failed, waiting for other jobs to finish...
+makefile:2: recipe for target 'all' failed
+done
