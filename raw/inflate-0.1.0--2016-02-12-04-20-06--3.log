@@ -1,0 +1,87 @@
+commit 77f9231818514c4ded23e6aa1ae431a8ba4668bf
+Merge: 4b2c703 274f27a
+Author: bors <bors@rust-lang.org>
+Date:   Fri Feb 12 05:53:18 2016 +0000
+
+    Auto merge of #31368 - JohanLorenzo:dont-strip-if-test-build, r=alexcrichton
+    
+    Tools which rely on DWARF for generating code coverage report, don't generate accurate numbers on test builds. For instance, [this sample main](https://github.com/JohanLorenzo/rust-testing-example/blob/757bdbf3887f43db9771c20cb72dfc32aa8f4321/src/main.rs) returns [100% coverage](https://coveralls.io/builds/4940156/source?filename=main.rs) when [kcov](https://github.com/SimonKagstrom/kcov/) runs.
+    
+    With @pnkfelix 's great help, we could narrow down the issue: The linker strips unused function during phase 6. Here's a patch which stops stripping when someone calls `rustc --test $ARGS`. @pnkfelix wasn't sure if we should add a new flag, or just use --test. What do you think @alexcrichton ?
+    
+    Also, I'm not too sure: where is the best place to add a test for this addition?
+    
+    Thanks for the help!
+rustc: ./inflate-0.1.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling inflate v0.1.0 (file:///root/benchmarks/inflate-0.1.0)
+time: 0.004; rss: 38MB	parsing
+Lines of code:             956
+Pre-expansion node count:  4761
+time: 0.001; rss: 39MB	configuration 1
+time: 0.000; rss: 39MB	recursion limit
+time: 0.000; rss: 39MB	gated macro checking
+time: 0.000; rss: 39MB	crate injection
+time: 0.003; rss: 42MB	macro loading
+time: 0.000; rss: 42MB	plugin loading
+time: 0.000; rss: 42MB	plugin registration
+time: 0.081; rss: 48MB	expansion
+time: 0.001; rss: 48MB	complete gated feature checking 1
+time: 0.009; rss: 48MB	configuration 2
+time: 0.000; rss: 48MB	gated configuration checking
+time: 0.004; rss: 48MB	maybe building test harness
+time: 0.004; rss: 48MB	prelude injection
+time: 0.000; rss: 48MB	checking that all macro invocations are gone
+time: 0.000; rss: 48MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 48MB	complete gated feature checking 2
+time: 0.000; rss: 48MB	const fn bodies and arguments
+Post-expansion node count: 54798
+time: 0.004; rss: 48MB	assigning node ids
+time: 0.008; rss: 52MB	lowering ast -> hir
+time: 0.002; rss: 53MB	indexing hir
+time: 0.000; rss: 53MB	attribute checking
+time: 0.004; rss: 53MB	early lint checks
+time: 0.001; rss: 48MB	external crate/lib resolution
+time: 0.001; rss: 48MB	language item collection
+time: 0.009; rss: 58MB	resolution
+time: 0.001; rss: 58MB	lifetime resolution
+time: 0.000; rss: 58MB	looking for entry point
+time: 0.000; rss: 58MB	looking for plugin registrar
+time: 0.003; rss: 58MB	region resolution
+time: 0.000; rss: 58MB	loop checking
+time: 0.000; rss: 58MB	static item recursion checking
+time: 0.001; rss: 60MB	type collecting
+time: 0.000; rss: 60MB	variance inference
+time: 0.010; rss: 72MB	coherence checking
+time: 0.002; rss: 74MB	wf checking
+time: 0.002; rss: 74MB	item-types checking
+time: 25.410; rss: 100MB	item-bodies checking
+time: 0.000; rss: 100MB	drop-impl checking
+time: 0.015; rss: 101MB	const checking
+time: 0.002; rss: 101MB	privacy checking
+time: 0.000; rss: 101MB	stability index
+time: 0.000; rss: 101MB	intrinsic checking
+time: 0.001; rss: 101MB	effect checking
+time: 0.003; rss: 101MB	match checking
+time: 0.032; rss: 110MB	MIR dump
+time: 0.000; rss: 110MB	MIR passes
+time: 0.065; rss: 111MB	liveness checking
+time: 0.225; rss: 109MB	borrow checking
+time: 0.010; rss: 109MB	rvalue checking
+time: 0.000; rss: 109MB	reachability checking
+time: 0.002; rss: 109MB	death checking
+time: 0.002; rss: 109MB	stability checking
+time: 0.000; rss: 109MB	unused lib feature checking
+time: 0.017; rss: 110MB	lint checking
+time: 0.000; rss: 110MB	resolving dependency formats
+time: 0.002; rss: 110MB	erasing regions from MIR
+  time: 0.013; rss: 122MB	translation item collection
+  time: 0.003; rss: 142MB	write metadata
+time: 0.397; rss: 136MB	translation
+  time: 0.027; rss: 101MB	llvm function passes [0]
+  time: 0.006; rss: 101MB	llvm module passes [0]
+  time: 0.501; rss: 149MB	codegen passes [0]
+  time: 0.000; rss: 104MB	codegen passes [0]
+time: 0.576; rss: 104MB	LLVM passes
+time: 0.034; rss: 104MB	linking
+done
