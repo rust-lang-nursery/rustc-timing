@@ -1,0 +1,98 @@
+commit 6b076c2daa36d80c103812c1775cf099ea8ef0bf
+Merge: 8e2a577 90afb85
+Author: bors <bors@rust-lang.org>
+Date:   Thu Feb 18 16:29:55 2016 +0000
+
+    Auto merge of #31734 - aliclark:bsd-stat-fixes, r=alexcrichton
+    
+    In https://github.com/rust-lang/rust/issues/25155 the os::freebsd::raw stat was split for the x86 vs. x86-64 cases, which appears to have been done to implement the padding on the end of struct stat for the x86 case (the struct is otherwise the same notwistanding the size of long).
+    
+    This PR de-duplicates the struct using #[cfg(target_arch = "x86")] for the __unused field, which also fixes the definitions which had sinced changed with the LFS work d088b671872f1df6993ccca6fa6139ebed0a8cf3.
+    
+    Also changed definitions to c_long for dragonfly and freebsd where appropriate.
+    
+    Also removes some unused imports that the compiler was complaining about.
+    
+    dragonfly's long time_t:
+    https://gitweb.dragonflybsd.org/dragonfly.git/blob/a2a57c243ff8016578bc559f8603fb25bbcf1768:/lib/libstand/machine/stdint.h
+    
+    freebsd's long time_t:
+    https://svnweb.freebsd.org/base/release/10.1.0/sys/x86/include/_types.h?view=markup
+    https://github.com/rust-lang/rust/blob/d088b671872f1df6993ccca6fa6139ebed0a8cf3/src/liblibc/lib.rs#L980
+    
+    freebsd's padding for i686 stat:
+    https://svnweb.freebsd.org/base/release/10.1.0/sys/sys/stat.h?view=markup#l139
+    https://github.com/rust-lang/rust/blob/d088b671872f1df6993ccca6fa6139ebed0a8cf3/src/liblibc/lib.rs#L1038
+rustc: ./inflate-0.1.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling inflate v0.1.0 (file:///root/benchmarks/inflate-0.1.0)
+time: 0.004; rss: 38MB	parsing
+Lines of code:             956
+Pre-expansion node count:  4761
+time: 0.001; rss: 38MB	configuration 1
+time: 0.000; rss: 38MB	recursion limit
+time: 0.000; rss: 38MB	gated macro checking
+time: 0.000; rss: 38MB	crate injection
+time: 0.003; rss: 42MB	macro loading
+time: 0.000; rss: 42MB	plugin loading
+time: 0.000; rss: 42MB	plugin registration
+time: 0.081; rss: 48MB	expansion
+time: 0.001; rss: 48MB	complete gated feature checking 1
+time: 0.009; rss: 48MB	configuration 2
+time: 0.000; rss: 48MB	gated configuration checking
+time: 0.004; rss: 48MB	maybe building test harness
+time: 0.004; rss: 48MB	prelude injection
+time: 0.000; rss: 48MB	checking that all macro invocations are gone
+time: 0.000; rss: 48MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 48MB	complete gated feature checking 2
+time: 0.000; rss: 48MB	const fn bodies and arguments
+Post-expansion node count: 54798
+time: 0.004; rss: 48MB	assigning node ids
+time: 0.008; rss: 52MB	lowering ast -> hir
+time: 0.002; rss: 53MB	indexing hir
+time: 0.000; rss: 53MB	attribute checking
+time: 0.004; rss: 53MB	early lint checks
+time: 0.001; rss: 49MB	external crate/lib resolution
+time: 0.001; rss: 49MB	language item collection
+time: 0.008; rss: 58MB	resolution
+time: 0.001; rss: 58MB	lifetime resolution
+time: 0.000; rss: 58MB	looking for entry point
+time: 0.000; rss: 58MB	looking for plugin registrar
+time: 0.003; rss: 58MB	region resolution
+time: 0.000; rss: 58MB	loop checking
+time: 0.000; rss: 58MB	static item recursion checking
+time: 0.001; rss: 60MB	type collecting
+time: 0.000; rss: 60MB	variance inference
+time: 0.009; rss: 74MB	coherence checking
+time: 0.002; rss: 74MB	wf checking
+time: 0.002; rss: 74MB	item-types checking
+time: 2.462; rss: 98MB	item-bodies checking
+time: 0.000; rss: 98MB	drop-impl checking
+time: 0.013; rss: 99MB	const checking
+time: 0.002; rss: 99MB	privacy checking
+time: 0.000; rss: 99MB	stability index
+time: 0.000; rss: 99MB	intrinsic checking
+time: 0.001; rss: 99MB	effect checking
+time: 0.003; rss: 99MB	match checking
+time: 0.030; rss: 109MB	MIR dump
+time: 0.000; rss: 109MB	MIR passes
+time: 0.065; rss: 109MB	liveness checking
+time: 0.213; rss: 107MB	borrow checking
+time: 0.009; rss: 107MB	rvalue checking
+time: 0.000; rss: 107MB	reachability checking
+time: 0.002; rss: 107MB	death checking
+time: 0.002; rss: 107MB	stability checking
+time: 0.000; rss: 107MB	unused lib feature checking
+time: 0.016; rss: 109MB	lint checking
+time: 0.000; rss: 109MB	resolving dependency formats
+time: 0.002; rss: 109MB	erasing regions from MIR
+  time: 0.012; rss: 119MB	translation item collection
+  time: 0.003; rss: 135MB	write metadata
+time: 0.371; rss: 132MB	translation
+  time: 0.026; rss: 99MB	llvm function passes [0]
+  time: 0.005; rss: 99MB	llvm module passes [0]
+  time: 0.497; rss: 104MB	codegen passes [0]
+  time: 0.000; rss: 92MB	codegen passes [0]
+time: 0.571; rss: 92MB	LLVM passes
+time: 0.035; rss: 91MB	linking
+done
