@@ -1,0 +1,30 @@
+commit f59fd4642534e80a61982ce3e10c147d97054212
+Merge: ee8b257 b980f22
+Author: bors <bors@rust-lang.org>
+Date:   Fri Feb 26 13:38:46 2016 +0000
+
+    Auto merge of #31846 - alexcrichton:better-disable-jemallc, r=brson
+    
+    The `--disable-jemalloc` configure option has a failure mode where it will
+    create a distribution that is not compatible with other compilers. For example
+    the nightly for Linux will assume that it will link to jemalloc by default as
+    an allocator for executable crates. If, however, a standard library is used
+    which was built via `./configure --disable-jemalloc` then this will fail
+    because the jemalloc crate wasn't built.
+    
+    While this seems somewhat reasonable as a niche situation, the same mechanism is
+    used for disabling jemalloc for platforms that just don't support it. For
+    example if the rumprun target is compiled then the sibiling Linux target *also*
+    doesn't have jemalloc. This is currently a problem for our cross-build nightlies
+    which build many targets. If rumprun is also built, it will disable jemalloc for
+    all targets, which isn't desired.
+    
+    This commit moves the platform-specific disabling of jemalloc as hardcoded logic
+    into the makefiles that is scoped per-platform. This way when configuring
+    multiple targets **without the `--disable-jemalloc` option specified** all
+    targets will get jemalloc as they should.
+rustc: ./html5ever-2015-05-15
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling html5ever_macros v0.0.0 (file:///root/benchmarks/html5ever-2015-05-15)
+makefile:2: recipe for target 'all' failed
+done

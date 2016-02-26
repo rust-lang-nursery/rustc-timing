@@ -1,0 +1,55 @@
+commit f59fd4642534e80a61982ce3e10c147d97054212
+Merge: ee8b257 b980f22
+Author: bors <bors@rust-lang.org>
+Date:   Fri Feb 26 13:38:46 2016 +0000
+
+    Auto merge of #31846 - alexcrichton:better-disable-jemallc, r=brson
+    
+    The `--disable-jemalloc` configure option has a failure mode where it will
+    create a distribution that is not compatible with other compilers. For example
+    the nightly for Linux will assume that it will link to jemalloc by default as
+    an allocator for executable crates. If, however, a standard library is used
+    which was built via `./configure --disable-jemalloc` then this will fail
+    because the jemalloc crate wasn't built.
+    
+    While this seems somewhat reasonable as a niche situation, the same mechanism is
+    used for disabling jemalloc for platforms that just don't support it. For
+    example if the rumprun target is compiled then the sibiling Linux target *also*
+    doesn't have jemalloc. This is currently a problem for our cross-build nightlies
+    which build many targets. If rumprun is also built, it will disable jemalloc for
+    all targets, which isn't desired.
+    
+    This commit moves the platform-specific disabling of jemalloc as hardcoded logic
+    into the makefiles that is scoped per-platform. This way when configuring
+    multiple targets **without the `--disable-jemalloc` option specified** all
+    targets will get jemalloc as they should.
+rustc: ./html5ever-2015-05-15
+cargo rustc -- -Ztime-passes -Zinput-stats
+    Updating registry `https://github.com/rust-lang/crates.io-index`
+    Updating git repository `https://github.com/reem/rust-mac`
+    Updating git repository `https://github.com/servo/string-cache`
+   Compiling winapi v0.2.5
+   Compiling phf_shared v0.7.13
+   Compiling lazy_static v0.1.15
+   Compiling mac v0.0.2 (https://github.com/reem/rust-mac#6316d3f4)
+   Compiling rustc-serialize v0.3.18
+   Compiling num v0.1.31
+   Compiling void v1.0.1
+   Compiling libc v0.2.7
+   Compiling winapi-build v0.1.1
+   Compiling unreachable v0.1.1
+   Compiling debug_unreachable v0.0.6
+   Compiling phf v0.7.13
+   Compiling kernel32-sys v0.2.1
+   Compiling log v0.3.5
+   Compiling rand v0.3.14
+   Compiling time v0.1.34
+   Compiling phf_generator v0.7.13
+   Compiling phf_macros v0.7.13
+   Compiling string_cache_shared v0.1.12
+   Compiling serde v0.6.15
+   Compiling string_cache v0.1.17
+   Compiling html5ever_macros v0.0.0 (file:///root/benchmarks/html5ever-2015-05-15)
+Build failed, waiting for other jobs to finish...
+makefile:2: recipe for target 'all' failed
+done
