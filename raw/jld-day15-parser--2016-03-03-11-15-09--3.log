@@ -1,0 +1,98 @@
+commit 493d999ffa44be6610441dabab80e18dda90015a
+Merge: f6e125f fc4d0ec
+Author: bors <bors@rust-lang.org>
+Date:   Thu Mar 3 17:41:13 2016 +0000
+
+    Auto merge of #32007 - nikomatsakis:compiletest-incremental, r=alexcrichton
+    
+    This PR extends compiletest to support **test revisions** and with a preliminary **incremental testing harness**. run-pass, compile-fail, and run-fail tests may be tagged with
+    
+    ```
+    // revisions: a b c d
+    ```
+    
+    This will cause the test to be re-run four times with `--cfg {a,b,c,d}` in turn. This means you can write very closely related things using `cfg`. You can also configure the headers/expected-errors by writing `//[foo] header: value` or `//[foo]~ ERROR bar`, where `foo` is the name of your revision. See the changes to `coherence-cow.rs` as a proof of concept.
+    
+    The main point of this work is to support the incremental testing harness. This PR contains an initial, unused version. The code that uses it will land later. The incremental testing harness compiles each revision in turn, and requires that the revisions have particular names (e.g., `rpass2`, `cfail3`), which tell it whether a particular revision is expected to compile or not.
+    
+    Two questions:
+    
+    - Is there compiletest documentation anywhere I can update?
+    - Should I hold off on landing the incremental testing harness until I have the code to exercise it? (That will come in a separate PR, still fixing a few details)
+    
+    r? @alexcrichton
+    cc @rust-lang/compiler <-- new testing capabilities
+rustc: ./jld-day15-parser
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling day15 v0.1.0 (file:///root/benchmarks/jld-day15-parser)
+time: 0.001; rss: 30MB	parsing
+Lines of code:             72
+Pre-expansion node count:  673
+time: 0.000; rss: 30MB	configuration 1
+time: 0.000; rss: 30MB	recursion limit
+time: 0.000; rss: 30MB	gated macro checking
+time: 0.000; rss: 30MB	crate injection
+time: 0.003; rss: 35MB	macro loading
+time: 0.000; rss: 35MB	plugin loading
+time: 0.000; rss: 35MB	plugin registration
+time: 0.002; rss: 36MB	expansion
+time: 0.000; rss: 36MB	complete gated feature checking 1
+time: 0.000; rss: 36MB	configuration 2
+time: 0.000; rss: 36MB	gated configuration checking
+time: 0.000; rss: 36MB	maybe building test harness
+time: 0.000; rss: 36MB	prelude injection
+time: 0.000; rss: 36MB	checking that all macro invocations are gone
+time: 0.000; rss: 36MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 36MB	complete gated feature checking 2
+time: 0.000; rss: 36MB	const fn bodies and arguments
+Post-expansion node count: 1176
+time: 0.000; rss: 36MB	assigning node ids
+time: 0.000; rss: 36MB	lowering ast -> hir
+time: 0.000; rss: 36MB	indexing hir
+time: 0.000; rss: 36MB	attribute checking
+time: 0.000; rss: 36MB	early lint checks
+time: 0.001; rss: 36MB	external crate/lib resolution
+time: 0.000; rss: 36MB	language item collection
+time: 0.001; rss: 46MB	resolution
+time: 0.000; rss: 46MB	lifetime resolution
+time: 0.000; rss: 46MB	looking for entry point
+time: 0.000; rss: 46MB	looking for plugin registrar
+time: 0.000; rss: 46MB	region resolution
+time: 0.000; rss: 46MB	loop checking
+time: 0.000; rss: 46MB	static item recursion checking
+time: 0.001; rss: 48MB	type collecting
+time: 0.000; rss: 48MB	variance inference
+time: 0.005; rss: 53MB	coherence checking
+time: 0.010; rss: 59MB	wf checking
+time: 0.000; rss: 59MB	item-types checking
+time: 1.884; rss: 136MB	item-bodies checking
+time: 0.000; rss: 136MB	drop-impl checking
+time: 0.007; rss: 141MB	const checking
+time: 0.000; rss: 141MB	privacy checking
+time: 0.000; rss: 141MB	stability index
+time: 0.000; rss: 141MB	intrinsic checking
+time: 0.000; rss: 141MB	effect checking
+time: 0.000; rss: 141MB	match checking
+time: 0.000; rss: 141MB	liveness checking
+time: 0.002; rss: 141MB	rvalue checking
+time: 0.001; rss: 141MB	MIR dump
+time: 0.000; rss: 141MB	MIR passes
+time: 0.001; rss: 141MB	borrow checking
+time: 0.000; rss: 141MB	reachability checking
+time: 0.000; rss: 141MB	death checking
+time: 0.000; rss: 141MB	stability checking
+time: 0.000; rss: 141MB	unused lib feature checking
+time: 0.003; rss: 142MB	lint checking
+time: 0.001; rss: 142MB	resolving dependency formats
+time: 0.000; rss: 142MB	erasing regions from MIR
+  time: 12.423; rss: 178MB	translation item collection
+  time: 0.000; rss: 196MB	write metadata
+time: 33.853; rss: 196MB	translation
+  time: 0.014; rss: 96MB	llvm function passes [0]
+  time: 0.002; rss: 96MB	llvm module passes [0]
+  time: 0.269; rss: 102MB	codegen passes [0]
+  time: 0.000; rss: 96MB	codegen passes [0]
+time: 0.294; rss: 95MB	LLVM passes
+  time: 0.114; rss: 95MB	running linker
+time: 0.114; rss: 95MB	linking
+done
