@@ -1,0 +1,37 @@
+commit 7cee8b9ffb6a2dac7e2f729988c2324e2f8ac10f
+Merge: 7b0b80a e67590b
+Author: bors <bors@rust-lang.org>
+Date:   Thu Mar 3 02:21:28 2016 +0000
+
+    Auto merge of #31824 - jseyfried:privacy_in_resolve, r=nikomatsakis
+    
+    This PR privacy checks paths as they are resolved instead of in `librustc_privacy` (fixes #12334 and fixes #31779). This removes the need for the `LastPrivate` system introduced in PR #9735, the limitations of which cause #31779.
+    
+    This PR also reports privacy violations in paths to intra- and inter-crate items the same way -- it always reports the first inaccessible segment of the path.
+    
+    Since it fixes #31779, this is a [breaking-change]. For example, the following code would break:
+    ```rust
+    mod foo {
+        pub use foo::bar::S;
+        mod bar { // `bar` should be private to `foo`
+            pub struct S;
+        }
+    }
+    
+    impl foo::S {
+        fn f() {}
+    }
+    
+    fn main() {
+        foo::bar::S::f(); // This is now a privacy error
+    }
+    ```
+    
+    r? @alexcrichton
+rustc: ./html5ever-2015-05-15
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling html5ever_macros v0.0.0 (file:///root/benchmarks/html5ever-2015-05-15)
+   Compiling string_cache v0.1.17
+Build failed, waiting for other jobs to finish...
+makefile:2: recipe for target 'all' failed
+done

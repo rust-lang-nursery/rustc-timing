@@ -1,0 +1,104 @@
+commit 7cee8b9ffb6a2dac7e2f729988c2324e2f8ac10f
+Merge: 7b0b80a e67590b
+Author: bors <bors@rust-lang.org>
+Date:   Thu Mar 3 02:21:28 2016 +0000
+
+    Auto merge of #31824 - jseyfried:privacy_in_resolve, r=nikomatsakis
+    
+    This PR privacy checks paths as they are resolved instead of in `librustc_privacy` (fixes #12334 and fixes #31779). This removes the need for the `LastPrivate` system introduced in PR #9735, the limitations of which cause #31779.
+    
+    This PR also reports privacy violations in paths to intra- and inter-crate items the same way -- it always reports the first inaccessible segment of the path.
+    
+    Since it fixes #31779, this is a [breaking-change]. For example, the following code would break:
+    ```rust
+    mod foo {
+        pub use foo::bar::S;
+        mod bar { // `bar` should be private to `foo`
+            pub struct S;
+        }
+    }
+    
+    impl foo::S {
+        fn f() {}
+    }
+    
+    fn main() {
+        foo::bar::S::f(); // This is now a privacy error
+    }
+    ```
+    
+    r? @alexcrichton
+rustc: ./jld-day15-parser
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling day15 v0.1.0 (file:///root/benchmarks/jld-day15-parser)
+time: 0.001; rss: 36MB	parsing
+Lines of code:             72
+Pre-expansion node count:  673
+time: 0.000; rss: 36MB	configuration 1
+time: 0.000; rss: 36MB	recursion limit
+time: 0.000; rss: 36MB	gated macro checking
+time: 0.000; rss: 36MB	crate injection
+time: 0.003; rss: 39MB	macro loading
+time: 0.000; rss: 39MB	plugin loading
+time: 0.000; rss: 39MB	plugin registration
+time: 0.002; rss: 39MB	expansion
+time: 0.000; rss: 39MB	complete gated feature checking 1
+time: 0.000; rss: 39MB	configuration 2
+time: 0.000; rss: 39MB	gated configuration checking
+time: 0.000; rss: 39MB	maybe building test harness
+time: 0.000; rss: 39MB	prelude injection
+time: 0.000; rss: 39MB	checking that all macro invocations are gone
+time: 0.000; rss: 39MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 39MB	complete gated feature checking 2
+time: 0.000; rss: 39MB	const fn bodies and arguments
+Post-expansion node count: 1176
+time: 0.000; rss: 39MB	assigning node ids
+time: 0.000; rss: 39MB	lowering ast -> hir
+time: 0.000; rss: 39MB	indexing hir
+time: 0.000; rss: 39MB	attribute checking
+time: 0.000; rss: 39MB	early lint checks
+time: 0.001; rss: 43MB	external crate/lib resolution
+time: 0.000; rss: 43MB	language item collection
+time: 0.001; rss: 48MB	resolution
+time: 0.000; rss: 48MB	lifetime resolution
+time: 0.000; rss: 48MB	looking for entry point
+time: 0.000; rss: 48MB	looking for plugin registrar
+time: 0.000; rss: 48MB	region resolution
+time: 0.000; rss: 48MB	loop checking
+time: 0.000; rss: 48MB	static item recursion checking
+time: 0.001; rss: 52MB	type collecting
+time: 0.000; rss: 52MB	variance inference
+time: 0.005; rss: 56MB	coherence checking
+time: 0.006; rss: 62MB	wf checking
+time: 0.000; rss: 62MB	item-types checking
+time: 1.576; rss: 145MB	item-bodies checking
+time: 0.000; rss: 145MB	drop-impl checking
+time: 0.005; rss: 148MB	const checking
+time: 0.000; rss: 148MB	privacy checking
+time: 0.000; rss: 148MB	stability index
+time: 0.000; rss: 148MB	intrinsic checking
+time: 0.000; rss: 148MB	effect checking
+time: 0.000; rss: 148MB	match checking
+time: 0.000; rss: 148MB	liveness checking
+time: 0.002; rss: 148MB	rvalue checking
+time: 0.001; rss: 148MB	MIR dump
+time: 0.000; rss: 148MB	MIR passes
+time: 0.001; rss: 148MB	borrow checking
+time: 0.000; rss: 148MB	reachability checking
+time: 0.000; rss: 148MB	death checking
+time: 0.000; rss: 148MB	stability checking
+time: 0.000; rss: 148MB	unused lib feature checking
+time: 0.003; rss: 148MB	lint checking
+time: 0.001; rss: 148MB	resolving dependency formats
+time: 0.000; rss: 148MB	erasing regions from MIR
+  time: 12.194; rss: 184MB	translation item collection
+  time: 0.000; rss: 202MB	write metadata
+time: 33.282; rss: 202MB	translation
+  time: 0.014; rss: 99MB	llvm function passes [0]
+  time: 0.002; rss: 99MB	llvm module passes [0]
+  time: 0.271; rss: 106MB	codegen passes [0]
+  time: 0.000; rss: 99MB	codegen passes [0]
+time: 0.297; rss: 99MB	LLVM passes
+  time: 0.110; rss: 103MB	running linker
+time: 0.110; rss: 103MB	linking
+done
