@@ -1,0 +1,76 @@
+commit 3029e0918de00162932132a7972e566f3a3372f5
+Merge: 07a1803 b3572ae
+Author: bors <bors@rust-lang.org>
+Date:   Sat Mar 5 20:11:37 2016 +0000
+
+    Auto merge of #31726 - jseyfried:improve_import_resolution, r=nikomatsakis
+    
+    This PR improves the import resolution algorithm.
+    
+    First, it records that an import succeeded or failed for one namespace (by calling `decrement_outstanding_references_for` and `try_define_child` if successful) even if it is still indeterminate in the other namespace, fixing #31444.
+    
+    Second, it starts importing bindings from globs as soon as the glob path is determined.
+    It maintains links from imported modules to their importers so that when a resolution becomes successful in an imported module, a corresponding binding will be added to the importer module.
+    It also maintains links from importer modules to imported modules so that we can determine if an undefined name is indeterminate or failing by recursively checking this in the imported modules.
+    This allows, for example:
+    ```rust
+    mod foo {
+        pub mod baz {}
+        pub use bar::baz::*;
+    }
+    
+    mod bar {
+        pub use foo::*;
+    }
+    ```
+    It also allows cycles of pub glob imports, although by to the current shadowing rules, the only way for such a cycle to compile is if each participating module defines no names. Incidentally, this PR lays the groundwork for more permissive feature-gated shadowing rules.
+    
+    Finally, this PR encapsulates almost all implementation details of import resolution in `resolve_imports` (some of which used to be in `lib.rs`) and refactors reexport recording, shadowed trait collecting, some duplicate checking, and the `private_in_public` lint out of the core import resolution algorithm and into a post-processing pass in `resolve_imports`.
+    
+    r? @nrc
+rustc: ./regex-macros.0.1.30
+cd regex_macros && cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling regex_macros v0.1.17 (file:///root/benchmarks/regex-macros.0.1.30/regex_macros)
+time: 0.002; rss: 36MB	parsing
+Lines of code:             639
+Pre-expansion node count:  2170
+time: 0.001; rss: 37MB	configuration 1
+time: 0.000; rss: 37MB	recursion limit
+time: 0.000; rss: 37MB	gated macro checking
+time: 0.000; rss: 37MB	crate injection
+time: 0.003; rss: 41MB	macro loading
+time: 0.000; rss: 41MB	plugin loading
+time: 0.000; rss: 41MB	plugin registration
+time: 0.034; rss: 48MB	expansion
+time: 0.001; rss: 48MB	complete gated feature checking 1
+time: 0.010; rss: 48MB	configuration 2
+time: 0.000; rss: 48MB	gated configuration checking
+time: 0.005; rss: 48MB	maybe building test harness
+time: 0.005; rss: 48MB	prelude injection
+time: 0.000; rss: 48MB	checking that all macro invocations are gone
+time: 0.000; rss: 48MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 48MB	complete gated feature checking 2
+time: 0.000; rss: 48MB	const fn bodies and arguments
+Post-expansion node count: 76161
+time: 0.005; rss: 48MB	assigning node ids
+time: 0.004; rss: 52MB	lowering ast -> hir
+time: 0.001; rss: 52MB	indexing hir
+time: 0.001; rss: 52MB	attribute checking
+time: 0.003; rss: 52MB	early lint checks
+time: 0.062; rss: 86MB	external crate/lib resolution
+time: 0.001; rss: 86MB	language item collection
+time: 0.011; rss: 106MB	resolution
+time: 0.000; rss: 106MB	lifetime resolution
+time: 0.000; rss: 106MB	looking for entry point
+time: 0.000; rss: 106MB	looking for plugin registrar
+time: 0.002; rss: 107MB	region resolution
+time: 0.000; rss: 107MB	loop checking
+time: 0.000; rss: 107MB	static item recursion checking
+time: 0.003; rss: 109MB	type collecting
+time: 0.000; rss: 109MB	variance inference
+time: 0.011; rss: 133MB	coherence checking
+time: 0.007; rss: 137MB	wf checking
+time: 0.001; rss: 137MB	item-types checking
+time: 0.990; rss: 184MB	item-bodies checking
+makefile:2: recipe for target 'all' failed
+done

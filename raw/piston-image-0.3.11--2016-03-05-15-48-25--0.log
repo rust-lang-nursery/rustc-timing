@@ -1,0 +1,50 @@
+commit 3029e0918de00162932132a7972e566f3a3372f5
+Merge: 07a1803 b3572ae
+Author: bors <bors@rust-lang.org>
+Date:   Sat Mar 5 20:11:37 2016 +0000
+
+    Auto merge of #31726 - jseyfried:improve_import_resolution, r=nikomatsakis
+    
+    This PR improves the import resolution algorithm.
+    
+    First, it records that an import succeeded or failed for one namespace (by calling `decrement_outstanding_references_for` and `try_define_child` if successful) even if it is still indeterminate in the other namespace, fixing #31444.
+    
+    Second, it starts importing bindings from globs as soon as the glob path is determined.
+    It maintains links from imported modules to their importers so that when a resolution becomes successful in an imported module, a corresponding binding will be added to the importer module.
+    It also maintains links from importer modules to imported modules so that we can determine if an undefined name is indeterminate or failing by recursively checking this in the imported modules.
+    This allows, for example:
+    ```rust
+    mod foo {
+        pub mod baz {}
+        pub use bar::baz::*;
+    }
+    
+    mod bar {
+        pub use foo::*;
+    }
+    ```
+    It also allows cycles of pub glob imports, although by to the current shadowing rules, the only way for such a cycle to compile is if each participating module defines no names. Incidentally, this PR lays the groundwork for more permissive feature-gated shadowing rules.
+    
+    Finally, this PR encapsulates almost all implementation details of import resolution in `resolve_imports` (some of which used to be in `lib.rs`) and refactors reexport recording, shadowed trait collecting, some duplicate checking, and the `private_in_public` lint out of the core import resolution algorithm and into a post-processing pass in `resolve_imports`.
+    
+    r? @nrc
+rustc: ./piston-image-0.3.11
+cargo rustc -- -Ztime-passes -Zinput-stats
+    Updating registry `https://github.com/rust-lang/crates.io-index`
+   Compiling lzw v0.8.0
+   Compiling rustc-serialize v0.3.18
+   Compiling byteorder v0.3.13
+   Compiling libc v0.2.7
+   Compiling gcc v0.3.25
+   Compiling glob v0.2.10
+   Compiling bitflags v0.5.0
+   Compiling color_quant v1.0.0
+   Compiling gif v0.5.1
+   Compiling rand v0.3.14
+   Compiling miniz-sys v0.1.7
+   Compiling flate2 v0.2.13
+   Compiling num v0.1.31
+   Compiling png v0.3.1
+   Compiling enum_primitive v0.0.1
+makefile:2: recipe for target 'all' failed
+done

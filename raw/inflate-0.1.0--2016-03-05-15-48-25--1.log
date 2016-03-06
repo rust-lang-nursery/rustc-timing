@@ -1,0 +1,103 @@
+commit 3029e0918de00162932132a7972e566f3a3372f5
+Merge: 07a1803 b3572ae
+Author: bors <bors@rust-lang.org>
+Date:   Sat Mar 5 20:11:37 2016 +0000
+
+    Auto merge of #31726 - jseyfried:improve_import_resolution, r=nikomatsakis
+    
+    This PR improves the import resolution algorithm.
+    
+    First, it records that an import succeeded or failed for one namespace (by calling `decrement_outstanding_references_for` and `try_define_child` if successful) even if it is still indeterminate in the other namespace, fixing #31444.
+    
+    Second, it starts importing bindings from globs as soon as the glob path is determined.
+    It maintains links from imported modules to their importers so that when a resolution becomes successful in an imported module, a corresponding binding will be added to the importer module.
+    It also maintains links from importer modules to imported modules so that we can determine if an undefined name is indeterminate or failing by recursively checking this in the imported modules.
+    This allows, for example:
+    ```rust
+    mod foo {
+        pub mod baz {}
+        pub use bar::baz::*;
+    }
+    
+    mod bar {
+        pub use foo::*;
+    }
+    ```
+    It also allows cycles of pub glob imports, although by to the current shadowing rules, the only way for such a cycle to compile is if each participating module defines no names. Incidentally, this PR lays the groundwork for more permissive feature-gated shadowing rules.
+    
+    Finally, this PR encapsulates almost all implementation details of import resolution in `resolve_imports` (some of which used to be in `lib.rs`) and refactors reexport recording, shadowed trait collecting, some duplicate checking, and the `private_in_public` lint out of the core import resolution algorithm and into a post-processing pass in `resolve_imports`.
+    
+    r? @nrc
+rustc: ./inflate-0.1.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling inflate v0.1.0 (file:///root/benchmarks/inflate-0.1.0)
+time: 0.004; rss: 38MB	parsing
+Lines of code:             956
+Pre-expansion node count:  4761
+time: 0.001; rss: 38MB	configuration 1
+time: 0.000; rss: 38MB	recursion limit
+time: 0.000; rss: 38MB	gated macro checking
+time: 0.000; rss: 38MB	crate injection
+time: 0.003; rss: 42MB	macro loading
+time: 0.000; rss: 42MB	plugin loading
+time: 0.000; rss: 42MB	plugin registration
+time: 0.079; rss: 48MB	expansion
+time: 0.001; rss: 48MB	complete gated feature checking 1
+time: 0.009; rss: 48MB	configuration 2
+time: 0.000; rss: 48MB	gated configuration checking
+time: 0.004; rss: 48MB	maybe building test harness
+time: 0.004; rss: 48MB	prelude injection
+time: 0.000; rss: 48MB	checking that all macro invocations are gone
+time: 0.000; rss: 48MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 48MB	complete gated feature checking 2
+time: 0.000; rss: 48MB	const fn bodies and arguments
+Post-expansion node count: 54798
+time: 0.004; rss: 48MB	assigning node ids
+time: 0.007; rss: 52MB	lowering ast -> hir
+time: 0.002; rss: 52MB	indexing hir
+time: 0.000; rss: 52MB	attribute checking
+time: 0.004; rss: 52MB	early lint checks
+time: 0.001; rss: 49MB	external crate/lib resolution
+time: 0.001; rss: 49MB	language item collection
+time: 0.009; rss: 57MB	resolution
+time: 0.001; rss: 57MB	lifetime resolution
+time: 0.000; rss: 57MB	looking for entry point
+time: 0.000; rss: 57MB	looking for plugin registrar
+time: 0.003; rss: 57MB	region resolution
+time: 0.000; rss: 57MB	loop checking
+time: 0.000; rss: 57MB	static item recursion checking
+time: 0.001; rss: 59MB	type collecting
+time: 0.000; rss: 59MB	variance inference
+time: 0.009; rss: 70MB	coherence checking
+time: 0.002; rss: 70MB	wf checking
+time: 0.002; rss: 72MB	item-types checking
+time: 2.449; rss: 98MB	item-bodies checking
+time: 0.000; rss: 98MB	drop-impl checking
+time: 0.013; rss: 99MB	const checking
+time: 0.002; rss: 99MB	privacy checking
+time: 0.000; rss: 99MB	stability index
+time: 0.000; rss: 99MB	intrinsic checking
+time: 0.001; rss: 99MB	effect checking
+time: 0.003; rss: 99MB	match checking
+time: 0.064; rss: 100MB	liveness checking
+time: 0.009; rss: 100MB	rvalue checking
+time: 0.036; rss: 109MB	MIR dump
+time: 0.000; rss: 109MB	MIR passes
+time: 0.244; rss: 107MB	borrow checking
+time: 0.000; rss: 107MB	reachability checking
+time: 0.003; rss: 107MB	death checking
+time: 0.003; rss: 107MB	stability checking
+time: 0.000; rss: 107MB	unused lib feature checking
+time: 0.017; rss: 107MB	lint checking
+time: 0.000; rss: 107MB	resolving dependency formats
+time: 0.002; rss: 107MB	erasing regions from MIR
+  time: 0.012; rss: 118MB	translation item collection
+  time: 0.003; rss: 134MB	write metadata
+time: 0.360; rss: 131MB	translation
+  time: 0.027; rss: 99MB	llvm function passes [0]
+  time: 0.005; rss: 99MB	llvm module passes [0]
+  time: 0.494; rss: 104MB	codegen passes [0]
+  time: 0.000; rss: 92MB	codegen passes [0]
+time: 0.568; rss: 92MB	LLVM passes
+time: 0.034; rss: 92MB	linking
+done

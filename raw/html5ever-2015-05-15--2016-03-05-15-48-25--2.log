@@ -1,0 +1,35 @@
+commit 3029e0918de00162932132a7972e566f3a3372f5
+Merge: 07a1803 b3572ae
+Author: bors <bors@rust-lang.org>
+Date:   Sat Mar 5 20:11:37 2016 +0000
+
+    Auto merge of #31726 - jseyfried:improve_import_resolution, r=nikomatsakis
+    
+    This PR improves the import resolution algorithm.
+    
+    First, it records that an import succeeded or failed for one namespace (by calling `decrement_outstanding_references_for` and `try_define_child` if successful) even if it is still indeterminate in the other namespace, fixing #31444.
+    
+    Second, it starts importing bindings from globs as soon as the glob path is determined.
+    It maintains links from imported modules to their importers so that when a resolution becomes successful in an imported module, a corresponding binding will be added to the importer module.
+    It also maintains links from importer modules to imported modules so that we can determine if an undefined name is indeterminate or failing by recursively checking this in the imported modules.
+    This allows, for example:
+    ```rust
+    mod foo {
+        pub mod baz {}
+        pub use bar::baz::*;
+    }
+    
+    mod bar {
+        pub use foo::*;
+    }
+    ```
+    It also allows cycles of pub glob imports, although by to the current shadowing rules, the only way for such a cycle to compile is if each participating module defines no names. Incidentally, this PR lays the groundwork for more permissive feature-gated shadowing rules.
+    
+    Finally, this PR encapsulates almost all implementation details of import resolution in `resolve_imports` (some of which used to be in `lib.rs`) and refactors reexport recording, shadowed trait collecting, some duplicate checking, and the `private_in_public` lint out of the core import resolution algorithm and into a post-processing pass in `resolve_imports`.
+    
+    r? @nrc
+rustc: ./html5ever-2015-05-15
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling html5ever_macros v0.0.0 (file:///root/benchmarks/html5ever-2015-05-15)
+makefile:2: recipe for target 'all' failed
+done
