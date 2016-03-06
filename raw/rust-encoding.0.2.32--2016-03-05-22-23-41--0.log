@@ -1,0 +1,102 @@
+commit 45f0ce71c19d8da081714dc917f11a8cc02d15be
+Merge: 52e0bda d908ff1
+Author: bors <bors@rust-lang.org>
+Date:   Sun Mar 6 02:29:34 2016 +0000
+
+    Auto merge of #31920 - jseyfried:fix_spurious_privacy_error, r=nikomatsakis
+    
+    This PR allows using methods from traits that are visible but are defined in an inaccessible module (fixes #18241). For example,
+    ```rust
+    mod foo {
+        pub use foo::bar::Tr;
+        mod bar { // This module is inaccessible from `g`
+            pub trait Tr { fn f(&self) {} }
+        }
+    }
+    fn g<T: foo::Tr>(t: T) {
+        t.f(); // Currently, this is a privacy error even though `foo::Tr` is visible
+    }
+    ```
+    
+    After this PR, it will continue to be a privacy error to use a method from a trait that is not visible. This can happen when a public trait inherits from a private trait (in violation of the `public_in_private` lint) -- see @petrochenkov's example in #28504.
+    r? @nikomatsakis
+rustc: ./rust-encoding.0.2.32
+cargo rustc -- -Ztime-passes -Zinput-stats
+    Updating registry `https://github.com/rust-lang/crates.io-index`
+   Compiling encoding_index_tests v0.1.4 (file:///root/benchmarks/rust-encoding.0.2.32)
+   Compiling encoding-index-japanese v1.20141219.5 (file:///root/benchmarks/rust-encoding.0.2.32)
+   Compiling encoding-index-simpchinese v1.20141219.5 (file:///root/benchmarks/rust-encoding.0.2.32)
+   Compiling encoding-index-tradchinese v1.20141219.5 (file:///root/benchmarks/rust-encoding.0.2.32)
+   Compiling encoding-index-singlebyte v1.20141219.5 (file:///root/benchmarks/rust-encoding.0.2.32)
+   Compiling encoding-index-korean v1.20141219.5 (file:///root/benchmarks/rust-encoding.0.2.32)
+   Compiling encoding v0.2.32 (file:///root/benchmarks/rust-encoding.0.2.32)
+time: 0.022; rss: 43MB	parsing
+Lines of code:             6441
+Pre-expansion node count:  30335
+time: 0.006; rss: 43MB	configuration 1
+time: 0.000; rss: 43MB	recursion limit
+time: 0.000; rss: 43MB	gated macro checking
+time: 0.000; rss: 43MB	crate injection
+time: 0.003; rss: 46MB	macro loading
+time: 0.000; rss: 46MB	plugin loading
+time: 0.000; rss: 46MB	plugin registration
+time: 0.045; rss: 49MB	expansion
+time: 0.001; rss: 49MB	complete gated feature checking 1
+time: 0.008; rss: 49MB	configuration 2
+time: 0.000; rss: 49MB	gated configuration checking
+time: 0.004; rss: 49MB	maybe building test harness
+time: 0.003; rss: 49MB	prelude injection
+time: 0.000; rss: 49MB	checking that all macro invocations are gone
+time: 0.000; rss: 49MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 49MB	complete gated feature checking 2
+time: 0.000; rss: 49MB	const fn bodies and arguments
+Post-expansion node count: 41783
+time: 0.003; rss: 49MB	assigning node ids
+time: 0.004; rss: 52MB	lowering ast -> hir
+time: 0.001; rss: 54MB	indexing hir
+time: 0.001; rss: 54MB	attribute checking
+time: 0.002; rss: 54MB	early lint checks
+time: 0.001; rss: 53MB	external crate/lib resolution
+time: 0.000; rss: 53MB	language item collection
+time: 0.007; rss: 59MB	resolution
+time: 0.000; rss: 59MB	lifetime resolution
+time: 0.000; rss: 59MB	looking for entry point
+time: 0.000; rss: 59MB	looking for plugin registrar
+time: 0.002; rss: 59MB	region resolution
+time: 0.000; rss: 59MB	loop checking
+time: 0.000; rss: 59MB	static item recursion checking
+time: 0.004; rss: 61MB	type collecting
+time: 0.000; rss: 61MB	variance inference
+time: 0.019; rss: 78MB	coherence checking
+time: 0.017; rss: 78MB	wf checking
+time: 0.012; rss: 79MB	item-types checking
+time: 0.173; rss: 89MB	item-bodies checking
+time: 0.000; rss: 89MB	drop-impl checking
+time: 0.010; rss: 89MB	const checking
+time: 0.002; rss: 89MB	privacy checking
+time: 0.000; rss: 89MB	stability index
+time: 0.001; rss: 89MB	intrinsic checking
+time: 0.000; rss: 89MB	effect checking
+time: 0.005; rss: 89MB	match checking
+time: 0.002; rss: 89MB	liveness checking
+time: 0.006; rss: 89MB	rvalue checking
+time: 0.021; rss: 93MB	MIR dump
+time: 0.000; rss: 93MB	MIR passes
+time: 0.021; rss: 93MB	borrow checking
+time: 0.000; rss: 93MB	reachability checking
+time: 0.002; rss: 93MB	death checking
+time: 0.002; rss: 93MB	stability checking
+time: 0.000; rss: 93MB	unused lib feature checking
+time: 0.017; rss: 93MB	lint checking
+time: 0.000; rss: 93MB	resolving dependency formats
+time: 0.002; rss: 93MB	erasing regions from MIR
+  time: 0.023; rss: 110MB	translation item collection
+  time: 0.055; rss: 141MB	write metadata
+time: 0.304; rss: 141MB	translation
+  time: 0.026; rss: 106MB	llvm function passes [0]
+  time: 0.048; rss: 109MB	llvm module passes [0]
+  time: 0.558; rss: 114MB	codegen passes [0]
+  time: 0.001; rss: 99MB	codegen passes [0]
+time: 0.695; rss: 98MB	LLVM passes
+time: 0.051; rss: 97MB	linking
+done

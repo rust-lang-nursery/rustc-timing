@@ -1,0 +1,95 @@
+commit 45f0ce71c19d8da081714dc917f11a8cc02d15be
+Merge: 52e0bda d908ff1
+Author: bors <bors@rust-lang.org>
+Date:   Sun Mar 6 02:29:34 2016 +0000
+
+    Auto merge of #31920 - jseyfried:fix_spurious_privacy_error, r=nikomatsakis
+    
+    This PR allows using methods from traits that are visible but are defined in an inaccessible module (fixes #18241). For example,
+    ```rust
+    mod foo {
+        pub use foo::bar::Tr;
+        mod bar { // This module is inaccessible from `g`
+            pub trait Tr { fn f(&self) {} }
+        }
+    }
+    fn g<T: foo::Tr>(t: T) {
+        t.f(); // Currently, this is a privacy error even though `foo::Tr` is visible
+    }
+    ```
+    
+    After this PR, it will continue to be a privacy error to use a method from a trait that is not visible. This can happen when a public trait inherits from a private trait (in violation of the `public_in_private` lint) -- see @petrochenkov's example in #28504.
+    r? @nikomatsakis
+rustc: ./rust-encoding.0.2.32
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling encoding v0.2.32 (file:///root/benchmarks/rust-encoding.0.2.32)
+time: 0.022; rss: 42MB	parsing
+Lines of code:             6441
+Pre-expansion node count:  30335
+time: 0.006; rss: 42MB	configuration 1
+time: 0.000; rss: 42MB	recursion limit
+time: 0.000; rss: 42MB	gated macro checking
+time: 0.000; rss: 42MB	crate injection
+time: 0.003; rss: 45MB	macro loading
+time: 0.000; rss: 45MB	plugin loading
+time: 0.000; rss: 45MB	plugin registration
+time: 0.044; rss: 48MB	expansion
+time: 0.001; rss: 48MB	complete gated feature checking 1
+time: 0.007; rss: 48MB	configuration 2
+time: 0.000; rss: 48MB	gated configuration checking
+time: 0.004; rss: 48MB	maybe building test harness
+time: 0.003; rss: 48MB	prelude injection
+time: 0.000; rss: 48MB	checking that all macro invocations are gone
+time: 0.000; rss: 48MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 48MB	complete gated feature checking 2
+time: 0.000; rss: 48MB	const fn bodies and arguments
+Post-expansion node count: 41783
+time: 0.003; rss: 48MB	assigning node ids
+time: 0.004; rss: 52MB	lowering ast -> hir
+time: 0.001; rss: 54MB	indexing hir
+time: 0.001; rss: 54MB	attribute checking
+time: 0.002; rss: 54MB	early lint checks
+time: 0.001; rss: 53MB	external crate/lib resolution
+time: 0.000; rss: 53MB	language item collection
+time: 0.007; rss: 59MB	resolution
+time: 0.000; rss: 59MB	lifetime resolution
+time: 0.000; rss: 59MB	looking for entry point
+time: 0.000; rss: 59MB	looking for plugin registrar
+time: 0.002; rss: 59MB	region resolution
+time: 0.000; rss: 59MB	loop checking
+time: 0.000; rss: 59MB	static item recursion checking
+time: 0.004; rss: 61MB	type collecting
+time: 0.000; rss: 61MB	variance inference
+time: 0.019; rss: 78MB	coherence checking
+time: 0.018; rss: 78MB	wf checking
+time: 0.012; rss: 79MB	item-types checking
+time: 0.172; rss: 91MB	item-bodies checking
+time: 0.000; rss: 91MB	drop-impl checking
+time: 0.010; rss: 91MB	const checking
+time: 0.002; rss: 91MB	privacy checking
+time: 0.000; rss: 91MB	stability index
+time: 0.001; rss: 91MB	intrinsic checking
+time: 0.000; rss: 91MB	effect checking
+time: 0.005; rss: 91MB	match checking
+time: 0.002; rss: 91MB	liveness checking
+time: 0.006; rss: 91MB	rvalue checking
+time: 0.021; rss: 95MB	MIR dump
+time: 0.000; rss: 95MB	MIR passes
+time: 0.021; rss: 95MB	borrow checking
+time: 0.000; rss: 95MB	reachability checking
+time: 0.002; rss: 95MB	death checking
+time: 0.002; rss: 95MB	stability checking
+time: 0.000; rss: 95MB	unused lib feature checking
+time: 0.017; rss: 95MB	lint checking
+time: 0.000; rss: 95MB	resolving dependency formats
+time: 0.002; rss: 95MB	erasing regions from MIR
+  time: 0.023; rss: 108MB	translation item collection
+  time: 0.055; rss: 141MB	write metadata
+time: 0.303; rss: 141MB	translation
+  time: 0.025; rss: 106MB	llvm function passes [0]
+  time: 0.048; rss: 110MB	llvm module passes [0]
+  time: 0.562; rss: 115MB	codegen passes [0]
+  time: 0.001; rss: 100MB	codegen passes [0]
+time: 0.700; rss: 99MB	LLVM passes
+time: 0.050; rss: 97MB	linking
+done

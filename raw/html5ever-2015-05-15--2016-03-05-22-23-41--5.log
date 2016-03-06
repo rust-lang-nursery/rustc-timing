@@ -1,0 +1,27 @@
+commit 45f0ce71c19d8da081714dc917f11a8cc02d15be
+Merge: 52e0bda d908ff1
+Author: bors <bors@rust-lang.org>
+Date:   Sun Mar 6 02:29:34 2016 +0000
+
+    Auto merge of #31920 - jseyfried:fix_spurious_privacy_error, r=nikomatsakis
+    
+    This PR allows using methods from traits that are visible but are defined in an inaccessible module (fixes #18241). For example,
+    ```rust
+    mod foo {
+        pub use foo::bar::Tr;
+        mod bar { // This module is inaccessible from `g`
+            pub trait Tr { fn f(&self) {} }
+        }
+    }
+    fn g<T: foo::Tr>(t: T) {
+        t.f(); // Currently, this is a privacy error even though `foo::Tr` is visible
+    }
+    ```
+    
+    After this PR, it will continue to be a privacy error to use a method from a trait that is not visible. This can happen when a public trait inherits from a private trait (in violation of the `public_in_private` lint) -- see @petrochenkov's example in #28504.
+    r? @nikomatsakis
+rustc: ./html5ever-2015-05-15
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling html5ever_macros v0.0.0 (file:///root/benchmarks/html5ever-2015-05-15)
+makefile:2: recipe for target 'all' failed
+done
