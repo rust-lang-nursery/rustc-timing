@@ -1,0 +1,98 @@
+commit bcda58f49133921abd091d7f800732fe2c4e5a98
+Merge: 0b9995b 3855fa9
+Author: bors <bors@rust-lang.org>
+Date:   Wed Mar 9 20:16:20 2016 -0800
+
+    Auto merge of #31710 - eddyb:reify, r=nikomatsakis
+    
+    Distinguish fn item types to allow reification from nothing to fn pointers.
+    
+    The first commit is a rebase of #26284, except for files that have moved since.
+    
+    This is a [breaking-change], due to:
+    * each FFI function has a distinct type, like all other functions currently do
+    * all generic parameters on functions are recorded in their item types, e.g.:
+    `size_of::<u8>` & `size_of::<i8>`'s types differ despite their identical signature.
+    * function items are zero-sized, which will stop transmutes from working on them
+    
+    The first two cases are handled in most cases with the new coerce-unify logic,
+    which will combine incompatible function item types into function pointers,
+    at the outer-most level of if-else chains, match arms and array literals.
+    
+    The last case is specially handled during type-checking such that transmutes
+    from a function item type to a pointer or integer type will continue to work for
+    another release cycle, but are being linted against. To get rid of warnings and
+    ensure your code will continue to compile, cast to a pointer before transmuting.
+rustc: ./inflate-0.1.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling inflate v0.1.0 (file:///root/benchmarks/inflate-0.1.0)
+time: 0.004; rss: 38MB	parsing
+Lines of code:             956
+Pre-expansion node count:  4761
+time: 0.001; rss: 38MB	configuration 1
+time: 0.000; rss: 38MB	recursion limit
+time: 0.000; rss: 38MB	gated macro checking
+time: 0.000; rss: 38MB	crate injection
+time: 0.003; rss: 41MB	macro loading
+time: 0.000; rss: 41MB	plugin loading
+time: 0.000; rss: 41MB	plugin registration
+time: 0.079; rss: 48MB	expansion
+time: 0.001; rss: 48MB	complete gated feature checking 1
+time: 0.009; rss: 48MB	configuration 2
+time: 0.000; rss: 48MB	gated configuration checking
+time: 0.004; rss: 48MB	maybe building test harness
+time: 0.004; rss: 48MB	prelude injection
+time: 0.000; rss: 48MB	checking that all macro invocations are gone
+time: 0.000; rss: 48MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 48MB	complete gated feature checking 2
+time: 0.000; rss: 48MB	const fn bodies and arguments
+Post-expansion node count: 54798
+time: 0.004; rss: 48MB	assigning node ids
+time: 0.008; rss: 52MB	lowering ast -> hir
+time: 0.002; rss: 55MB	indexing hir
+time: 0.001; rss: 55MB	attribute checking
+time: 0.004; rss: 55MB	early lint checks
+time: 0.001; rss: 52MB	external crate/lib resolution
+time: 0.001; rss: 52MB	language item collection
+time: 0.009; rss: 60MB	resolution
+time: 0.000; rss: 60MB	lifetime resolution
+time: 0.000; rss: 60MB	looking for entry point
+time: 0.000; rss: 60MB	looking for plugin registrar
+time: 0.003; rss: 63MB	region resolution
+time: 0.000; rss: 63MB	loop checking
+time: 0.000; rss: 63MB	static item recursion checking
+time: 0.001; rss: 63MB	type collecting
+time: 0.000; rss: 63MB	variance inference
+time: 0.009; rss: 77MB	coherence checking
+time: 0.002; rss: 77MB	wf checking
+time: 0.002; rss: 78MB	item-types checking
+time: 2.608; rss: 98MB	item-bodies checking
+time: 0.000; rss: 98MB	drop-impl checking
+time: 0.013; rss: 99MB	const checking
+time: 0.002; rss: 99MB	privacy checking
+time: 0.000; rss: 99MB	stability index
+time: 0.000; rss: 99MB	intrinsic checking
+time: 0.000; rss: 99MB	effect checking
+time: 0.003; rss: 99MB	match checking
+time: 0.065; rss: 98MB	liveness checking
+time: 0.009; rss: 98MB	rvalue checking
+time: 0.036; rss: 112MB	MIR dump
+time: 0.000; rss: 112MB	MIR passes
+time: 0.200; rss: 111MB	borrow checking
+time: 0.000; rss: 111MB	reachability checking
+time: 0.003; rss: 111MB	death checking
+time: 0.002; rss: 111MB	stability checking
+time: 0.000; rss: 111MB	unused lib feature checking
+time: 0.017; rss: 109MB	lint checking
+time: 0.000; rss: 109MB	resolving dependency formats
+time: 0.002; rss: 109MB	erasing regions from MIR
+  time: 0.012; rss: 120MB	translation item collection
+  time: 0.003; rss: 141MB	write metadata
+time: 0.378; rss: 134MB	translation
+  time: 0.026; rss: 99MB	llvm function passes [0]
+  time: 0.005; rss: 100MB	llvm module passes [0]
+  time: 0.494; rss: 105MB	codegen passes [0]
+  time: 0.000; rss: 94MB	codegen passes [0]
+time: 0.567; rss: 93MB	LLVM passes
+time: 0.035; rss: 92MB	linking
+done
