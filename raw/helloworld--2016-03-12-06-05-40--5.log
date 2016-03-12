@@ -1,0 +1,102 @@
+commit 1a019dc86de1459809f776b869e36f8e71a7665a
+Merge: f1d6f12 6265b6b
+Author: bors <bors@rust-lang.org>
+Date:   Fri Mar 11 20:57:39 2016 -0800
+
+    Auto merge of #31925 - aturon:inherent-overlap, r=nikomatsakis
+    
+    Forbid items with the same name from appearing in overlapping inherent impl blocks
+    
+    For example, the following is now correctly illegal:
+    
+    ```rust
+    struct Foo;
+    
+    impl Foo {
+        fn id() {}
+    }
+    
+    impl Foo {
+        fn id() {}
+    }
+    ```
+    
+    "Overlapping" here is determined the same way it is for traits (and in fact shares the same code path): roughly, there must be some way of substituting any generic types to unify the impls, such that none of the `where` clauses are provably unsatisfiable under such a unification.
+    
+    Along the way, this PR also introduces an `ImplHeader` abstraction (the first commit) that makes it easier to work with impls abstractly (without caring whether they are trait or inherent impl blocks); see the first commit.
+    
+    Closes #22889
+    r? @nikomatsakis
+rustc: ./helloworld
+/root/rust/x86_64-unknown-linux-gnu/stage2/bin/rustc hello.rs -Ztime-passes -Zinput-stats
+time: 0.000; rss: 32MB	parsing
+Lines of code:             3
+Pre-expansion node count:  8
+time: 0.000; rss: 36MB	configuration 1
+time: 0.000; rss: 36MB	recursion limit
+time: 0.000; rss: 36MB	gated macro checking
+time: 0.000; rss: 36MB	crate injection
+time: 0.003; rss: 39MB	macro loading
+time: 0.000; rss: 39MB	plugin loading
+time: 0.000; rss: 39MB	plugin registration
+time: 0.001; rss: 39MB	expansion
+time: 0.000; rss: 39MB	complete gated feature checking 1
+time: 0.000; rss: 39MB	configuration 2
+time: 0.000; rss: 39MB	gated configuration checking
+time: 0.000; rss: 39MB	maybe building test harness
+time: 0.000; rss: 39MB	prelude injection
+time: 0.000; rss: 39MB	checking that all macro invocations are gone
+time: 0.000; rss: 39MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 39MB	complete gated feature checking 2
+time: 0.000; rss: 39MB	const fn bodies and arguments
+Post-expansion node count: 68
+time: 0.000; rss: 39MB	assigning node ids
+time: 0.000; rss: 39MB	lowering ast -> hir
+time: 0.000; rss: 39MB	indexing hir
+time: 0.000; rss: 39MB	attribute checking
+time: 0.000; rss: 39MB	early lint checks
+time: 0.001; rss: 39MB	external crate/lib resolution
+time: 0.000; rss: 39MB	language item collection
+time: 0.001; rss: 48MB	resolution
+time: 0.000; rss: 48MB	lifetime resolution
+time: 0.000; rss: 48MB	looking for entry point
+time: 0.000; rss: 48MB	looking for plugin registrar
+time: 0.000; rss: 48MB	region resolution
+time: 0.000; rss: 48MB	loop checking
+time: 0.000; rss: 48MB	static item recursion checking
+time: 0.000; rss: 48MB	type collecting
+time: 0.000; rss: 48MB	variance inference
+time: 0.005; rss: 56MB	coherence checking
+time: 0.000; rss: 56MB	wf checking
+time: 0.000; rss: 56MB	item-types checking
+time: 0.000; rss: 56MB	item-bodies checking
+time: 0.000; rss: 56MB	drop-impl checking
+time: 0.000; rss: 56MB	const checking
+time: 0.000; rss: 56MB	privacy checking
+time: 0.000; rss: 56MB	stability index
+time: 0.000; rss: 56MB	intrinsic checking
+time: 0.000; rss: 56MB	effect checking
+time: 0.000; rss: 56MB	match checking
+time: 0.000; rss: 56MB	liveness checking
+time: 0.000; rss: 56MB	rvalue checking
+time: 0.000; rss: 56MB	MIR dump
+time: 0.000; rss: 56MB	MIR passes
+time: 0.000; rss: 56MB	borrow checking
+time: 0.000; rss: 56MB	reachability checking
+time: 0.000; rss: 56MB	death checking
+time: 0.000; rss: 56MB	stability checking
+time: 0.000; rss: 56MB	unused lib feature checking
+time: 0.000; rss: 56MB	lint checking
+time: 0.001; rss: 56MB	resolving dependency formats
+time: 0.000; rss: 56MB	erasing regions from MIR
+  time: 0.001; rss: 68MB	translation item collection
+  time: 0.000; rss: 68MB	write metadata
+time: 0.003; rss: 68MB	translation
+  time: 0.000; rss: 68MB	llvm function passes [0]
+  time: 0.000; rss: 68MB	llvm module passes [0]
+  time: 0.001; rss: 72MB	codegen passes [0]
+  time: 0.000; rss: 72MB	codegen passes [0]
+time: 0.002; rss: 72MB	LLVM passes
+  time: 0.095; rss: 72MB	running linker
+time: 0.095; rss: 72MB	linking
+done
