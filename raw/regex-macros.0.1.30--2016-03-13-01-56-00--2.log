@@ -1,0 +1,76 @@
+commit 06074ac004701bff42c625247c4764b2ae6fca6c
+Merge: 3e05371 e926f28
+Author: bors <bors@rust-lang.org>
+Date:   Sat Mar 12 21:55:14 2016 -0800
+
+    Auto merge of #32141 - jseyfried:fix_resolution_in_lexical_scopes, r=nikomatsakis
+    
+    Fix name resolution in lexical scopes
+    
+    Currently, `resolve_item_in_lexical_scope` does not check the "ribs" (type parameters and local variables). This can allow items that should be shadowed by type parameters to be named.
+    
+    For example,
+    ```rust
+    struct T { i: i32 }
+    fn f<T>() {
+        let t = T { i: 0 }; // This use of `T` resolves to the struct, not the type parameter
+    }
+    
+    mod Foo {
+        pub fn f() {}
+    }
+    fn g<Foo>() {
+        Foo::f(); // This use of `Foo` resolves to the module, not the type parameter
+    }
+    ```
+    
+    This PR changes `resolve_item_in_lexical_scope` so that it fails when the item is shadowed by a rib (fixes #32120).
+    This is a [breaking-change], but it looks unlikely to cause breakage in practice.
+    
+    r? @nikomatsakis
+rustc: ./regex-macros.0.1.30
+cd regex_macros && cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling regex_macros v0.1.17 (file:///root/benchmarks/regex-macros.0.1.30/regex_macros)
+time: 0.002; rss: 38MB	parsing
+Lines of code:             639
+Pre-expansion node count:  2170
+time: 0.001; rss: 38MB	configuration 1
+time: 0.000; rss: 38MB	recursion limit
+time: 0.000; rss: 38MB	gated macro checking
+time: 0.000; rss: 38MB	crate injection
+time: 0.003; rss: 41MB	macro loading
+time: 0.000; rss: 41MB	plugin loading
+time: 0.000; rss: 41MB	plugin registration
+time: 0.033; rss: 48MB	expansion
+time: 0.001; rss: 48MB	complete gated feature checking 1
+time: 0.010; rss: 48MB	configuration 2
+time: 0.000; rss: 48MB	gated configuration checking
+time: 0.005; rss: 48MB	maybe building test harness
+time: 0.005; rss: 48MB	prelude injection
+time: 0.000; rss: 48MB	checking that all macro invocations are gone
+time: 0.000; rss: 48MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 48MB	complete gated feature checking 2
+time: 0.000; rss: 48MB	const fn bodies and arguments
+Post-expansion node count: 76161
+time: 0.005; rss: 48MB	assigning node ids
+time: 0.004; rss: 52MB	lowering ast -> hir
+time: 0.001; rss: 52MB	indexing hir
+time: 0.001; rss: 52MB	attribute checking
+time: 0.003; rss: 52MB	early lint checks
+time: 0.062; rss: 84MB	external crate/lib resolution
+time: 0.001; rss: 84MB	language item collection
+time: 0.012; rss: 107MB	resolution
+time: 0.000; rss: 107MB	lifetime resolution
+time: 0.000; rss: 107MB	looking for entry point
+time: 0.000; rss: 107MB	looking for plugin registrar
+time: 0.002; rss: 108MB	region resolution
+time: 0.000; rss: 108MB	loop checking
+time: 0.000; rss: 108MB	static item recursion checking
+time: 0.003; rss: 110MB	type collecting
+time: 0.000; rss: 110MB	variance inference
+time: 0.011; rss: 132MB	coherence checking
+time: 0.007; rss: 138MB	wf checking
+time: 0.001; rss: 138MB	item-types checking
+time: 1.005; rss: 187MB	item-bodies checking
+makefile:2: recipe for target 'all' failed
+done
