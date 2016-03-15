@@ -1,0 +1,137 @@
+commit 483fc715c6ea7cdd15d41d79df9def97401cd699
+Merge: 4db8b5b 155735a
+Author: bors <bors@rust-lang.org>
+Date:   Tue Mar 15 03:21:40 2016 -0700
+
+    Auto merge of #32239 - alexcrichton:fix-cross-to-freebsd, r=brson
+    
+    rustbuild: Fix cross compiling to FreeBSD
+    
+    This commit fixes our support for cross compiling a compiler to run on FreeBSD.
+    Over the weekend I managed to get a cross compiler from Linux to FreeBSD [1]
+    which I hope to soon use to start producing FreeBSD nightly compilers. With the
+    `make dist` support added in #32237 we should be able to produce standard
+    rustc/rust-std packages for FreeBSD through a new slave with this cross compiler.
+    
+    Currently, however, we don't "Just Work" when cross compiling FreeBSD and a
+    number of changes were required (part of this PR). They include:
+    
+    * A few build fixes were needed in LLVM. Our own branch has been rebased on the
+      actual 3.8 release and I applied one extra commit [2] which contains two fixes:
+    
+      1. The LLVM CMake build system passes the `-Wl,-z,defs` flag on many
+         platforms, but *not* when `CMAKE_SYSTEM_NAME` is "FreeBSD". Unfortunately
+         this doesn't take into account when we're cross compiling, and as predicted
+         the build will fail if `-Wl,-z,defs` is passed (see [3] for more info). To
+         fix this we test `TARGET_TRIPLE` instead of the `CMAKE_SYSTEM_NAME` which
+         is what we're compiling for which fixes the problem.
+      2. The `PATH_MAX` constant is apparently defined in a different location than
+         many other Unix systems, so a file which required this just needed some
+         help to keep compiling.
+    
+    * Support for compiling compiler-rt with CMake has been added to rustbuild. It
+      looks like it just emulates Linux in what it compiles as it didn't seem to
+      naturally produce anything else... At least the architecture is right, so
+      seems good for now at least!
+    
+    [1]: https://github.com/alexcrichton/port-of-rust/blob/master/prebuilt/freebsd/Dockerfile
+    [2]: https://github.com/rust-lang/llvm/commit/be89e4b5
+    [3]: https://bugs.webkit.org/show_bug.cgi?id=138420
+rustc: ./hyper.0.5.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+    Updating registry `https://github.com/rust-lang/crates.io-index`
+   Compiling typeable v0.1.2
+   Compiling bitflags v0.3.3
+   Compiling unicase v0.1.0
+   Compiling libc v0.1.12
+   Compiling rustc-serialize v0.3.18
+   Compiling pkg-config v0.3.8
+   Compiling httparse v0.1.6
+   Compiling winapi v0.2.6
+   Compiling gcc v0.3.25
+   Compiling traitobject v0.0.1
+   Compiling winapi-build v0.1.1
+   Compiling matches v0.1.2
+   Compiling libc v0.2.8
+   Compiling kernel32-sys v0.2.1
+   Compiling lazy_static v0.1.15
+   Compiling openssl-sys v0.6.7
+   Compiling num_cpus v0.2.11
+   Compiling rand v0.3.14
+   Compiling time v0.1.34
+   Compiling log v0.3.5
+   Compiling mime v0.0.11
+   Compiling openssl v0.6.7
+   Compiling uuid v0.1.18
+   Compiling url v0.2.38
+   Compiling cookie v0.1.21
+   Compiling hyper v0.5.0 (file:///root/benchmarks/hyper.0.5.0)
+time: 0.030; rss: 45MB	parsing
+Lines of code:             9154
+Pre-expansion node count:  45594
+time: 0.009; rss: 45MB	configuration 1
+time: 0.000; rss: 45MB	recursion limit
+time: 0.000; rss: 45MB	gated macro checking
+time: 0.000; rss: 45MB	crate injection
+time: 0.004; rss: 51MB	macro loading
+time: 0.000; rss: 51MB	plugin loading
+time: 0.000; rss: 51MB	plugin registration
+time: 0.189; rss: 60MB	expansion
+time: 0.005; rss: 60MB	complete gated feature checking 1
+time: 0.034; rss: 60MB	configuration 2
+time: 0.000; rss: 60MB	gated configuration checking
+time: 0.013; rss: 60MB	maybe building test harness
+time: 0.011; rss: 60MB	prelude injection
+time: 0.001; rss: 60MB	checking that all macro invocations are gone
+time: 0.000; rss: 60MB	checking for inline asm in case the target doesn't support it
+time: 0.002; rss: 60MB	complete gated feature checking 2
+time: 0.001; rss: 60MB	const fn bodies and arguments
+Post-expansion node count: 109138
+time: 0.010; rss: 60MB	assigning node ids
+time: 0.010; rss: 64MB	lowering ast -> hir
+time: 0.004; rss: 66MB	indexing hir
+time: 0.001; rss: 66MB	attribute checking
+time: 0.006; rss: 66MB	early lint checks
+time: 0.004; rss: 62MB	external crate/lib resolution
+time: 0.001; rss: 62MB	language item collection
+time: 0.024; rss: 82MB	resolution
+time: 0.002; rss: 82MB	lifetime resolution
+time: 0.000; rss: 82MB	looking for entry point
+time: 0.000; rss: 82MB	looking for plugin registrar
+time: 0.005; rss: 86MB	region resolution
+time: 0.001; rss: 86MB	loop checking
+time: 0.001; rss: 86MB	static item recursion checking
+time: 0.013; rss: 89MB	type collecting
+time: 0.000; rss: 89MB	variance inference
+time: 0.477; rss: 110MB	coherence checking
+time: 0.076; rss: 111MB	wf checking
+time: 0.030; rss: 113MB	item-types checking
+time: 0.496; rss: 132MB	item-bodies checking
+time: 0.000; rss: 132MB	drop-impl checking
+time: 0.037; rss: 135MB	const checking
+time: 0.008; rss: 135MB	privacy checking
+time: 0.001; rss: 135MB	stability index
+time: 0.004; rss: 135MB	intrinsic checking
+time: 0.002; rss: 135MB	effect checking
+time: 0.012; rss: 135MB	match checking
+time: 0.005; rss: 135MB	liveness checking
+time: 0.032; rss: 135MB	rvalue checking
+time: 0.045; rss: 140MB	MIR dump
+time: 0.027; rss: 140MB	MIR passes
+time: 0.063; rss: 140MB	borrow checking
+time: 0.003; rss: 140MB	reachability checking
+time: 0.006; rss: 140MB	death checking
+time: 0.005; rss: 140MB	stability checking
+time: 0.000; rss: 140MB	unused lib feature checking
+time: 0.049; rss: 140MB	lint checking
+time: 0.000; rss: 140MB	resolving dependency formats
+  time: 0.193; rss: 163MB	translation item collection
+  time: 0.138; rss: 282MB	write metadata
+time: 1.415; rss: 282MB	translation
+  time: 0.094; rss: 165MB	llvm function passes [0]
+  time: 0.047; rss: 167MB	llvm module passes [0]
+  time: 1.603; rss: 170MB	codegen passes [0]
+  time: 0.001; rss: 119MB	codegen passes [0]
+time: 1.940; rss: 119MB	LLVM passes
+time: 0.167; rss: 117MB	linking
+done
