@@ -1,0 +1,50 @@
+commit f1578d37dc844ffeefcabc30960784082c3c54fa
+Merge: 40deb27 091a007
+Author: bors <bors@rust-lang.org>
+Date:   Thu Mar 24 23:12:57 2016 -0700
+
+    Auto merge of #32428 - nikomatsakis:scopes-in-mir, r=nagisa
+    
+    Scopes in mir
+    
+    This PR adds scopes to MIR. There is a tree of scopes (each represented by a `ScopeId`). Every statement, variable, and terminator now has an associated scope and span.  It also adds a `-Z dump-mir` switch one can use to conveniently examine the MIR as optimizations proceed.
+    
+    The intention is two-fold. First, to support MIR debug-info. This PR does not attempt to modify trans to make use of the scope information, however.
+    
+    Second, in a more temporary capacity, to support the goal of moving regionck and borowck into the MIR. To that end, the PR also constructs a "scope auxiliary" table storing the extent of each span (this is kept separate from the main MIR, since it contains node-ids) and the dom/post-dom of the region in the graph where the scope occurs. When we move to non-lexical lifetimes, I expect this auxiliary information to be discarded, but that is still some ways in the future (requires, at minimum, an RFC, and there are some thorny details to work out -- though I've got an in-progress draft).
+    
+    Right now, I'm just dropping this auxiliary information after it is constructed. I was debating for some time whether to add some sort of sanity tests, but decided to just open this PR instead, because I couldn't figure out what such a test would look like (and we don't have independent tests for this today beyond the regionck and borrowck tests).
+    
+    I'd prefer not to store the auxiliary data into any kind of "per-fn" map. Rather, I'd prefer that we do regionck/borrowck/whatever-else immediately after construction -- that is, we build the MIR for fn X and immediately thereafter do extended correctness checking on it. This will reduce peak memory usage and also ensure that the auxiliary data doesn't exist once optimizations begin. It also clarifies the transition point where static checks are complete and MIR can be more freely optimized.
+    
+    cc @rust-lang/compiler @nagisa
+rustc: ./html5ever-2015-05-15
+cargo rustc -- -Ztime-passes -Zinput-stats
+    Updating registry `https://github.com/rust-lang/crates.io-index`
+    Updating git repository `https://github.com/reem/rust-mac`
+    Updating git repository `https://github.com/servo/string-cache`
+   Compiling phf_shared v0.7.13
+   Compiling libc v0.2.8
+   Compiling mac v0.0.2 (https://github.com/reem/rust-mac#6316d3f4)
+   Compiling rustc-serialize v0.3.18
+   Compiling lazy_static v0.1.15
+   Compiling void v1.0.1
+   Compiling winapi v0.2.6
+   Compiling num v0.1.31
+   Compiling winapi-build v0.1.1
+   Compiling unreachable v0.1.1
+   Compiling debug_unreachable v0.0.6
+   Compiling kernel32-sys v0.2.1
+   Compiling phf v0.7.13
+   Compiling log v0.3.5
+   Compiling rand v0.3.14
+   Compiling time v0.1.34
+   Compiling phf_generator v0.7.13
+   Compiling string_cache_shared v0.1.12
+   Compiling phf_macros v0.7.13
+   Compiling string_cache v0.1.17
+   Compiling serde v0.6.15
+   Compiling html5ever_macros v0.0.0 (file:///root/benchmarks/html5ever-2015-05-15)
+Build failed, waiting for other jobs to finish...
+makefile:2: recipe for target 'all' failed
+done

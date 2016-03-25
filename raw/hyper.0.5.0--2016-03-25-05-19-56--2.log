@@ -1,0 +1,92 @@
+commit f1578d37dc844ffeefcabc30960784082c3c54fa
+Merge: 40deb27 091a007
+Author: bors <bors@rust-lang.org>
+Date:   Thu Mar 24 23:12:57 2016 -0700
+
+    Auto merge of #32428 - nikomatsakis:scopes-in-mir, r=nagisa
+    
+    Scopes in mir
+    
+    This PR adds scopes to MIR. There is a tree of scopes (each represented by a `ScopeId`). Every statement, variable, and terminator now has an associated scope and span.  It also adds a `-Z dump-mir` switch one can use to conveniently examine the MIR as optimizations proceed.
+    
+    The intention is two-fold. First, to support MIR debug-info. This PR does not attempt to modify trans to make use of the scope information, however.
+    
+    Second, in a more temporary capacity, to support the goal of moving regionck and borowck into the MIR. To that end, the PR also constructs a "scope auxiliary" table storing the extent of each span (this is kept separate from the main MIR, since it contains node-ids) and the dom/post-dom of the region in the graph where the scope occurs. When we move to non-lexical lifetimes, I expect this auxiliary information to be discarded, but that is still some ways in the future (requires, at minimum, an RFC, and there are some thorny details to work out -- though I've got an in-progress draft).
+    
+    Right now, I'm just dropping this auxiliary information after it is constructed. I was debating for some time whether to add some sort of sanity tests, but decided to just open this PR instead, because I couldn't figure out what such a test would look like (and we don't have independent tests for this today beyond the regionck and borrowck tests).
+    
+    I'd prefer not to store the auxiliary data into any kind of "per-fn" map. Rather, I'd prefer that we do regionck/borrowck/whatever-else immediately after construction -- that is, we build the MIR for fn X and immediately thereafter do extended correctness checking on it. This will reduce peak memory usage and also ensure that the auxiliary data doesn't exist once optimizations begin. It also clarifies the transition point where static checks are complete and MIR can be more freely optimized.
+    
+    cc @rust-lang/compiler @nagisa
+rustc: ./hyper.0.5.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling hyper v0.5.0 (file:///root/benchmarks/hyper.0.5.0)
+time: 0.030; rss: 45MB	parsing
+Lines of code:             9154
+Pre-expansion node count:  45594
+time: 0.009; rss: 45MB	configuration 1
+time: 0.000; rss: 45MB	recursion limit
+time: 0.000; rss: 45MB	gated macro checking
+time: 0.000; rss: 45MB	crate injection
+time: 0.004; rss: 50MB	macro loading
+time: 0.000; rss: 50MB	plugin loading
+time: 0.000; rss: 50MB	plugin registration
+time: 0.187; rss: 59MB	expansion
+time: 0.005; rss: 59MB	complete gated feature checking 1
+time: 0.034; rss: 59MB	configuration 2
+time: 0.000; rss: 59MB	gated configuration checking
+time: 0.013; rss: 59MB	maybe building test harness
+time: 0.010; rss: 59MB	prelude injection
+time: 0.001; rss: 59MB	checking that all macro invocations are gone
+time: 0.000; rss: 59MB	checking for inline asm in case the target doesn't support it
+time: 0.002; rss: 59MB	complete gated feature checking 2
+time: 0.001; rss: 59MB	const fn bodies and arguments
+Post-expansion node count: 106876
+time: 0.010; rss: 59MB	assigning node ids
+time: 0.011; rss: 65MB	lowering ast -> hir
+time: 0.004; rss: 68MB	indexing hir
+time: 0.001; rss: 68MB	attribute checking
+time: 0.006; rss: 68MB	early lint checks
+time: 0.004; rss: 65MB	external crate/lib resolution
+time: 0.001; rss: 65MB	language item collection
+time: 0.024; rss: 82MB	resolution
+time: 0.002; rss: 82MB	lifetime resolution
+time: 0.000; rss: 82MB	looking for entry point
+time: 0.000; rss: 82MB	looking for plugin registrar
+time: 0.006; rss: 86MB	region resolution
+time: 0.001; rss: 86MB	loop checking
+time: 0.001; rss: 86MB	static item recursion checking
+time: 0.013; rss: 89MB	type collecting
+time: 0.000; rss: 89MB	variance inference
+time: 0.528; rss: 111MB	coherence checking
+time: 0.077; rss: 111MB	wf checking
+time: 0.029; rss: 113MB	item-types checking
+time: 0.489; rss: 133MB	item-bodies checking
+time: 0.000; rss: 133MB	drop-impl checking
+time: 0.037; rss: 136MB	const checking
+time: 0.010; rss: 136MB	privacy checking
+time: 0.001; rss: 136MB	stability index
+time: 0.004; rss: 136MB	intrinsic checking
+time: 0.002; rss: 136MB	effect checking
+time: 0.011; rss: 136MB	match checking
+time: 0.005; rss: 136MB	liveness checking
+time: 0.032; rss: 136MB	rvalue checking
+time: 0.048; rss: 143MB	MIR dump
+time: 0.028; rss: 143MB	MIR passes
+time: 0.067; rss: 143MB	borrow checking
+time: 0.003; rss: 143MB	reachability checking
+time: 0.006; rss: 143MB	death checking
+time: 0.006; rss: 143MB	stability checking
+time: 0.000; rss: 143MB	unused lib feature checking
+time: 0.046; rss: 143MB	lint checking
+time: 0.000; rss: 143MB	resolving dependency formats
+  time: 0.188; rss: 159MB	translation item collection
+  time: 0.138; rss: 284MB	write metadata
+time: 1.339; rss: 284MB	translation
+  time: 0.097; rss: 167MB	llvm function passes [0]
+  time: 0.047; rss: 168MB	llvm module passes [0]
+  time: 1.633; rss: 171MB	codegen passes [0]
+  time: 0.001; rss: 121MB	codegen passes [0]
+time: 1.974; rss: 121MB	LLVM passes
+time: 0.170; rss: 119MB	linking
+done
