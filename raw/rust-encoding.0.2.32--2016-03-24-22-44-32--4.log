@@ -1,0 +1,86 @@
+commit d7a71687ef1a9fa5665944608d5bad58d98a9684
+Merge: dcfb8d7 c5d74be
+Author: bors <bors@rust-lang.org>
+Date:   Thu Mar 24 14:22:26 2016 -0700
+
+    Auto merge of #32346 - nikomatsakis:no-erased-regions, r=eddyb
+    
+    Remove `ErasedRegions` from substs
+    
+    This commit removes the `ErasedRegions` enum from `Substs`. Instead, in trans, we just generate a vector of `ReStatic` of suitable length. The goal is both general cleanup and to help pave the way for a glorious future where erasure is used in type check.
+    
+    r? @eddyb
+    
+    One concern: might be nice to do some profiling. Not sure the best way to do that. Perhaps I'll investigate running nrc's test suite locally.
+rustc: ./rust-encoding.0.2.32
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling encoding v0.2.32 (file:///root/benchmarks/rust-encoding.0.2.32)
+time: 0.023; rss: 42MB	parsing
+Lines of code:             6441
+Pre-expansion node count:  30335
+time: 0.006; rss: 42MB	configuration 1
+time: 0.000; rss: 42MB	recursion limit
+time: 0.000; rss: 42MB	gated macro checking
+time: 0.000; rss: 42MB	crate injection
+time: 0.003; rss: 45MB	macro loading
+time: 0.000; rss: 45MB	plugin loading
+time: 0.000; rss: 45MB	plugin registration
+time: 0.045; rss: 48MB	expansion
+time: 0.001; rss: 48MB	complete gated feature checking 1
+time: 0.007; rss: 48MB	configuration 2
+time: 0.000; rss: 48MB	gated configuration checking
+time: 0.004; rss: 48MB	maybe building test harness
+time: 0.003; rss: 48MB	prelude injection
+time: 0.000; rss: 48MB	checking that all macro invocations are gone
+time: 0.000; rss: 48MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 48MB	complete gated feature checking 2
+time: 0.000; rss: 48MB	const fn bodies and arguments
+Post-expansion node count: 41611
+time: 0.003; rss: 48MB	assigning node ids
+time: 0.004; rss: 51MB	lowering ast -> hir
+time: 0.001; rss: 53MB	indexing hir
+time: 0.001; rss: 53MB	attribute checking
+time: 0.002; rss: 53MB	early lint checks
+time: 0.001; rss: 53MB	external crate/lib resolution
+time: 0.000; rss: 53MB	language item collection
+time: 0.008; rss: 62MB	resolution
+time: 0.000; rss: 62MB	lifetime resolution
+time: 0.000; rss: 62MB	looking for entry point
+time: 0.000; rss: 62MB	looking for plugin registrar
+time: 0.002; rss: 64MB	region resolution
+time: 0.000; rss: 64MB	loop checking
+time: 0.000; rss: 64MB	static item recursion checking
+time: 0.005; rss: 66MB	type collecting
+time: 0.000; rss: 66MB	variance inference
+time: 0.143; rss: 83MB	coherence checking
+time: 0.018; rss: 83MB	wf checking
+time: 0.013; rss: 83MB	item-types checking
+time: 0.208; rss: 94MB	item-bodies checking
+time: 0.000; rss: 94MB	drop-impl checking
+time: 0.010; rss: 94MB	const checking
+time: 0.002; rss: 94MB	privacy checking
+time: 0.000; rss: 94MB	stability index
+time: 0.001; rss: 94MB	intrinsic checking
+time: 0.000; rss: 94MB	effect checking
+time: 0.006; rss: 94MB	match checking
+time: 0.002; rss: 94MB	liveness checking
+time: 0.006; rss: 94MB	rvalue checking
+time: 0.017; rss: 102MB	MIR dump
+time: 0.009; rss: 102MB	MIR passes
+time: 0.021; rss: 102MB	borrow checking
+time: 0.000; rss: 102MB	reachability checking
+time: 0.002; rss: 102MB	death checking
+time: 0.002; rss: 102MB	stability checking
+time: 0.000; rss: 102MB	unused lib feature checking
+time: 0.019; rss: 102MB	lint checking
+time: 0.000; rss: 102MB	resolving dependency formats
+  time: 0.023; rss: 111MB	translation item collection
+  time: 0.056; rss: 146MB	write metadata
+time: 0.314; rss: 146MB	translation
+  time: 0.026; rss: 107MB	llvm function passes [0]
+  time: 0.050; rss: 111MB	llvm module passes [0]
+  time: 0.581; rss: 116MB	codegen passes [0]
+  time: 0.001; rss: 100MB	codegen passes [0]
+time: 0.722; rss: 99MB	LLVM passes
+time: 0.053; rss: 97MB	linking
+done
