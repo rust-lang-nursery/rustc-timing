@@ -1,0 +1,88 @@
+commit 8d2d2be6c61c17da8027a72da91f87a0e2487f74
+Merge: a1e29da 1ea93c2
+Author: bors <bors@rust-lang.org>
+Date:   Fri Mar 25 18:09:28 2016 -0700
+
+    Auto merge of #32293 - nikomatsakis:incr-comp-def-path-munging, r=alexcrichton
+    
+    Revamp symbol names for impls (and make them deterministic, etc)
+    
+    This builds on @michaelwoerister's epic PR #31539 (note that his PR never landed, so I just incorporated it into this one). The main change here is that we remove the "name" from `DefPathData` for impls, since that name is synthetic and not sufficiently predictable for incr comp. However, just doing that would cause bad symbol names since those are based on the `DefPath`. Therefore, I introduce a new mechanism for getting symbol names (and also paths for user display) called `item_path`. This is kind of simplistic for now (based on strings) but I expect to expand it later to support richer types, hopefully generating C++-mangled names that gdb etc can understand. Along the way I cleaned up how we track the path that leads to an extern crate.
+    
+    There is still some cleanup left undone here. Notably, I didn't remove the impl names altogether -- that would probably make sense. I also didn't try to remove the `item_symbols` vector. Mostly I want to unblock my other incr. comp. work. =)
+    
+    r? @eddyb
+    cc @eddyb @alexcrichton @michaelwoerister
+rustc: ./jld-day15-parser
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling day15 v0.1.0 (file:///root/benchmarks/jld-day15-parser)
+time: 0.001; rss: 38MB	parsing
+Lines of code:             72
+Pre-expansion node count:  673
+time: 0.000; rss: 38MB	configuration 1
+time: 0.000; rss: 38MB	recursion limit
+time: 0.000; rss: 38MB	gated macro checking
+time: 0.000; rss: 38MB	crate injection
+time: 0.003; rss: 41MB	macro loading
+time: 0.000; rss: 41MB	plugin loading
+time: 0.000; rss: 41MB	plugin registration
+time: 0.002; rss: 41MB	expansion
+time: 0.000; rss: 41MB	complete gated feature checking 1
+time: 0.000; rss: 41MB	configuration 2
+time: 0.000; rss: 41MB	gated configuration checking
+time: 0.000; rss: 41MB	maybe building test harness
+time: 0.000; rss: 41MB	prelude injection
+time: 0.000; rss: 41MB	checking that all macro invocations are gone
+time: 0.000; rss: 41MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 41MB	complete gated feature checking 2
+time: 0.000; rss: 41MB	const fn bodies and arguments
+Post-expansion node count: 1176
+time: 0.000; rss: 41MB	assigning node ids
+time: 0.000; rss: 41MB	lowering ast -> hir
+time: 0.000; rss: 41MB	indexing hir
+time: 0.000; rss: 41MB	attribute checking
+time: 0.000; rss: 41MB	early lint checks
+time: 0.002; rss: 45MB	external crate/lib resolution
+time: 0.000; rss: 45MB	language item collection
+time: 0.001; rss: 49MB	resolution
+time: 0.000; rss: 49MB	lifetime resolution
+time: 0.000; rss: 49MB	looking for entry point
+time: 0.000; rss: 49MB	looking for plugin registrar
+time: 0.000; rss: 49MB	region resolution
+time: 0.000; rss: 49MB	loop checking
+time: 0.000; rss: 49MB	static item recursion checking
+time: 0.001; rss: 53MB	type collecting
+time: 0.000; rss: 53MB	variance inference
+time: 0.005; rss: 58MB	coherence checking
+time: 0.007; rss: 65MB	wf checking
+time: 0.000; rss: 65MB	item-types checking
+time: 1.601; rss: 143MB	item-bodies checking
+time: 0.000; rss: 143MB	drop-impl checking
+time: 0.001; rss: 143MB	const checking
+time: 0.000; rss: 143MB	privacy checking
+time: 0.000; rss: 143MB	stability index
+time: 0.000; rss: 143MB	intrinsic checking
+time: 0.000; rss: 143MB	effect checking
+time: 0.000; rss: 143MB	match checking
+time: 0.000; rss: 143MB	liveness checking
+time: 0.002; rss: 143MB	rvalue checking
+time: 0.001; rss: 144MB	MIR dump
+time: 0.000; rss: 144MB	MIR passes
+time: 0.001; rss: 144MB	borrow checking
+time: 0.000; rss: 144MB	reachability checking
+time: 0.000; rss: 144MB	death checking
+time: 0.000; rss: 144MB	stability checking
+time: 0.000; rss: 144MB	unused lib feature checking
+time: 0.004; rss: 146MB	lint checking
+time: 0.001; rss: 146MB	resolving dependency formats
+  time: 13.615; rss: 187MB	translation item collection
+  time: 0.000; rss: 224MB	write metadata
+time: 42.769; rss: 224MB	translation
+  time: 0.014; rss: 99MB	llvm function passes [0]
+  time: 0.001; rss: 99MB	llvm module passes [0]
+  time: 0.274; rss: 105MB	codegen passes [0]
+  time: 0.000; rss: 98MB	codegen passes [0]
+time: 0.297; rss: 98MB	LLVM passes
+  time: 0.114; rss: 98MB	running linker
+time: 0.114; rss: 98MB	linking
+done
