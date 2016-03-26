@@ -1,0 +1,86 @@
+commit a1e29daf1a9ca4e26719887b0c934de5d1695031
+Merge: cf9274b 54cd4d1
+Author: bors <bors@rust-lang.org>
+Date:   Fri Mar 25 15:53:16 2016 -0700
+
+    Auto merge of #32167 - jseyfried:refactor_prelude, r=nikomatsakis
+    
+    resolve: Refactor how the prelude is handled
+    
+    This PR refactors how the prelude is handled in `resolve`.
+    
+    Instead of importing names from the prelude into each module's `resolutions`, this PR adds a new field `prelude: RefCell<Option<Module>>` to `ModuleS` that is set during import resolution but used only when resolving in a lexical scope (i.e. the scope of an initial segment of a relative path).
+    
+    r? @nikomatsakis
+rustc: ./hyper.0.5.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling hyper v0.5.0 (file:///root/benchmarks/hyper.0.5.0)
+time: 0.041; rss: 38MB	parsing
+Lines of code:             9154
+Pre-expansion node count:  45594
+time: 0.010; rss: 39MB	configuration 1
+time: 0.000; rss: 39MB	recursion limit
+time: 0.000; rss: 39MB	gated macro checking
+time: 0.000; rss: 39MB	crate injection
+time: 0.005; rss: 44MB	macro loading
+time: 0.000; rss: 44MB	plugin loading
+time: 0.000; rss: 44MB	plugin registration
+time: 0.204; rss: 54MB	expansion
+time: 0.005; rss: 54MB	complete gated feature checking 1
+time: 0.034; rss: 54MB	configuration 2
+time: 0.000; rss: 54MB	gated configuration checking
+time: 0.014; rss: 54MB	maybe building test harness
+time: 0.011; rss: 54MB	prelude injection
+time: 0.001; rss: 54MB	checking that all macro invocations are gone
+time: 0.000; rss: 54MB	checking for inline asm in case the target doesn't support it
+time: 0.003; rss: 54MB	complete gated feature checking 2
+time: 0.001; rss: 54MB	const fn bodies and arguments
+Post-expansion node count: 106876
+time: 0.010; rss: 54MB	assigning node ids
+time: 0.022; rss: 60MB	lowering ast -> hir
+time: 0.006; rss: 62MB	indexing hir
+time: 0.002; rss: 62MB	attribute checking
+time: 0.007; rss: 62MB	early lint checks
+time: 0.004; rss: 57MB	external crate/lib resolution
+time: 0.001; rss: 57MB	language item collection
+time: 0.028; rss: 73MB	resolution
+time: 0.002; rss: 73MB	lifetime resolution
+time: 0.000; rss: 73MB	looking for entry point
+time: 0.000; rss: 73MB	looking for plugin registrar
+time: 0.009; rss: 77MB	region resolution
+time: 0.001; rss: 77MB	loop checking
+time: 0.001; rss: 77MB	static item recursion checking
+time: 0.013; rss: 82MB	type collecting
+time: 0.000; rss: 82MB	variance inference
+time: 0.545; rss: 103MB	coherence checking
+time: 0.085; rss: 104MB	wf checking
+time: 0.031; rss: 105MB	item-types checking
+time: 0.540; rss: 120MB	item-bodies checking
+time: 0.000; rss: 120MB	drop-impl checking
+time: 0.042; rss: 122MB	const checking
+time: 0.009; rss: 122MB	privacy checking
+time: 0.001; rss: 122MB	stability index
+time: 0.004; rss: 122MB	intrinsic checking
+time: 0.002; rss: 122MB	effect checking
+time: 0.012; rss: 122MB	match checking
+time: 0.005; rss: 122MB	liveness checking
+time: 0.034; rss: 122MB	rvalue checking
+time: 0.062; rss: 131MB	MIR dump
+time: 0.029; rss: 132MB	MIR passes
+time: 0.068; rss: 132MB	borrow checking
+time: 0.003; rss: 132MB	reachability checking
+time: 0.006; rss: 132MB	death checking
+time: 0.006; rss: 132MB	stability checking
+time: 0.000; rss: 132MB	unused lib feature checking
+time: 0.050; rss: 132MB	lint checking
+time: 0.000; rss: 132MB	resolving dependency formats
+  time: 0.204; rss: 148MB	translation item collection
+  time: 0.142; rss: 270MB	write metadata
+time: 1.651; rss: 270MB	translation
+  time: 0.098; rss: 158MB	llvm function passes [0]
+  time: 0.047; rss: 160MB	llvm module passes [0]
+  time: 1.642; rss: 164MB	codegen passes [0]
+  time: 0.001; rss: 113MB	codegen passes [0]
+time: 1.986; rss: 113MB	LLVM passes
+time: 0.174; rss: 111MB	linking
+done
