@@ -1,0 +1,73 @@
+commit c8b8eb1fda90998832ba1cdf96a34dc676f7124b
+Merge: b0d3170 3d6340f
+Author: bors <bors@rust-lang.org>
+Date:   Fri Apr 1 12:52:08 2016 -0700
+
+    Auto merge of #32544 - alexcrichton:rustbuild-dist-libtest, r=brson
+    
+    rustbuild: Fix dist for non-host targets
+    
+    The `rust-std` package that we produce is expected to have not only the standard
+    library but also libtest for compiling unit tests. Unfortunately this does not
+    currently happen due to the way rustbuild is structured.
+    
+    There are currently two main stages of compilation in rustbuild, one for the
+    standard library and one for the compiler. This is primarily done to allow us to
+    fill in the sysroot right after the standard library has finished compiling to
+    continue compiling the rest of the crates. Consequently the entire compiler does
+    not have to explicitly depend on the standard library, and this also should
+    allow us to pull in crates.io dependencies into the build in the future because
+    they'll just naturally build against the std we just produced.
+    
+    These phases, however, do not represent a cross-compiled build. Target-only
+    builds also require libtest, and libtest is currently part of the
+    all-encompassing "compiler build". There's unfortunately no way to learn about
+    just libtest and its dependencies (in a great and robust fashion) so to ensure
+    that we can copy the right artifacts over this commit introduces a new build
+    step, libtest.
+    
+    The new libtest build step has documentation, dist, and link steps as std/rustc
+    already do. The compiler now depends on libtest instead of libstd, and all
+    compiler crates can now assume that test and its dependencies are implicitly
+    part of the sysroot (hence explicit dependencies being removed). This makes the
+    build a tad less parallel as in theory many rustc crates can be compiled in
+    parallel with libtest, but this likely isn't where we really need parallelism
+    either (all the time is still spent in the compiler).
+    
+    All in all this allows the `dist-std` step to depend on both libstd and libtest,
+    so `rust-std` packages produced by rustbuild should start having both the
+    standard library and libtest.
+    
+    Closes #32523
+rustc: ./html5ever-2015-05-15
+cargo rustc -- -Ztime-passes -Zinput-stats
+    Updating registry `https://github.com/rust-lang/crates.io-index`
+    Updating git repository `https://github.com/reem/rust-mac`
+    Updating git repository `https://github.com/servo/string-cache`
+ Downloading time v0.1.35
+ Downloading log v0.3.6
+   Compiling lazy_static v0.1.15
+   Compiling libc v0.2.9
+   Compiling phf_shared v0.7.14
+   Compiling void v1.0.1
+   Compiling winapi v0.2.6
+   Compiling mac v0.0.2 (https://github.com/reem/rust-mac#6316d3f4)
+   Compiling rustc-serialize v0.3.18
+   Compiling winapi-build v0.1.1
+   Compiling log v0.3.6
+   Compiling num v0.1.31
+   Compiling unreachable v0.1.1
+   Compiling debug_unreachable v0.0.6
+   Compiling kernel32-sys v0.2.1
+   Compiling phf v0.7.14
+   Compiling time v0.1.35
+   Compiling rand v0.3.14
+   Compiling serde v0.6.15
+   Compiling phf_generator v0.7.14
+   Compiling phf_macros v0.7.14
+   Compiling string_cache_shared v0.1.12
+   Compiling string_cache v0.1.17
+   Compiling html5ever_macros v0.0.0 (file:///root/benchmarks/html5ever-2015-05-15)
+Build failed, waiting for other jobs to finish...
+makefile:2: recipe for target 'all' failed
+done

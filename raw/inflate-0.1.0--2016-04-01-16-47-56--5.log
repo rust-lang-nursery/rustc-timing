@@ -1,0 +1,113 @@
+commit c8b8eb1fda90998832ba1cdf96a34dc676f7124b
+Merge: b0d3170 3d6340f
+Author: bors <bors@rust-lang.org>
+Date:   Fri Apr 1 12:52:08 2016 -0700
+
+    Auto merge of #32544 - alexcrichton:rustbuild-dist-libtest, r=brson
+    
+    rustbuild: Fix dist for non-host targets
+    
+    The `rust-std` package that we produce is expected to have not only the standard
+    library but also libtest for compiling unit tests. Unfortunately this does not
+    currently happen due to the way rustbuild is structured.
+    
+    There are currently two main stages of compilation in rustbuild, one for the
+    standard library and one for the compiler. This is primarily done to allow us to
+    fill in the sysroot right after the standard library has finished compiling to
+    continue compiling the rest of the crates. Consequently the entire compiler does
+    not have to explicitly depend on the standard library, and this also should
+    allow us to pull in crates.io dependencies into the build in the future because
+    they'll just naturally build against the std we just produced.
+    
+    These phases, however, do not represent a cross-compiled build. Target-only
+    builds also require libtest, and libtest is currently part of the
+    all-encompassing "compiler build". There's unfortunately no way to learn about
+    just libtest and its dependencies (in a great and robust fashion) so to ensure
+    that we can copy the right artifacts over this commit introduces a new build
+    step, libtest.
+    
+    The new libtest build step has documentation, dist, and link steps as std/rustc
+    already do. The compiler now depends on libtest instead of libstd, and all
+    compiler crates can now assume that test and its dependencies are implicitly
+    part of the sysroot (hence explicit dependencies being removed). This makes the
+    build a tad less parallel as in theory many rustc crates can be compiled in
+    parallel with libtest, but this likely isn't where we really need parallelism
+    either (all the time is still spent in the compiler).
+    
+    All in all this allows the `dist-std` step to depend on both libstd and libtest,
+    so `rust-std` packages produced by rustbuild should start having both the
+    standard library and libtest.
+    
+    Closes #32523
+rustc: ./inflate-0.1.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling inflate v0.1.0 (file:///root/benchmarks/inflate-0.1.0)
+time: 0.004; rss: 40MB	parsing
+Lines of code:             956
+Pre-expansion node count:  4761
+time: 0.001; rss: 40MB	configuration 1
+time: 0.000; rss: 40MB	recursion limit
+time: 0.000; rss: 40MB	gated macro checking
+time: 0.000; rss: 40MB	crate injection
+time: 0.003; rss: 43MB	macro loading
+time: 0.000; rss: 43MB	plugin loading
+time: 0.000; rss: 43MB	plugin registration
+time: 0.082; rss: 50MB	expansion
+time: 0.001; rss: 50MB	complete gated feature checking 1
+time: 0.009; rss: 50MB	configuration 2
+time: 0.000; rss: 50MB	gated configuration checking
+time: 0.004; rss: 50MB	maybe building test harness
+time: 0.004; rss: 50MB	prelude injection
+time: 0.000; rss: 50MB	checking that all macro invocations are gone
+time: 0.000; rss: 50MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 50MB	complete gated feature checking 2
+time: 0.000; rss: 50MB	const fn bodies and arguments
+Post-expansion node count: 54798
+time: 0.004; rss: 50MB	assigning node ids
+time: 0.009; rss: 56MB	lowering ast -> hir
+time: 0.002; rss: 56MB	indexing hir
+time: 0.001; rss: 56MB	attribute checking
+time: 0.004; rss: 56MB	early lint checks
+time: 0.001; rss: 54MB	external crate/lib resolution
+time: 0.001; rss: 54MB	language item collection
+time: 0.010; rss: 64MB	resolution
+time: 0.001; rss: 64MB	lifetime resolution
+time: 0.000; rss: 64MB	looking for entry point
+time: 0.000; rss: 64MB	looking for plugin registrar
+time: 0.003; rss: 64MB	region resolution
+time: 0.000; rss: 64MB	loop checking
+time: 0.000; rss: 64MB	static item recursion checking
+time: 0.001; rss: 66MB	type collecting
+time: 0.000; rss: 66MB	variance inference
+time: 0.015; rss: 80MB	coherence checking
+time: 0.002; rss: 80MB	wf checking
+time: 0.002; rss: 80MB	item-types checking
+time: 2.869; rss: 103MB	item-bodies checking
+time: 0.000; rss: 103MB	drop-impl checking
+time: 0.013; rss: 104MB	const checking
+time: 0.001; rss: 104MB	privacy checking
+time: 0.000; rss: 104MB	stability index
+time: 0.000; rss: 104MB	intrinsic checking
+time: 0.001; rss: 104MB	effect checking
+time: 0.003; rss: 104MB	match checking
+time: 0.065; rss: 104MB	liveness checking
+time: 0.009; rss: 104MB	rvalue checking
+time: 0.031; rss: 118MB	MIR dump
+time: 0.015; rss: 117MB	MIR passes
+time: 0.210; rss: 116MB	borrow checking
+time: 0.000; rss: 116MB	reachability checking
+time: 0.003; rss: 116MB	death checking
+time: 0.002; rss: 116MB	stability checking
+time: 0.000; rss: 116MB	unused lib feature checking
+time: 0.022; rss: 117MB	lint checking
+time: 0.000; rss: 117MB	resolving dependency formats
+  time: 0.011; rss: 129MB	translation item collection
+  time: 0.003; rss: 145MB	write metadata
+time: 0.368; rss: 138MB	translation
+  time: 0.026; rss: 102MB	llvm function passes [0]
+  time: 0.005; rss: 102MB	llvm module passes [0]
+  time: 0.498; rss: 107MB	codegen passes [0]
+  time: 0.000; rss: 94MB	codegen passes [0]
+time: 0.570; rss: 94MB	LLVM passes
+time: 0.034; rss: 95MB	linking
+done
