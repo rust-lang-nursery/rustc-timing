@@ -1,0 +1,113 @@
+commit c0b8c438203ada8768f2f8ea7c750131744f97ef
+Merge: 0894b06 605bc04
+Author: bors <bors@rust-lang.org>
+Date:   Sun Apr 3 08:58:59 2016 -0700
+
+    Auto merge of #32210 - Aatch:mir-traversal, r=nikomatsakis
+    
+    rBreak Critical Edges and other MIR work
+    
+    This PR is built on top of #32080.
+    
+    This adds the basic depth-first traversals for MIR, preorder, postorder and reverse postorder. The MIR blocks are now translated using reverse postorder. There is also a transform for breaking critical edges, which includes the edges from `invoke`d calls (`Drop` and `Call`), to account for the fact that we can't add code after an `invoke`. It also stops generating the intermediate block (since the transform essentially does it if necessary already).
+    
+    The kinds of cases this deals with are difficult to produce, so the test is the one I managed to get. However, it seems to bootstrap with `-Z orbit`, which it didn't before my changes.
+rustc: ./hyper.0.5.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+    Updating registry `https://github.com/rust-lang/crates.io-index`
+   Compiling typeable v0.1.2
+   Compiling unicase v0.1.0
+   Compiling traitobject v0.0.1
+   Compiling pkg-config v0.3.8
+   Compiling gcc v0.3.26
+   Compiling log v0.3.6
+   Compiling bitflags v0.3.3
+   Compiling lazy_static v0.1.15
+   Compiling libc v0.1.12
+   Compiling matches v0.1.2
+   Compiling libc v0.2.9
+   Compiling winapi-build v0.1.1
+   Compiling winapi v0.2.6
+   Compiling httparse v0.1.6
+   Compiling kernel32-sys v0.2.1
+   Compiling mime v0.0.11
+   Compiling rustc-serialize v0.3.18
+   Compiling openssl-sys v0.6.7
+   Compiling rand v0.3.14
+   Compiling num_cpus v0.2.11
+   Compiling time v0.1.35
+   Compiling openssl v0.6.7
+   Compiling uuid v0.1.18
+   Compiling url v0.2.38
+   Compiling cookie v0.1.21
+   Compiling hyper v0.5.0 (file:///root/benchmarks/hyper.0.5.0)
+time: 0.030; rss: 46MB	parsing
+Lines of code:             9154
+Pre-expansion node count:  45594
+time: 0.009; rss: 46MB	configuration 1
+time: 0.000; rss: 46MB	recursion limit
+time: 0.000; rss: 46MB	gated macro checking
+time: 0.000; rss: 46MB	crate injection
+time: 0.004; rss: 51MB	macro loading
+time: 0.000; rss: 51MB	plugin loading
+time: 0.000; rss: 51MB	plugin registration
+time: 0.191; rss: 60MB	expansion
+time: 0.005; rss: 60MB	complete gated feature checking 1
+time: 0.033; rss: 60MB	configuration 2
+time: 0.000; rss: 60MB	gated configuration checking
+time: 0.013; rss: 60MB	maybe building test harness
+time: 0.010; rss: 60MB	prelude injection
+time: 0.001; rss: 60MB	checking that all macro invocations are gone
+time: 0.000; rss: 60MB	checking for inline asm in case the target doesn't support it
+time: 0.002; rss: 60MB	complete gated feature checking 2
+time: 0.001; rss: 60MB	const fn bodies and arguments
+Post-expansion node count: 107125
+time: 0.010; rss: 60MB	assigning node ids
+time: 0.011; rss: 67MB	lowering ast -> hir
+time: 0.004; rss: 69MB	indexing hir
+time: 0.001; rss: 69MB	attribute checking
+time: 0.006; rss: 69MB	early lint checks
+time: 0.004; rss: 66MB	external crate/lib resolution
+time: 0.001; rss: 66MB	language item collection
+time: 0.023; rss: 84MB	resolution
+time: 0.002; rss: 84MB	lifetime resolution
+time: 0.000; rss: 84MB	looking for entry point
+time: 0.000; rss: 84MB	looking for plugin registrar
+time: 0.006; rss: 87MB	region resolution
+time: 0.001; rss: 87MB	loop checking
+time: 0.001; rss: 87MB	static item recursion checking
+time: 0.019; rss: 97MB	type collecting
+time: 0.000; rss: 97MB	variance inference
+time: 0.520; rss: 113MB	coherence checking
+time: 0.077; rss: 114MB	wf checking
+time: 0.029; rss: 116MB	item-types checking
+time: 0.492; rss: 136MB	item-bodies checking
+time: 0.000; rss: 136MB	drop-impl checking
+time: 0.037; rss: 138MB	const checking
+time: 0.009; rss: 138MB	privacy checking
+time: 0.001; rss: 138MB	stability index
+time: 0.004; rss: 138MB	intrinsic checking
+time: 0.002; rss: 138MB	effect checking
+time: 0.012; rss: 139MB	match checking
+time: 0.005; rss: 139MB	liveness checking
+time: 0.033; rss: 139MB	rvalue checking
+time: 0.047; rss: 143MB	MIR dump
+time: 0.021; rss: 143MB	MIR passes
+time: 0.064; rss: 143MB	borrow checking
+time: 0.003; rss: 143MB	reachability checking
+time: 0.006; rss: 143MB	death checking
+time: 0.006; rss: 143MB	stability checking
+time: 0.000; rss: 143MB	unused lib feature checking
+time: 0.047; rss: 143MB	lint checking
+time: 0.000; rss: 143MB	resolving dependency formats
+time: 0.011; rss: 145MB	Prepare MIR codegen passes
+  time: 0.186; rss: 161MB	translation item collection
+  time: 0.140; rss: 291MB	write metadata
+time: 1.485; rss: 291MB	translation
+  time: 0.099; rss: 169MB	llvm function passes [0]
+  time: 0.050; rss: 171MB	llvm module passes [0]
+  time: 1.645; rss: 175MB	codegen passes [0]
+  time: 0.001; rss: 123MB	codegen passes [0]
+time: 1.993; rss: 123MB	LLVM passes
+time: 0.171; rss: 121MB	linking
+done
