@@ -1,0 +1,64 @@
+commit 7fd331e16642363c333804fe3322ae6bc0be8fbc
+Merge: 600dc35 6f09dea
+Author: bors <bors@rust-lang.org>
+Date:   Mon Apr 4 21:50:05 2016 -0700
+
+    Auto merge of #32328 - jseyfried:coherence, r=nikomatsakis
+    
+    resolve: Improve import failure detection and lay groundwork for RFC 1422
+    
+    This PR improves import failure detection and lays some groundwork for RFC 1422.
+    More specifically, it
+     - Avoids recomputing the resolution of an import directive's module path.
+     - Refactors code in `resolve_imports` that does not scale to the arbitrarily many levels of visibility that will be required by RFC 1422.
+      - Replaces `ModuleS`'s fields `public_glob_count`, `private_glob_count`, and `resolved_globs` with a list of glob import directives `globs`.
+      - Replaces `NameResolution`'s fields `pub_outstanding_references` and `outstanding_references` with a field `single_imports` of a newly defined type `SingleImports`.
+     - Improves import failure detection by detecting cycles that include single imports (currently, only cycles of globs are detected). This fixes #32119.
+    
+    r? @nikomatsakis
+rustc: ./regex-macros.0.1.30
+cd regex_macros && cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling regex_macros v0.1.17 (file:///root/benchmarks/regex-macros.0.1.30/regex_macros)
+time: 0.002; rss: 40MB	parsing
+Lines of code:             639
+Pre-expansion node count:  2170
+time: 0.001; rss: 40MB	configuration 1
+time: 0.000; rss: 40MB	recursion limit
+time: 0.000; rss: 40MB	gated macro checking
+time: 0.000; rss: 40MB	crate injection
+time: 0.003; rss: 43MB	macro loading
+time: 0.000; rss: 43MB	plugin loading
+time: 0.000; rss: 43MB	plugin registration
+time: 0.034; rss: 50MB	expansion
+time: 0.001; rss: 50MB	complete gated feature checking 1
+time: 0.010; rss: 50MB	configuration 2
+time: 0.000; rss: 50MB	gated configuration checking
+time: 0.005; rss: 50MB	maybe building test harness
+time: 0.005; rss: 50MB	prelude injection
+time: 0.000; rss: 50MB	checking that all macro invocations are gone
+time: 0.000; rss: 50MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 50MB	complete gated feature checking 2
+time: 0.000; rss: 50MB	const fn bodies and arguments
+Post-expansion node count: 76161
+time: 0.005; rss: 50MB	assigning node ids
+time: 0.004; rss: 54MB	lowering ast -> hir
+time: 0.001; rss: 56MB	indexing hir
+time: 0.001; rss: 56MB	attribute checking
+time: 0.003; rss: 56MB	early lint checks
+time: 0.069; rss: 55MB	external crate/lib resolution
+time: 0.001; rss: 55MB	language item collection
+time: 0.014; rss: 76MB	resolution
+time: 0.001; rss: 76MB	lifetime resolution
+time: 0.000; rss: 76MB	looking for entry point
+time: 0.000; rss: 76MB	looking for plugin registrar
+time: 0.002; rss: 78MB	region resolution
+time: 0.000; rss: 78MB	loop checking
+time: 0.000; rss: 78MB	static item recursion checking
+time: 0.015; rss: 105MB	type collecting
+time: 0.000; rss: 105MB	variance inference
+time: 0.011; rss: 116MB	coherence checking
+time: 0.007; rss: 116MB	wf checking
+time: 0.001; rss: 117MB	item-types checking
+time: 0.998; rss: 159MB	item-bodies checking
+makefile:2: recipe for target 'all' failed
+done
