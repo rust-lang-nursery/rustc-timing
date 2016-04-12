@@ -1,0 +1,110 @@
+commit a4f781e47710d8c938130446bf4cd5e9be2231d2
+Merge: 9330006 bcbc9e5
+Author: bors <bors@rust-lang.org>
+Date:   Tue Apr 12 10:12:55 2016 -0700
+
+    Auto merge of #31963 - barosl:rename-doc, r=alexcrichton
+    
+    Describe more platform-specific behaviors of `std::fs::rename`
+    
+    I did some tests myself regarding the situation when both `from` and `to` exist, and the results were:
+    
+    On Linux:
+    
+    `from` | `to` | Result
+    ---- | ---- | ----
+    Directory | Directory | Ok
+    Directory | File | Error
+    File | Directory | Error
+    File | File | Ok
+    
+    On Windows:
+    
+    `from` | `to` | Result
+    ---- | ---- | ----
+    Directory | Directory | Error
+    Directory | File | Ok
+    File | Directory | Error
+    File | File | Ok
+    
+    This is a bit against the official MSDN documentation, which says "(`MOVEFILE_REPLACE_EXISTING`) cannot be used if `lpNewFileName` or `lpExistingFileName` names a directory." As evidenced above, `lpExistingFileName` *can* be a directory.
+    
+    I also mentioned the atomicity of the operation.
+    
+    Fixes #31301.
+rustc: ./rust-encoding.0.2.32
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling encoding v0.2.32 (file:///root/benchmarks/rust-encoding.0.2.32)
+time: 0.033; rss: 40MB	parsing
+Lines of code:             6441
+Pre-expansion node count:  30335
+time: 0.006; rss: 41MB	configuration 1
+time: 0.000; rss: 41MB	recursion limit
+time: 0.000; rss: 41MB	gated macro checking
+time: 0.000; rss: 41MB	crate injection
+time: 0.003; rss: 43MB	macro loading
+time: 0.000; rss: 43MB	plugin loading
+time: 0.000; rss: 43MB	plugin registration
+time: 0.044; rss: 47MB	expansion
+time: 0.001; rss: 47MB	complete gated feature checking 1
+time: 0.007; rss: 47MB	configuration 2
+time: 0.000; rss: 47MB	gated configuration checking
+time: 0.003; rss: 47MB	maybe building test harness
+time: 0.003; rss: 47MB	prelude injection
+time: 0.000; rss: 47MB	checking that all macro invocations are gone
+time: 0.000; rss: 47MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 47MB	complete gated feature checking 2
+time: 0.000; rss: 47MB	const fn bodies and arguments
+Post-expansion node count: 41611
+time: 0.003; rss: 47MB	assigning node ids
+time: 0.008; rss: 48MB	lowering ast -> hir
+time: 0.003; rss: 49MB	indexing hir
+time: 0.000; rss: 49MB	attribute checking
+time: 0.002; rss: 49MB	early lint checks
+time: 0.001; rss: 49MB	external crate/lib resolution
+time: 0.000; rss: 49MB	language item collection
+time: 0.009; rss: 59MB	resolution
+time: 0.000; rss: 59MB	lifetime resolution
+time: 0.000; rss: 59MB	looking for entry point
+time: 0.000; rss: 59MB	looking for plugin registrar
+time: 0.005; rss: 60MB	region resolution
+time: 0.000; rss: 60MB	loop checking
+time: 0.000; rss: 60MB	static item recursion checking
+time: 0.000; rss: 60MB	load_dep_graph
+time: 0.005; rss: 62MB	type collecting
+time: 0.000; rss: 62MB	variance inference
+time: 0.022; rss: 78MB	coherence checking
+time: 0.017; rss: 79MB	wf checking
+time: 0.013; rss: 79MB	item-types checking
+time: 0.215; rss: 89MB	item-bodies checking
+time: 0.000; rss: 89MB	drop-impl checking
+time: 0.011; rss: 89MB	const checking
+time: 0.003; rss: 89MB	privacy checking
+time: 0.000; rss: 89MB	stability index
+time: 0.001; rss: 89MB	intrinsic checking
+time: 0.000; rss: 89MB	effect checking
+time: 0.006; rss: 89MB	match checking
+time: 0.002; rss: 89MB	liveness checking
+time: 0.006; rss: 89MB	rvalue checking
+time: 0.028; rss: 96MB	MIR dump
+time: 0.008; rss: 96MB	MIR passes
+time: 0.022; rss: 96MB	borrow checking
+time: 0.000; rss: 96MB	reachability checking
+time: 0.002; rss: 96MB	death checking
+time: 0.002; rss: 96MB	stability checking
+time: 0.000; rss: 96MB	unused lib feature checking
+time: 0.023; rss: 97MB	lint checking
+time: 0.000; rss: 97MB	resolving dependency formats
+time: 0.003; rss: 98MB	Prepare MIR codegen passes
+  time: 0.027; rss: 110MB	translation item collection
+  time: 0.058; rss: 141MB	write metadata
+time: 0.399; rss: 141MB	translation
+time: 0.000; rss: 141MB	assert dep graph
+time: 0.000; rss: 141MB	serialize dep graph
+  time: 0.027; rss: 106MB	llvm function passes [0]
+  time: 0.050; rss: 109MB	llvm module passes [0]
+  time: 0.583; rss: 115MB	codegen passes [0]
+  time: 0.001; rss: 100MB	codegen passes [0]
+time: 0.726; rss: 99MB	LLVM passes
+time: 0.054; rss: 97MB	linking
+done

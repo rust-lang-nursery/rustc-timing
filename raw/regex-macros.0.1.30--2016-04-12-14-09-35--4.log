@@ -1,0 +1,81 @@
+commit a4f781e47710d8c938130446bf4cd5e9be2231d2
+Merge: 9330006 bcbc9e5
+Author: bors <bors@rust-lang.org>
+Date:   Tue Apr 12 10:12:55 2016 -0700
+
+    Auto merge of #31963 - barosl:rename-doc, r=alexcrichton
+    
+    Describe more platform-specific behaviors of `std::fs::rename`
+    
+    I did some tests myself regarding the situation when both `from` and `to` exist, and the results were:
+    
+    On Linux:
+    
+    `from` | `to` | Result
+    ---- | ---- | ----
+    Directory | Directory | Ok
+    Directory | File | Error
+    File | Directory | Error
+    File | File | Ok
+    
+    On Windows:
+    
+    `from` | `to` | Result
+    ---- | ---- | ----
+    Directory | Directory | Error
+    Directory | File | Ok
+    File | Directory | Error
+    File | File | Ok
+    
+    This is a bit against the official MSDN documentation, which says "(`MOVEFILE_REPLACE_EXISTING`) cannot be used if `lpNewFileName` or `lpExistingFileName` names a directory." As evidenced above, `lpExistingFileName` *can* be a directory.
+    
+    I also mentioned the atomicity of the operation.
+    
+    Fixes #31301.
+rustc: ./regex-macros.0.1.30
+cd regex_macros && cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling regex_macros v0.1.17 (file:///root/benchmarks/regex-macros.0.1.30/regex_macros)
+time: 0.006; rss: 33MB	parsing
+Lines of code:             639
+Pre-expansion node count:  2170
+time: 0.001; rss: 33MB	configuration 1
+time: 0.000; rss: 33MB	recursion limit
+time: 0.000; rss: 33MB	gated macro checking
+time: 0.000; rss: 33MB	crate injection
+time: 0.003; rss: 36MB	macro loading
+time: 0.000; rss: 36MB	plugin loading
+time: 0.000; rss: 36MB	plugin registration
+time: 0.044; rss: 45MB	expansion
+time: 0.001; rss: 45MB	complete gated feature checking 1
+time: 0.011; rss: 45MB	configuration 2
+time: 0.000; rss: 45MB	gated configuration checking
+time: 0.006; rss: 45MB	maybe building test harness
+time: 0.005; rss: 45MB	prelude injection
+time: 0.000; rss: 45MB	checking that all macro invocations are gone
+time: 0.000; rss: 45MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 45MB	complete gated feature checking 2
+time: 0.000; rss: 45MB	const fn bodies and arguments
+Post-expansion node count: 76161
+time: 0.005; rss: 45MB	assigning node ids
+time: 0.009; rss: 50MB	lowering ast -> hir
+time: 0.002; rss: 51MB	indexing hir
+time: 0.000; rss: 51MB	attribute checking
+time: 0.003; rss: 51MB	early lint checks
+time: 0.095; rss: 48MB	external crate/lib resolution
+time: 0.001; rss: 48MB	language item collection
+time: 0.014; rss: 69MB	resolution
+time: 0.001; rss: 69MB	lifetime resolution
+time: 0.000; rss: 69MB	looking for entry point
+time: 0.000; rss: 69MB	looking for plugin registrar
+time: 0.003; rss: 71MB	region resolution
+time: 0.000; rss: 71MB	loop checking
+time: 0.000; rss: 71MB	static item recursion checking
+time: 0.000; rss: 71MB	load_dep_graph
+time: 0.015; rss: 106MB	type collecting
+time: 0.000; rss: 106MB	variance inference
+time: 0.010; rss: 110MB	coherence checking
+time: 0.007; rss: 112MB	wf checking
+time: 0.001; rss: 112MB	item-types checking
+time: 1.035; rss: 148MB	item-bodies checking
+makefile:2: recipe for target 'all' failed
+done
