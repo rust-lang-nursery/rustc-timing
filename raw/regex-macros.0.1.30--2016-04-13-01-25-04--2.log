@@ -1,0 +1,82 @@
+commit 4b71f8d1417423d933dfd4f74d5d4d167b85f77e
+Merge: 7c27cce bc6daea
+Author: bors <bors@rust-lang.org>
+Date:   Tue Apr 12 22:21:23 2016 -0700
+
+    Auto merge of #32814 - jseyfried:improve_duplicate_glob_detection, r=nikomatsakis
+    
+    resolve: Improve duplicate glob detection
+    
+    This fixes a bug introduced in #31726 in which we erroneously allow multiple imports of the same item under some circumstances.
+    
+    More specifically, we erroneously allow a module that is in a cycle of glob re-exports to have other re-exports (besides the glob from the cycle).
+    For example,
+    ```rust
+    pub fn f() {}
+    mod foo {
+        pub use f; // (1) This defines `foo::f`.
+        pub use bar::*; // (3) This also defines `foo::f`, which should be a duplicate error but is currently allowed.
+    }
+    mod bar {
+        pub use foo::*; // (2) This defines `bar::f`.
+    }
+    ```
+    
+    A module in a glob re-export cycle can still have `pub` items after this PR. For example,
+    ```rust
+    mod foo {
+        pub fn f() {}; // (1) This defines `foo::f`.
+        pub use bar::*; // (3) This is not a duplicate error since items shadow glob-imported re-exports (cf #31337).
+    }
+    mod bar {
+        pub use foo::*; // (2) This defines `bar::f`.
+    }
+    ```
+    r? @nikomatsakis
+rustc: ./regex-macros.0.1.30
+cd regex_macros && cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling regex_macros v0.1.17 (file:///root/benchmarks/regex-macros.0.1.30/regex_macros)
+time: 0.006; rss: 35MB	parsing
+Lines of code:             639
+Pre-expansion node count:  2170
+time: 0.001; rss: 36MB	configuration 1
+time: 0.000; rss: 36MB	recursion limit
+time: 0.000; rss: 36MB	gated macro checking
+time: 0.000; rss: 36MB	crate injection
+time: 0.003; rss: 38MB	macro loading
+time: 0.000; rss: 38MB	plugin loading
+time: 0.000; rss: 38MB	plugin registration
+time: 0.044; rss: 47MB	expansion
+time: 0.001; rss: 47MB	complete gated feature checking 1
+time: 0.011; rss: 47MB	configuration 2
+time: 0.000; rss: 47MB	gated configuration checking
+time: 0.006; rss: 47MB	maybe building test harness
+time: 0.005; rss: 47MB	prelude injection
+time: 0.000; rss: 47MB	checking that all macro invocations are gone
+time: 0.000; rss: 47MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 47MB	complete gated feature checking 2
+time: 0.000; rss: 47MB	const fn bodies and arguments
+Post-expansion node count: 76161
+time: 0.005; rss: 47MB	assigning node ids
+time: 0.010; rss: 52MB	lowering ast -> hir
+time: 0.003; rss: 53MB	indexing hir
+time: 0.000; rss: 53MB	attribute checking
+time: 0.003; rss: 53MB	early lint checks
+time: 0.094; rss: 49MB	external crate/lib resolution
+time: 0.001; rss: 49MB	language item collection
+time: 0.014; rss: 72MB	resolution
+time: 0.001; rss: 72MB	lifetime resolution
+time: 0.000; rss: 72MB	looking for entry point
+time: 0.000; rss: 72MB	looking for plugin registrar
+time: 0.003; rss: 74MB	region resolution
+time: 0.000; rss: 74MB	loop checking
+time: 0.000; rss: 74MB	static item recursion checking
+time: 0.000; rss: 74MB	load_dep_graph
+time: 0.016; rss: 107MB	type collecting
+time: 0.000; rss: 107MB	variance inference
+time: 0.010; rss: 114MB	coherence checking
+time: 0.007; rss: 116MB	wf checking
+time: 0.001; rss: 116MB	item-types checking
+time: 1.021; rss: 152MB	item-bodies checking
+makefile:2: recipe for target 'all' failed
+done

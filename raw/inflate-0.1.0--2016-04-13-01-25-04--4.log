@@ -1,0 +1,111 @@
+commit 4b71f8d1417423d933dfd4f74d5d4d167b85f77e
+Merge: 7c27cce bc6daea
+Author: bors <bors@rust-lang.org>
+Date:   Tue Apr 12 22:21:23 2016 -0700
+
+    Auto merge of #32814 - jseyfried:improve_duplicate_glob_detection, r=nikomatsakis
+    
+    resolve: Improve duplicate glob detection
+    
+    This fixes a bug introduced in #31726 in which we erroneously allow multiple imports of the same item under some circumstances.
+    
+    More specifically, we erroneously allow a module that is in a cycle of glob re-exports to have other re-exports (besides the glob from the cycle).
+    For example,
+    ```rust
+    pub fn f() {}
+    mod foo {
+        pub use f; // (1) This defines `foo::f`.
+        pub use bar::*; // (3) This also defines `foo::f`, which should be a duplicate error but is currently allowed.
+    }
+    mod bar {
+        pub use foo::*; // (2) This defines `bar::f`.
+    }
+    ```
+    
+    A module in a glob re-export cycle can still have `pub` items after this PR. For example,
+    ```rust
+    mod foo {
+        pub fn f() {}; // (1) This defines `foo::f`.
+        pub use bar::*; // (3) This is not a duplicate error since items shadow glob-imported re-exports (cf #31337).
+    }
+    mod bar {
+        pub use foo::*; // (2) This defines `bar::f`.
+    }
+    ```
+    r? @nikomatsakis
+rustc: ./inflate-0.1.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling inflate v0.1.0 (file:///root/benchmarks/inflate-0.1.0)
+time: 0.006; rss: 34MB	parsing
+Lines of code:             956
+Pre-expansion node count:  4761
+time: 0.001; rss: 35MB	configuration 1
+time: 0.000; rss: 35MB	recursion limit
+time: 0.000; rss: 35MB	gated macro checking
+time: 0.000; rss: 35MB	crate injection
+time: 0.003; rss: 37MB	macro loading
+time: 0.000; rss: 37MB	plugin loading
+time: 0.000; rss: 37MB	plugin registration
+time: 0.086; rss: 45MB	expansion
+time: 0.001; rss: 45MB	complete gated feature checking 1
+time: 0.009; rss: 45MB	configuration 2
+time: 0.000; rss: 45MB	gated configuration checking
+time: 0.005; rss: 45MB	maybe building test harness
+time: 0.004; rss: 45MB	prelude injection
+time: 0.000; rss: 45MB	checking that all macro invocations are gone
+time: 0.000; rss: 45MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 45MB	complete gated feature checking 2
+time: 0.000; rss: 45MB	const fn bodies and arguments
+Post-expansion node count: 54798
+time: 0.004; rss: 45MB	assigning node ids
+time: 0.019; rss: 51MB	lowering ast -> hir
+time: 0.002; rss: 52MB	indexing hir
+time: 0.000; rss: 52MB	attribute checking
+time: 0.004; rss: 52MB	early lint checks
+time: 0.001; rss: 48MB	external crate/lib resolution
+time: 0.001; rss: 48MB	language item collection
+time: 0.013; rss: 58MB	resolution
+time: 0.001; rss: 58MB	lifetime resolution
+time: 0.000; rss: 58MB	looking for entry point
+time: 0.000; rss: 58MB	looking for plugin registrar
+time: 0.003; rss: 59MB	region resolution
+time: 0.000; rss: 59MB	loop checking
+time: 0.000; rss: 59MB	static item recursion checking
+time: 0.000; rss: 59MB	load_dep_graph
+time: 0.001; rss: 59MB	type collecting
+time: 0.000; rss: 59MB	variance inference
+time: 0.010; rss: 75MB	coherence checking
+time: 0.002; rss: 75MB	wf checking
+time: 0.002; rss: 75MB	item-types checking
+time: 2.840; rss: 95MB	item-bodies checking
+time: 0.000; rss: 95MB	drop-impl checking
+time: 0.014; rss: 96MB	const checking
+time: 0.003; rss: 96MB	privacy checking
+time: 0.000; rss: 96MB	stability index
+time: 0.001; rss: 96MB	intrinsic checking
+time: 0.001; rss: 96MB	effect checking
+time: 0.003; rss: 96MB	match checking
+time: 0.318; rss: 96MB	liveness checking
+time: 0.011; rss: 96MB	rvalue checking
+time: 0.035; rss: 109MB	MIR dump
+time: 0.014; rss: 109MB	MIR passes
+time: 0.209; rss: 109MB	borrow checking
+time: 0.000; rss: 109MB	reachability checking
+time: 0.004; rss: 109MB	death checking
+time: 0.003; rss: 109MB	stability checking
+time: 0.000; rss: 109MB	unused lib feature checking
+time: 0.021; rss: 109MB	lint checking
+time: 0.000; rss: 109MB	resolving dependency formats
+time: 0.007; rss: 107MB	Prepare MIR codegen passes
+  time: 0.010; rss: 120MB	translation item collection
+  time: 0.003; rss: 139MB	write metadata
+time: 0.363; rss: 126MB	translation
+time: 0.000; rss: 126MB	assert dep graph
+time: 0.000; rss: 126MB	serialize dep graph
+  time: 0.026; rss: 98MB	llvm function passes [0]
+  time: 0.004; rss: 98MB	llvm module passes [0]
+  time: 0.504; rss: 104MB	codegen passes [0]
+  time: 0.000; rss: 93MB	codegen passes [0]
+time: 0.578; rss: 93MB	LLVM passes
+time: 0.034; rss: 92MB	linking
+done
