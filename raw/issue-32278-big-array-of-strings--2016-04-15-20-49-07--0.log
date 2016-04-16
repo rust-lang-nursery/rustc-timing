@@ -1,0 +1,91 @@
+commit fef6c64a8020c357dda902593f1065864564c079
+Merge: 576229f e8441b6
+Author: bors <bors@rust-lang.org>
+Date:   Fri Apr 15 18:13:59 2016 -0700
+
+    Auto merge of #32779 - michaelwoerister:partitioning, r=nikomatsakis
+    
+    Add initial version of codegen unit partitioning for incremental compilation.
+    
+    The task of the partitioning module is to take the complete set of translation items of a crate and produce a set of codegen units from it, where a codegen unit is a named set of (translation-item, linkage) pairs. That is, this module decides which translation item appears in which codegen units with which linkage.
+    
+    This version only handles the case of partitioning for incremental compilation, not the regular N-codegen units case. In the future the regular case should be handled too, maybe even doing a bit more analysis to intelligently figure out a good partitioning.
+    
+    One thing that could be improved is the syntax of the codegen unit tests. Right now they still use the compile-fail error specification infrastructure, so everything has to be on one line. Would be nice to be able to format things in a more readable way.
+rustc: ./issue-32278-big-array-of-strings
+/root/rust/x86_64-unknown-linux-gnu/stage2/bin/rustc big-array-of-strings.rs -Ztime-passes -Zinput-stats
+time: 0.150; rss: 60MB	parsing
+Lines of code:             65577
+Pre-expansion node count:  65552
+time: 0.011; rss: 60MB	configuration 1
+time: 0.000; rss: 60MB	recursion limit
+time: 0.001; rss: 60MB	gated macro checking
+time: 0.000; rss: 60MB	crate injection
+time: 0.004; rss: 63MB	macro loading
+time: 0.000; rss: 63MB	plugin loading
+time: 0.000; rss: 63MB	plugin registration
+time: 0.042; rss: 69MB	expansion
+time: 0.001; rss: 69MB	complete gated feature checking 1
+time: 0.011; rss: 69MB	configuration 2
+time: 0.000; rss: 69MB	gated configuration checking
+time: 0.006; rss: 69MB	maybe building test harness
+time: 0.005; rss: 69MB	prelude injection
+time: 0.001; rss: 69MB	checking that all macro invocations are gone
+time: 0.000; rss: 69MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 69MB	complete gated feature checking 2
+time: 0.001; rss: 69MB	const fn bodies and arguments
+Post-expansion node count: 65565
+time: 0.006; rss: 69MB	assigning node ids
+time: 0.009; rss: 83MB	lowering ast -> hir
+time: 0.002; rss: 85MB	indexing hir
+time: 0.001; rss: 85MB	attribute checking
+time: 0.008; rss: 85MB	early lint checks
+time: 0.001; rss: 72MB	external crate/lib resolution
+time: 0.001; rss: 72MB	language item collection
+time: 0.002; rss: 75MB	resolution
+time: 0.001; rss: 75MB	lifetime resolution
+time: 0.000; rss: 75MB	looking for entry point
+time: 0.000; rss: 75MB	looking for plugin registrar
+time: 0.007; rss: 81MB	region resolution
+time: 0.001; rss: 81MB	loop checking
+time: 0.002; rss: 81MB	static item recursion checking
+time: 0.000; rss: 81MB	load_dep_graph
+time: 0.000; rss: 81MB	type collecting
+time: 0.000; rss: 81MB	variance inference
+time: 0.006; rss: 89MB	coherence checking
+time: 0.001; rss: 89MB	wf checking
+time: 0.765; rss: 193MB	item-types checking
+time: 0.000; rss: 193MB	item-bodies checking
+time: 0.000; rss: 193MB	drop-impl checking
+time: 0.020; rss: 195MB	const checking
+time: 0.002; rss: 195MB	privacy checking
+time: 0.000; rss: 195MB	stability index
+time: 0.000; rss: 195MB	intrinsic checking
+time: 0.000; rss: 195MB	effect checking
+time: 0.000; rss: 195MB	match checking
+time: 0.001; rss: 195MB	liveness checking
+time: 0.000; rss: 195MB	rvalue checking
+time: 0.001; rss: 195MB	MIR dump
+time: 0.000; rss: 195MB	MIR passes
+time: 0.001; rss: 195MB	borrow checking
+time: 0.000; rss: 195MB	reachability checking
+time: 0.001; rss: 195MB	death checking
+time: 0.001; rss: 195MB	stability checking
+time: 0.000; rss: 195MB	unused lib feature checking
+time: 0.031; rss: 195MB	lint checking
+time: 0.001; rss: 195MB	resolving dependency formats
+time: 0.000; rss: 195MB	Prepare MIR codegen passes
+  time: 0.001; rss: 204MB	translation item collection
+  time: 0.000; rss: 204MB	codegen unit partitioning
+  time: 0.000; rss: 208MB	write metadata
+time: 0.087; rss: 208MB	translation
+time: 0.000; rss: 208MB	assert dep graph
+time: 0.000; rss: 208MB	serialize dep graph
+  time: 0.003; rss: 86MB	llvm function passes [0]
+  time: 0.000; rss: 86MB	llvm module passes [0]
+  time: 0.161; rss: 89MB	codegen passes [0]
+  time: 0.000; rss: 76MB	codegen passes [0]
+time: 0.176; rss: 76MB	LLVM passes
+  time: 0.180; rss: 76MB	running linker
+time: 0.180; rss: 76MB	linking
+done
