@@ -1,0 +1,91 @@
+commit 63760acf31e605c8a91bb5cbcbcb4bfb95435e48
+Merge: ed7c567 6ae8027
+Author: bors <bors@rust-lang.org>
+Date:   Sun Apr 17 19:11:20 2016 -0700
+
+    Auto merge of #33064 - jseyfried:improve_resolve_performance, r=eddyb
+    
+    resolve: Improve performance
+    
+    This fixes #33061 by speeding up searchs through all traits in scope, a bottleneck in `resolve`.
+    
+    According to my measurements, this PR improves resolution performance by a factor of 3.4x on `librustc`, which almost completely reverses the 3.75x performance regression reported in #33061.
+    
+    r? @eddyb
+rustc: ./inflate-0.1.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling inflate v0.1.0 (file:///root/benchmarks/inflate-0.1.0)
+time: 0.008; rss: 41MB	parsing
+Lines of code:             956
+Pre-expansion node count:  4761
+time: 0.001; rss: 41MB	configuration 1
+time: 0.000; rss: 41MB	recursion limit
+time: 0.000; rss: 41MB	gated macro checking
+time: 0.000; rss: 41MB	crate injection
+time: 0.003; rss: 44MB	macro loading
+time: 0.000; rss: 44MB	plugin loading
+time: 0.000; rss: 44MB	plugin registration
+time: 0.091; rss: 52MB	expansion
+time: 0.001; rss: 52MB	complete gated feature checking 1
+time: 0.009; rss: 52MB	configuration 2
+time: 0.000; rss: 52MB	gated configuration checking
+time: 0.004; rss: 52MB	maybe building test harness
+time: 0.004; rss: 52MB	prelude injection
+time: 0.000; rss: 52MB	checking that all macro invocations are gone
+time: 0.000; rss: 52MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 52MB	complete gated feature checking 2
+time: 0.000; rss: 52MB	const fn bodies and arguments
+Post-expansion node count: 54798
+time: 0.004; rss: 52MB	assigning node ids
+time: 0.016; rss: 58MB	lowering ast -> hir
+time: 0.002; rss: 58MB	indexing hir
+time: 0.000; rss: 58MB	attribute checking
+time: 0.004; rss: 58MB	early lint checks
+time: 0.001; rss: 55MB	external crate/lib resolution
+time: 0.001; rss: 55MB	language item collection
+time: 0.014; rss: 65MB	resolution
+time: 0.001; rss: 65MB	lifetime resolution
+time: 0.000; rss: 65MB	looking for entry point
+time: 0.000; rss: 65MB	looking for plugin registrar
+time: 0.004; rss: 66MB	region resolution
+time: 0.000; rss: 66MB	loop checking
+time: 0.000; rss: 66MB	static item recursion checking
+time: 0.000; rss: 66MB	load_dep_graph
+time: 0.001; rss: 67MB	type collecting
+time: 0.000; rss: 67MB	variance inference
+time: 0.010; rss: 81MB	coherence checking
+time: 0.002; rss: 81MB	wf checking
+time: 0.002; rss: 81MB	item-types checking
+time: 2.868; rss: 102MB	item-bodies checking
+time: 0.000; rss: 102MB	drop-impl checking
+time: 0.014; rss: 103MB	const checking
+time: 0.002; rss: 103MB	privacy checking
+time: 0.000; rss: 103MB	stability index
+time: 0.001; rss: 103MB	intrinsic checking
+time: 0.001; rss: 103MB	effect checking
+time: 0.003; rss: 103MB	match checking
+time: 0.304; rss: 103MB	liveness checking
+time: 0.009; rss: 103MB	rvalue checking
+time: 0.039; rss: 115MB	MIR dump
+time: 0.013; rss: 113MB	MIR passes
+time: 0.212; rss: 114MB	borrow checking
+time: 0.000; rss: 114MB	reachability checking
+time: 0.004; rss: 114MB	death checking
+time: 0.003; rss: 114MB	stability checking
+time: 0.000; rss: 114MB	unused lib feature checking
+time: 0.021; rss: 116MB	lint checking
+time: 0.000; rss: 116MB	resolving dependency formats
+time: 0.006; rss: 117MB	Prepare MIR codegen passes
+  time: 0.011; rss: 129MB	translation item collection
+  time: 0.000; rss: 129MB	codegen unit partitioning
+  time: 0.003; rss: 146MB	write metadata
+time: 0.361; rss: 138MB	translation
+time: 0.000; rss: 138MB	assert dep graph
+time: 0.000; rss: 138MB	serialize dep graph
+  time: 0.025; rss: 104MB	llvm function passes [0]
+  time: 0.004; rss: 105MB	llvm module passes [0]
+  time: 0.492; rss: 111MB	codegen passes [0]
+  time: 0.000; rss: 99MB	codegen passes [0]
+time: 0.568; rss: 99MB	LLVM passes
+time: 0.033; rss: 99MB	linking
+done
