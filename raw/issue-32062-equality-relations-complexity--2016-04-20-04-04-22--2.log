@@ -1,0 +1,129 @@
+commit 9bba2907ee712753e44d7e248560031c190724e0
+Merge: 3dd88f6 02538d4
+Author: bors <bors@rust-lang.org>
+Date:   Wed Apr 20 01:16:55 2016 -0700
+
+    Auto merge of #32942 - alexcrichton:bootstrap-from-previous, r=brson
+    
+    mk: Bootstrap from stable instead of snapshots
+    
+    This commit removes all infrastructure from the repository for our so-called
+    snapshots to instead bootstrap the compiler from stable releases. Bootstrapping
+    from a previously stable release is a long-desired feature of distros because
+    they're not fans of downloading binary stage0 blobs from us. Additionally, this
+    makes our own CI easier as we can decommission all of the snapshot builders and
+    start having a regular cadence to when we update the stage0 compiler.
+    
+    A new `src/etc/get-stage0.py` script was added which shares some code with
+    `src/bootstrap/bootstrap.py` to read a new file, `src/stage0.txt`, which lists
+    the current stage0 compiler as well as cargo that we bootstrap from. This script
+    will download the relevant `rustc` package an unpack it into `$target/stage0` as
+    we do today.
+    
+    One problem of bootstrapping from stable releases is that we're not able to
+    compile unstable code (e.g. all the `#![feature]` directives in libcore/libstd).
+    To overcome this we employ two strategies:
+    
+    * The bootstrap key of the previous compiler is hardcoded into `src/stage0.txt`
+      (enabled as a result of #32731) and exported by the build system. This enables
+      nightly features in the compiler we download.
+    * The standard library and compiler are pinned to a specific stage0, which
+      doesn't change, so we're guaranteed that we'll continue compiling as we start
+      from a known fixed source.
+    
+    The process for making a release will also need to be tweaked now to continue to
+    cadence of bootstrapping from the previous release. This process looks like:
+    
+    1. Merge `beta` to `stable`
+    2. Produce a new stable compiler.
+    3. Change `master` to bootstrap from this new stable compiler.
+    4. Merge `master` to `beta`
+    5. Produce a new beta compiler
+    6. Change `master` to bootstrap from this new beta compiler.
+    
+    Step 3 above should involve very few changes as `master` was previously
+    bootstrapping from `beta` which is the same as `stable` at that point in time.
+    Step 6, however, is where we benefit from removing lots of `#[cfg(stage0)]` and
+    get to use new features. This also shouldn't slow the release too much as steps
+    1-5 requires little work other than waiting and step 6 just needs to happen at
+    some point during a release cycle, it's not time sensitive.
+    
+    Closes #29555
+    Closes #29557
+rustc: ./issue-32062-equality-relations-complexity
+/root/rust/x86_64-unknown-linux-gnu/stage2/bin/rustc issue-32062.rs -Ztime-passes -Zinput-stats
+time: 0.000; rss: 36MB	parsing
+Lines of code:             60
+Pre-expansion node count:  586
+time: 0.000; rss: 40MB	configuration 1
+time: 0.000; rss: 40MB	recursion limit
+time: 0.000; rss: 40MB	gated macro checking
+time: 0.000; rss: 40MB	crate injection
+time: 0.003; rss: 43MB	macro loading
+time: 0.000; rss: 43MB	plugin loading
+time: 0.000; rss: 43MB	plugin registration
+time: 0.001; rss: 43MB	expansion
+time: 0.000; rss: 43MB	complete gated feature checking 1
+time: 0.000; rss: 43MB	configuration 2
+time: 0.000; rss: 43MB	gated configuration checking
+time: 0.000; rss: 43MB	maybe building test harness
+time: 0.000; rss: 43MB	prelude injection
+time: 0.000; rss: 43MB	checking that all macro invocations are gone
+time: 0.000; rss: 43MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 43MB	complete gated feature checking 2
+time: 0.000; rss: 43MB	const fn bodies and arguments
+Post-expansion node count: 599
+time: 0.000; rss: 43MB	assigning node ids
+time: 0.000; rss: 43MB	lowering ast -> hir
+time: 0.000; rss: 43MB	indexing hir
+time: 0.000; rss: 43MB	attribute checking
+time: 0.000; rss: 43MB	early lint checks
+time: 0.001; rss: 43MB	external crate/lib resolution
+time: 0.000; rss: 43MB	language item collection
+time: 0.001; rss: 47MB	resolution
+time: 0.000; rss: 47MB	lifetime resolution
+time: 0.000; rss: 47MB	looking for entry point
+time: 0.000; rss: 47MB	looking for plugin registrar
+time: 0.000; rss: 47MB	region resolution
+time: 0.000; rss: 47MB	loop checking
+time: 0.000; rss: 47MB	static item recursion checking
+time: 0.000; rss: 47MB	load_dep_graph
+time: 0.001; rss: 51MB	type collecting
+time: 0.000; rss: 51MB	variance inference
+time: 0.005; rss: 60MB	coherence checking
+time: 0.007; rss: 64MB	wf checking
+time: 0.000; rss: 64MB	item-types checking
+time: 1.767; rss: 108MB	item-bodies checking
+time: 0.000; rss: 108MB	drop-impl checking
+time: 0.001; rss: 108MB	const checking
+time: 0.000; rss: 108MB	privacy checking
+time: 0.000; rss: 108MB	stability index
+time: 0.000; rss: 108MB	intrinsic checking
+time: 0.000; rss: 108MB	effect checking
+time: 0.000; rss: 108MB	match checking
+time: 0.000; rss: 108MB	liveness checking
+time: 0.002; rss: 108MB	rvalue checking
+time: 0.001; rss: 108MB	MIR dump
+time: 0.000; rss: 108MB	MIR passes
+time: 0.001; rss: 108MB	borrow checking
+time: 0.000; rss: 108MB	reachability checking
+time: 0.000; rss: 108MB	death checking
+time: 0.000; rss: 108MB	stability checking
+time: 0.000; rss: 108MB	unused lib feature checking
+time: 0.000; rss: 108MB	lint checking
+time: 0.001; rss: 108MB	resolving dependency formats
+time: 0.000; rss: 108MB	Prepare MIR codegen passes
+  time: 0.092; rss: 123MB	translation item collection
+  time: 0.000; rss: 123MB	codegen unit partitioning
+  time: 0.000; rss: 131MB	write metadata
+time: 0.457; rss: 131MB	translation
+time: 0.000; rss: 131MB	assert dep graph
+time: 0.000; rss: 131MB	serialize dep graph
+  time: 0.000; rss: 84MB	llvm function passes [0]
+  time: 0.000; rss: 84MB	llvm module passes [0]
+  time: 0.005; rss: 89MB	codegen passes [0]
+  time: 0.000; rss: 89MB	codegen passes [0]
+time: 0.007; rss: 89MB	LLVM passes
+  time: 0.101; rss: 89MB	running linker
+time: 0.101; rss: 89MB	linking
+done
