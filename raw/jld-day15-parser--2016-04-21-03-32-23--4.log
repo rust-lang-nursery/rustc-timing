@@ -1,0 +1,90 @@
+commit 6e036082091bc253debeb22606a661af211610ff
+Merge: 95545e7 d1180af
+Author: bors <bors@rust-lang.org>
+Date:   Wed Apr 20 21:25:26 2016 -0700
+
+    Auto merge of #33030 - nagisa:mir-unrequire-end-block, r=nikomatsakis
+    
+    MIR: Do not require END_BLOCK to always exist
+    
+    Basically, all this does, is removing restriction for END_BLOCK to exist past the first invocation of RemoveDeadBlocks pass. This way for functions whose CFG does not reach the `END_BLOCK` end up not containing the block.
+    
+    As far as the implementation goes, I’m not entirely satisfied with the `BasicBlock::end_block`. I had hoped to make `new` a `const fn` and then just have a `const END_BLOCK` private to mir::build, but it turns out that constant functions don’t yet support conditionals nor a way to assert.
+rustc: ./jld-day15-parser
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling day15 v0.1.0 (file:///root/benchmarks/jld-day15-parser)
+time: 0.001; rss: 44MB	parsing
+Lines of code:             72
+Pre-expansion node count:  673
+time: 0.000; rss: 44MB	configuration 1
+time: 0.000; rss: 48MB	recursion limit
+time: 0.000; rss: 48MB	gated macro checking
+time: 0.000; rss: 48MB	crate injection
+time: 0.003; rss: 50MB	macro loading
+time: 0.000; rss: 50MB	plugin loading
+time: 0.000; rss: 50MB	plugin registration
+time: 0.002; rss: 50MB	expansion
+time: 0.000; rss: 50MB	complete gated feature checking 1
+time: 0.000; rss: 50MB	configuration 2
+time: 0.000; rss: 50MB	gated configuration checking
+time: 0.000; rss: 50MB	maybe building test harness
+time: 0.000; rss: 50MB	prelude injection
+time: 0.000; rss: 50MB	checking that all macro invocations are gone
+time: 0.000; rss: 50MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 50MB	complete gated feature checking 2
+time: 0.000; rss: 50MB	const fn bodies and arguments
+Post-expansion node count: 1176
+time: 0.000; rss: 50MB	assigning node ids
+time: 0.000; rss: 50MB	lowering ast -> hir
+time: 0.000; rss: 50MB	indexing hir
+time: 0.000; rss: 50MB	attribute checking
+time: 0.000; rss: 54MB	early lint checks
+time: 0.001; rss: 54MB	external crate/lib resolution
+time: 0.000; rss: 54MB	language item collection
+time: 0.001; rss: 59MB	resolution
+time: 0.000; rss: 59MB	lifetime resolution
+time: 0.000; rss: 59MB	looking for entry point
+time: 0.000; rss: 59MB	looking for plugin registrar
+time: 0.000; rss: 59MB	region resolution
+time: 0.000; rss: 59MB	loop checking
+time: 0.000; rss: 59MB	static item recursion checking
+time: 0.000; rss: 59MB	load_dep_graph
+time: 0.001; rss: 63MB	type collecting
+time: 0.000; rss: 63MB	variance inference
+time: 0.005; rss: 74MB	coherence checking
+time: 0.007; rss: 78MB	wf checking
+time: 0.000; rss: 78MB	item-types checking
+time: 1.517; rss: 151MB	item-bodies checking
+time: 0.000; rss: 151MB	drop-impl checking
+time: 0.001; rss: 151MB	const checking
+time: 0.000; rss: 151MB	privacy checking
+time: 0.000; rss: 151MB	stability index
+time: 0.000; rss: 151MB	intrinsic checking
+time: 0.000; rss: 151MB	effect checking
+time: 0.000; rss: 151MB	match checking
+time: 0.000; rss: 151MB	liveness checking
+time: 0.002; rss: 151MB	rvalue checking
+time: 0.001; rss: 152MB	MIR dump
+time: 0.000; rss: 152MB	MIR passes
+time: 0.001; rss: 152MB	borrow checking
+time: 0.000; rss: 152MB	reachability checking
+time: 0.000; rss: 152MB	death checking
+time: 0.000; rss: 152MB	stability checking
+time: 0.000; rss: 152MB	unused lib feature checking
+time: 0.004; rss: 153MB	lint checking
+time: 0.001; rss: 153MB	resolving dependency formats
+time: 0.000; rss: 154MB	Prepare MIR codegen passes
+  time: 12.347; rss: 188MB	translation item collection
+  time: 0.001; rss: 188MB	codegen unit partitioning
+  time: 0.000; rss: 226MB	write metadata
+time: 38.865; rss: 226MB	translation
+time: 0.000; rss: 226MB	assert dep graph
+time: 0.000; rss: 226MB	serialize dep graph
+  time: 0.015; rss: 105MB	llvm function passes [0]
+  time: 0.002; rss: 105MB	llvm module passes [0]
+  time: 0.274; rss: 111MB	codegen passes [0]
+  time: 0.000; rss: 104MB	codegen passes [0]
+time: 0.298; rss: 104MB	LLVM passes
+  time: 0.115; rss: 104MB	running linker
+time: 0.115; rss: 104MB	linking
+done
