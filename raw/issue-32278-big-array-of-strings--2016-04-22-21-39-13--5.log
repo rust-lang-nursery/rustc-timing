@@ -1,0 +1,100 @@
+commit 66ff163081685aa48bc59033eb5280052963a750
+Merge: af000a7 241a3e4
+Author: bors <bors@rust-lang.org>
+Date:   Fri Apr 22 17:54:30 2016 -0700
+
+    Auto merge of #32466 - jooert:btree_append, r=apasel422
+    
+    Implement `append` for b-trees.
+    
+    I have finally found time to revive #26227, this time only with an `append` implementation.
+    
+    The algorithm implemented here is linear in the size of the two b-trees. It firsts creates
+    a `MergeIter` from the two b-trees and then builds a new b-tree by pushing
+    key-value pairs from the `MergeIter` into nodes at the right heights.
+    
+    Three functions for stealing have been added to the implementation of `Handle` as
+    well as a getter for the height of a `NodeRef`.
+    
+    The docs have been updated with performance information about `BTreeMap::append` and
+    the remark about B has been removed now that it is the same for all instances of `BTreeMap`.
+    
+    cc @gereeter @Gankro @apasel422
+rustc: ./issue-32278-big-array-of-strings
+/root/rust/x86_64-unknown-linux-gnu/stage2/bin/rustc big-array-of-strings.rs -Ztime-passes -Zinput-stats
+time: 0.153; rss: 68MB	parsing
+Lines of code:             65577
+Pre-expansion node count:  65552
+time: 0.011; rss: 68MB	configuration 1
+time: 0.000; rss: 68MB	recursion limit
+time: 0.001; rss: 68MB	gated macro checking
+time: 0.000; rss: 68MB	crate injection
+time: 0.004; rss: 73MB	macro loading
+time: 0.000; rss: 73MB	plugin loading
+time: 0.000; rss: 73MB	plugin registration
+time: 0.042; rss: 77MB	expansion
+time: 0.001; rss: 77MB	complete gated feature checking 1
+time: 0.011; rss: 77MB	configuration 2
+time: 0.000; rss: 77MB	gated configuration checking
+time: 0.005; rss: 77MB	maybe building test harness
+time: 0.005; rss: 77MB	prelude injection
+time: 0.000; rss: 77MB	checking that all macro invocations are gone
+time: 0.000; rss: 77MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 77MB	complete gated feature checking 2
+time: 0.001; rss: 77MB	const fn bodies and arguments
+Post-expansion node count: 65565
+time: 0.007; rss: 77MB	assigning node ids
+time: 0.001; rss: 77MB	collecting defs
+time: 0.002; rss: 78MB	external crate/lib resolution
+time: 0.009; rss: 90MB	lowering ast -> hir
+time: 0.002; rss: 92MB	indexing hir
+time: 0.001; rss: 92MB	attribute checking
+time: 0.008; rss: 92MB	early lint checks
+time: 0.001; rss: 79MB	language item collection
+time: 0.002; rss: 83MB	name resolution
+time: 0.001; rss: 83MB	lifetime resolution
+time: 0.000; rss: 83MB	looking for entry point
+time: 0.000; rss: 83MB	looking for plugin registrar
+time: 0.006; rss: 90MB	region resolution
+time: 0.001; rss: 90MB	loop checking
+time: 0.001; rss: 90MB	static item recursion checking
+time: 0.000; rss: 90MB	load_dep_graph
+time: 0.000; rss: 90MB	type collecting
+time: 0.000; rss: 90MB	variance inference
+time: 0.006; rss: 99MB	coherence checking
+time: 0.001; rss: 99MB	wf checking
+time: 0.752; rss: 201MB	item-types checking
+time: 0.000; rss: 201MB	item-bodies checking
+time: 0.000; rss: 201MB	drop-impl checking
+time: 0.019; rss: 204MB	const checking
+time: 0.003; rss: 204MB	privacy checking
+time: 0.001; rss: 204MB	stability index
+time: 0.001; rss: 204MB	intrinsic checking
+time: 0.001; rss: 204MB	effect checking
+time: 0.001; rss: 204MB	match checking
+time: 0.001; rss: 204MB	liveness checking
+time: 0.001; rss: 204MB	rvalue checking
+time: 0.001; rss: 204MB	MIR dump
+time: 0.000; rss: 204MB	MIR passes
+time: 0.001; rss: 204MB	borrow checking
+time: 0.000; rss: 204MB	reachability checking
+time: 0.001; rss: 204MB	death checking
+time: 0.001; rss: 204MB	stability checking
+time: 0.000; rss: 204MB	unused lib feature checking
+time: 0.030; rss: 204MB	lint checking
+time: 0.001; rss: 204MB	resolving dependency formats
+time: 0.000; rss: 204MB	Prepare MIR codegen passes
+  time: 0.001; rss: 204MB	translation item collection
+  time: 0.000; rss: 204MB	codegen unit partitioning
+  time: 0.000; rss: 208MB	write metadata
+time: 0.081; rss: 208MB	translation
+time: 0.000; rss: 208MB	assert dep graph
+time: 0.000; rss: 208MB	serialize dep graph
+  time: 0.004; rss: 89MB	llvm function passes [0]
+  time: 0.000; rss: 89MB	llvm module passes [0]
+  time: 0.161; rss: 90MB	codegen passes [0]
+  time: 0.000; rss: 77MB	codegen passes [0]
+time: 0.176; rss: 77MB	LLVM passes
+  time: 0.183; rss: 77MB	running linker
+time: 0.184; rss: 77MB	linking
+done
