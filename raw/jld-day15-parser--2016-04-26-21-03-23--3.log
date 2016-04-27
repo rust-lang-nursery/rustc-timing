@@ -1,0 +1,93 @@
+commit 8f552181895921a377ab8c235340ea3d80ec7fc0
+Merge: 897199a 9249e6a
+Author: bors <bors@rust-lang.org>
+Date:   Tue Apr 26 14:54:37 2016 -0700
+
+    Auto merge of #31414 - durka:clone-copy, r=alexcrichton
+    
+    special-case #[derive(Copy, Clone)] with a shallow clone
+    
+    If a type is Copy then its Clone implementation can be a no-op. Currently `#[derive(Clone)]` generates a deep clone anyway. This can lead to lots of code bloat.
+    
+    This PR detects the case where Copy and Clone are both being derived (the general case of "is this type Copy" can't be determined by a syntax extension) and generates the shallow Clone impl. Right now this can only be done if there are no type parameters (see https://github.com/rust-lang/rust/issues/31085#issuecomment-178988663), but this restriction can be removed after specialization.
+    
+    Fixes #31085.
+rustc: ./jld-day15-parser
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling day15 v0.1.0 (file:///root/benchmarks/jld-day15-parser)
+time: 0.001; rss: 43MB	parsing
+Lines of code:             72
+Pre-expansion node count:  673
+time: 0.000; rss: 43MB	configuration 1
+time: 0.000; rss: 43MB	recursion limit
+time: 0.000; rss: 43MB	gated macro checking
+time: 0.000; rss: 43MB	crate injection
+time: 0.003; rss: 48MB	macro loading
+time: 0.000; rss: 48MB	plugin loading
+time: 0.000; rss: 48MB	plugin registration
+time: 0.002; rss: 49MB	expansion
+time: 0.000; rss: 49MB	complete gated feature checking 1
+time: 0.000; rss: 49MB	configuration 2
+time: 0.000; rss: 49MB	gated configuration checking
+time: 0.000; rss: 49MB	maybe building test harness
+time: 0.000; rss: 49MB	prelude injection
+time: 0.000; rss: 49MB	checking that all macro invocations are gone
+time: 0.000; rss: 49MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 49MB	complete gated feature checking 2
+time: 0.000; rss: 49MB	const fn bodies and arguments
+Post-expansion node count: 1176
+time: 0.000; rss: 49MB	assigning node ids
+time: 0.000; rss: 49MB	collecting defs
+time: 0.001; rss: 49MB	external crate/lib resolution
+time: 0.000; rss: 51MB	lowering ast -> hir
+time: 0.000; rss: 51MB	indexing hir
+time: 0.000; rss: 51MB	attribute checking
+time: 0.000; rss: 51MB	early lint checks
+time: 0.000; rss: 51MB	language item collection
+time: 0.001; rss: 58MB	name resolution
+time: 0.000; rss: 58MB	lifetime resolution
+time: 0.000; rss: 58MB	looking for entry point
+time: 0.000; rss: 58MB	looking for plugin registrar
+time: 0.000; rss: 58MB	region resolution
+time: 0.000; rss: 58MB	loop checking
+time: 0.000; rss: 58MB	static item recursion checking
+time: 0.000; rss: 58MB	load_dep_graph
+time: 0.001; rss: 60MB	type collecting
+time: 0.000; rss: 60MB	variance inference
+time: 0.008; rss: 68MB	coherence checking
+time: 0.007; rss: 73MB	wf checking
+time: 0.000; rss: 73MB	item-types checking
+time: 1.824; rss: 144MB	item-bodies checking
+time: 0.000; rss: 144MB	drop-impl checking
+time: 0.001; rss: 144MB	const checking
+time: 0.000; rss: 144MB	privacy checking
+time: 0.000; rss: 144MB	stability index
+time: 0.000; rss: 144MB	intrinsic checking
+time: 0.000; rss: 144MB	effect checking
+time: 0.000; rss: 144MB	match checking
+time: 0.000; rss: 144MB	liveness checking
+time: 0.002; rss: 144MB	rvalue checking
+time: 0.001; rss: 145MB	MIR dump
+time: 0.000; rss: 145MB	MIR passes
+time: 0.001; rss: 145MB	borrow checking
+time: 0.000; rss: 145MB	reachability checking
+time: 0.000; rss: 145MB	death checking
+time: 0.000; rss: 145MB	stability checking
+time: 0.000; rss: 145MB	unused lib feature checking
+time: 0.004; rss: 146MB	lint checking
+time: 0.001; rss: 146MB	resolving dependency formats
+time: 0.000; rss: 146MB	Prepare MIR codegen passes
+  time: 12.476; rss: 183MB	translation item collection
+  time: 0.001; rss: 183MB	codegen unit partitioning
+  time: 0.000; rss: 219MB	write metadata
+time: 39.262; rss: 219MB	translation
+time: 0.000; rss: 219MB	assert dep graph
+time: 0.000; rss: 219MB	serialize dep graph
+  time: 0.014; rss: 102MB	llvm function passes [0]
+  time: 0.002; rss: 102MB	llvm module passes [0]
+  time: 0.277; rss: 108MB	codegen passes [0]
+  time: 0.000; rss: 102MB	codegen passes [0]
+time: 0.301; rss: 102MB	LLVM passes
+  time: 0.123; rss: 102MB	running linker
+time: 0.124; rss: 102MB	linking
+done

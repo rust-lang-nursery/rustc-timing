@@ -1,0 +1,118 @@
+commit 8f552181895921a377ab8c235340ea3d80ec7fc0
+Merge: 897199a 9249e6a
+Author: bors <bors@rust-lang.org>
+Date:   Tue Apr 26 14:54:37 2016 -0700
+
+    Auto merge of #31414 - durka:clone-copy, r=alexcrichton
+    
+    special-case #[derive(Copy, Clone)] with a shallow clone
+    
+    If a type is Copy then its Clone implementation can be a no-op. Currently `#[derive(Clone)]` generates a deep clone anyway. This can lead to lots of code bloat.
+    
+    This PR detects the case where Copy and Clone are both being derived (the general case of "is this type Copy" can't be determined by a syntax extension) and generates the shallow Clone impl. Right now this can only be done if there are no type parameters (see https://github.com/rust-lang/rust/issues/31085#issuecomment-178988663), but this restriction can be removed after specialization.
+    
+    Fixes #31085.
+rustc: ./hyper.0.5.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+    Updating registry `https://github.com/rust-lang/crates.io-index`
+   Compiling traitobject v0.0.1
+   Compiling matches v0.1.2
+   Compiling winapi v0.2.6
+   Compiling pkg-config v0.3.8
+   Compiling libc v0.1.12
+   Compiling httparse v0.1.6
+   Compiling bitflags v0.3.3
+   Compiling gcc v0.3.27
+   Compiling log v0.3.6
+   Compiling rustc-serialize v0.3.19
+   Compiling libc v0.2.10
+   Compiling unicase v0.1.0
+   Compiling winapi-build v0.1.1
+   Compiling typeable v0.1.2
+   Compiling mime v0.0.11
+   Compiling lazy_static v0.1.16
+   Compiling kernel32-sys v0.2.2
+   Compiling openssl-sys v0.6.7
+   Compiling time v0.1.35
+   Compiling num_cpus v0.2.11
+   Compiling rand v0.3.14
+   Compiling openssl v0.6.7
+   Compiling uuid v0.1.18
+   Compiling url v0.2.38
+   Compiling cookie v0.1.21
+   Compiling hyper v0.5.0 (file:///root/benchmarks/hyper.0.5.0)
+time: 0.041; rss: 51MB	parsing
+Lines of code:             9154
+Pre-expansion node count:  45594
+time: 0.009; rss: 52MB	configuration 1
+time: 0.000; rss: 52MB	recursion limit
+time: 0.000; rss: 52MB	gated macro checking
+time: 0.000; rss: 52MB	crate injection
+time: 0.004; rss: 57MB	macro loading
+time: 0.000; rss: 57MB	plugin loading
+time: 0.000; rss: 57MB	plugin registration
+time: 0.198; rss: 67MB	expansion
+time: 0.005; rss: 67MB	complete gated feature checking 1
+time: 0.029; rss: 67MB	configuration 2
+time: 0.000; rss: 67MB	gated configuration checking
+time: 0.011; rss: 67MB	maybe building test harness
+time: 0.009; rss: 67MB	prelude injection
+time: 0.001; rss: 67MB	checking that all macro invocations are gone
+time: 0.000; rss: 67MB	checking for inline asm in case the target doesn't support it
+time: 0.002; rss: 67MB	complete gated feature checking 2
+time: 0.001; rss: 67MB	const fn bodies and arguments
+Post-expansion node count: 107138
+time: 0.008; rss: 67MB	assigning node ids
+time: 0.005; rss: 69MB	collecting defs
+time: 0.005; rss: 71MB	external crate/lib resolution
+time: 0.019; rss: 76MB	lowering ast -> hir
+time: 0.004; rss: 78MB	indexing hir
+time: 0.001; rss: 78MB	attribute checking
+time: 0.007; rss: 78MB	early lint checks
+time: 0.001; rss: 71MB	language item collection
+time: 0.026; rss: 87MB	name resolution
+time: 0.002; rss: 87MB	lifetime resolution
+time: 0.000; rss: 87MB	looking for entry point
+time: 0.000; rss: 87MB	looking for plugin registrar
+time: 0.012; rss: 90MB	region resolution
+time: 0.001; rss: 90MB	loop checking
+time: 0.001; rss: 90MB	static item recursion checking
+time: 0.000; rss: 90MB	load_dep_graph
+time: 0.018; rss: 100MB	type collecting
+time: 0.000; rss: 100MB	variance inference
+time: 0.043; rss: 114MB	coherence checking
+time: 0.074; rss: 115MB	wf checking
+time: 0.031; rss: 116MB	item-types checking
+time: 0.502; rss: 133MB	item-bodies checking
+time: 0.000; rss: 133MB	drop-impl checking
+time: 0.042; rss: 135MB	const checking
+time: 0.008; rss: 135MB	privacy checking
+time: 0.001; rss: 135MB	stability index
+time: 0.004; rss: 135MB	intrinsic checking
+time: 0.002; rss: 135MB	effect checking
+time: 0.012; rss: 135MB	match checking
+time: 0.005; rss: 135MB	liveness checking
+time: 0.033; rss: 135MB	rvalue checking
+time: 0.062; rss: 143MB	MIR dump
+time: 0.022; rss: 144MB	MIR passes
+time: 0.066; rss: 145MB	borrow checking
+time: 0.003; rss: 145MB	reachability checking
+time: 0.006; rss: 145MB	death checking
+time: 0.006; rss: 145MB	stability checking
+time: 0.000; rss: 145MB	unused lib feature checking
+time: 0.047; rss: 145MB	lint checking
+time: 0.000; rss: 145MB	resolving dependency formats
+time: 0.010; rss: 146MB	Prepare MIR codegen passes
+  time: 0.219; rss: 164MB	translation item collection
+  time: 0.008; rss: 166MB	codegen unit partitioning
+  time: 0.141; rss: 281MB	write metadata
+time: 1.778; rss: 281MB	translation
+time: 0.001; rss: 281MB	assert dep graph
+time: 0.000; rss: 281MB	serialize dep graph
+  time: 0.098; rss: 166MB	llvm function passes [0]
+  time: 0.048; rss: 169MB	llvm module passes [0]
+  time: 1.631; rss: 172MB	codegen passes [0]
+  time: 0.001; rss: 121MB	codegen passes [0]
+time: 1.980; rss: 120MB	LLVM passes
+time: 0.178; rss: 118MB	linking
+done
