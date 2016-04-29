@@ -1,0 +1,119 @@
+commit 8da2bcac5db1e091b90cceb19d0496f0f7501c88
+Merge: 115c6c8 0fc9f9a
+Author: bors <bors@rust-lang.org>
+Date:   Thu Apr 28 14:37:30 2016 -0700
+
+    Auto merge of #33171 - michaelwoerister:collector-drop-glue, r=nikomatsakis
+    
+    Some preliminary work towards making trans "collector driven".
+    
+    The `trans::collector` already collects all translation items and `trans::partitioning` distributes these translation items into codegen units. The changes in this PR provide the following extensions to this functionality:
+    
+    1. Drop-glue is handled more accurately now, knowing about the difference between `DropGlueKind::Ty` and `DropGlueKind::TyContents`.
+    2. The partitioning module now supports the `FixedUnitCount` strategy which more or less corresponds to the partitioning one gets via supplying `-Ccodegen-units` today.
+    3. The partitioning scheme also takes care of assigned LLVM declarations to codegen units, not just definitions (declarations for external items not yet implemented).
+    
+    It's debatable whether declarations should be handled by the partitioning scheme or whether they should just be emitted on demand.
+rustc: ./hyper.0.5.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+    Updating registry `https://github.com/rust-lang/crates.io-index`
+   Compiling libc v0.2.10
+   Compiling httparse v0.1.6
+   Compiling lazy_static v0.1.16
+   Compiling winapi-build v0.1.1
+   Compiling traitobject v0.0.1
+   Compiling unicase v0.1.0
+   Compiling gcc v0.3.28
+   Compiling pkg-config v0.3.8
+   Compiling log v0.3.6
+   Compiling libc v0.1.12
+   Compiling matches v0.1.2
+   Compiling rustc-serialize v0.3.19
+   Compiling kernel32-sys v0.2.2
+   Compiling mime v0.0.11
+   Compiling typeable v0.1.2
+   Compiling winapi v0.2.6
+   Compiling bitflags v0.3.3
+   Compiling time v0.1.35
+   Compiling num_cpus v0.2.11
+   Compiling rand v0.3.14
+   Compiling openssl-sys v0.6.7
+   Compiling openssl v0.6.7
+   Compiling uuid v0.1.18
+   Compiling url v0.2.38
+   Compiling cookie v0.1.21
+   Compiling hyper v0.5.0 (file:///root/benchmarks/hyper.0.5.0)
+time: 0.031; rss: 53MB	parsing
+Lines of code:             9154
+Pre-expansion node count:  45594
+time: 0.008; rss: 53MB	configuration 1
+time: 0.000; rss: 53MB	recursion limit
+time: 0.000; rss: 53MB	crate injection
+time: 0.005; rss: 61MB	macro loading
+time: 0.000; rss: 61MB	plugin loading
+time: 0.000; rss: 61MB	plugin registration
+time: 0.189; rss: 70MB	expansion
+time: 0.006; rss: 70MB	complete gated feature checking 1
+time: 0.030; rss: 70MB	configuration 2
+time: 0.000; rss: 70MB	gated configuration checking
+time: 0.011; rss: 70MB	maybe building test harness
+time: 0.009; rss: 70MB	prelude injection
+time: 0.001; rss: 70MB	checking that all macro invocations are gone
+time: 0.000; rss: 70MB	checking for inline asm in case the target doesn't support it
+time: 0.002; rss: 70MB	complete gated feature checking 2
+time: 0.001; rss: 70MB	const fn bodies and arguments
+Post-expansion node count: 107138
+time: 0.008; rss: 70MB	assigning node ids
+time: 0.003; rss: 72MB	collecting defs
+time: 0.005; rss: 76MB	external crate/lib resolution
+time: 0.012; rss: 81MB	lowering ast -> hir
+time: 0.002; rss: 83MB	indexing hir
+time: 0.001; rss: 83MB	attribute checking
+time: 0.007; rss: 83MB	early lint checks
+time: 0.001; rss: 76MB	language item collection
+time: 0.022; rss: 93MB	name resolution
+time: 0.002; rss: 93MB	lifetime resolution
+time: 0.000; rss: 93MB	looking for entry point
+time: 0.000; rss: 93MB	looking for plugin registrar
+time: 0.006; rss: 96MB	region resolution
+time: 0.001; rss: 96MB	loop checking
+time: 0.001; rss: 96MB	static item recursion checking
+time: 0.000; rss: 96MB	load_dep_graph
+time: 0.018; rss: 105MB	type collecting
+time: 0.000; rss: 105MB	variance inference
+time: 0.043; rss: 120MB	coherence checking
+time: 0.074; rss: 123MB	wf checking
+time: 0.027; rss: 123MB	item-types checking
+time: 0.464; rss: 145MB	item-bodies checking
+time: 0.000; rss: 145MB	drop-impl checking
+time: 0.039; rss: 147MB	const checking
+time: 0.010; rss: 147MB	privacy checking
+time: 0.001; rss: 147MB	stability index
+time: 0.004; rss: 147MB	intrinsic checking
+time: 0.002; rss: 147MB	effect checking
+time: 0.011; rss: 147MB	match checking
+time: 0.005; rss: 148MB	liveness checking
+time: 0.032; rss: 147MB	rvalue checking
+time: 0.050; rss: 155MB	MIR dump
+time: 0.022; rss: 155MB	MIR passes
+time: 0.063; rss: 155MB	borrow checking
+time: 0.003; rss: 155MB	reachability checking
+time: 0.006; rss: 155MB	death checking
+time: 0.006; rss: 155MB	stability checking
+time: 0.000; rss: 155MB	unused lib feature checking
+time: 0.050; rss: 155MB	lint checking
+time: 0.000; rss: 155MB	resolving dependency formats
+time: 0.010; rss: 155MB	Prepare MIR codegen passes
+  time: 0.172; rss: 166MB	translation item collection
+  time: 0.008; rss: 169MB	codegen unit partitioning
+  time: 0.138; rss: 295MB	write metadata
+time: 1.470; rss: 295MB	translation
+time: 0.001; rss: 295MB	assert dep graph
+time: 0.000; rss: 295MB	serialize dep graph
+  time: 0.097; rss: 173MB	llvm function passes [0]
+  time: 0.047; rss: 174MB	llvm module passes [0]
+  time: 1.625; rss: 178MB	codegen passes [0]
+  time: 0.001; rss: 128MB	codegen passes [0]
+time: 1.971; rss: 127MB	LLVM passes
+time: 0.175; rss: 125MB	linking
+done
