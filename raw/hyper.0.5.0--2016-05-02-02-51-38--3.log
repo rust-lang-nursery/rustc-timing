@@ -1,0 +1,94 @@
+commit 700d3e23748c10c4203491856186333dd2952ebf
+Merge: 855fb61 a70e42a
+Author: bors <bors@rust-lang.org>
+Date:   Sun May 1 20:39:33 2016 -0700
+
+    Auto merge of #33190 - jseyfried:improve_diagnostics, r=nrc
+    
+    resolve: improve diagnostics and lay groundwork for resolving before ast->hir
+    
+    This PR improves diagnostics in `resolve` and lays some groundwork for resolving before ast->hir.
+    
+    More specifically,
+     - It removes an API in `resolve` intended for external refactoring tools (see #27493) that appears not to be in active use. The API is incompatible with resolving before ast->hir, but could be rewritten in a more compatible and less intrusive way.
+     - It improves the diagnostics for pattern bindings that conflict with `const`s.
+     - It improves the diagnostics for modules used as expressions (fixes #33186).
+     - It refactors away some uses of the hir map, which is unavavailable before ast->hir lowering.
+    
+    r? @eddyb
+rustc: ./hyper.0.5.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling hyper v0.5.0 (file:///root/benchmarks/hyper.0.5.0)
+time: 0.031; rss: 53MB	parsing
+Lines of code:             9154
+Pre-expansion node count:  45594
+time: 0.008; rss: 53MB	configuration 1
+time: 0.000; rss: 53MB	recursion limit
+time: 0.000; rss: 53MB	crate injection
+time: 0.004; rss: 61MB	macro loading
+time: 0.000; rss: 61MB	plugin loading
+time: 0.000; rss: 61MB	plugin registration
+time: 0.186; rss: 70MB	expansion
+time: 0.030; rss: 70MB	configuration 2
+time: 0.000; rss: 70MB	gated configuration checking
+time: 0.011; rss: 70MB	maybe building test harness
+time: 0.008; rss: 70MB	prelude injection
+time: 0.001; rss: 70MB	checking that all macro invocations are gone
+time: 0.000; rss: 70MB	checking for inline asm in case the target doesn't support it
+time: 0.002; rss: 70MB	complete gated feature checking
+time: 0.001; rss: 70MB	const fn bodies and arguments
+Post-expansion node count: 107138
+time: 0.008; rss: 70MB	assigning node ids
+time: 0.003; rss: 72MB	collecting defs
+time: 0.005; rss: 76MB	external crate/lib resolution
+time: 0.011; rss: 81MB	lowering ast -> hir
+time: 0.001; rss: 83MB	indexing hir
+time: 0.001; rss: 83MB	attribute checking
+time: 0.006; rss: 83MB	early lint checks
+time: 0.001; rss: 77MB	language item collection
+time: 0.022; rss: 94MB	name resolution
+time: 0.002; rss: 94MB	lifetime resolution
+time: 0.000; rss: 94MB	looking for entry point
+time: 0.000; rss: 94MB	looking for plugin registrar
+time: 0.006; rss: 97MB	region resolution
+time: 0.001; rss: 97MB	loop checking
+time: 0.001; rss: 97MB	static item recursion checking
+time: 0.000; rss: 97MB	load_dep_graph
+time: 0.018; rss: 108MB	type collecting
+time: 0.000; rss: 108MB	variance inference
+time: 0.043; rss: 121MB	coherence checking
+time: 0.072; rss: 124MB	wf checking
+time: 0.027; rss: 124MB	item-types checking
+time: 0.459; rss: 146MB	item-bodies checking
+time: 0.000; rss: 146MB	drop-impl checking
+time: 0.037; rss: 148MB	const checking
+time: 0.009; rss: 148MB	privacy checking
+time: 0.001; rss: 148MB	stability index
+time: 0.004; rss: 148MB	intrinsic checking
+time: 0.002; rss: 148MB	effect checking
+time: 0.011; rss: 148MB	match checking
+time: 0.005; rss: 148MB	liveness checking
+time: 0.032; rss: 148MB	rvalue checking
+time: 0.049; rss: 154MB	MIR dump
+time: 0.021; rss: 154MB	MIR passes
+time: 0.064; rss: 154MB	borrow checking
+time: 0.003; rss: 154MB	reachability checking
+time: 0.006; rss: 154MB	death checking
+time: 0.006; rss: 154MB	stability checking
+time: 0.000; rss: 154MB	unused lib feature checking
+time: 0.046; rss: 154MB	lint checking
+time: 0.000; rss: 154MB	resolving dependency formats
+time: 0.010; rss: 156MB	Prepare MIR codegen passes
+  time: 0.174; rss: 168MB	translation item collection
+  time: 0.009; rss: 168MB	codegen unit partitioning
+  time: 0.137; rss: 294MB	write metadata
+time: 1.450; rss: 294MB	translation
+time: 0.001; rss: 294MB	assert dep graph
+time: 0.000; rss: 294MB	serialize dep graph
+  time: 0.097; rss: 173MB	llvm function passes [0]
+  time: 0.047; rss: 174MB	llvm module passes [0]
+  time: 1.625; rss: 177MB	codegen passes [0]
+  time: 0.001; rss: 129MB	codegen passes [0]
+time: 1.969; rss: 128MB	LLVM passes
+time: 0.186; rss: 126MB	linking
+done
