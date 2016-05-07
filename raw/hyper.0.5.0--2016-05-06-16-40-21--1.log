@@ -1,0 +1,108 @@
+commit 0cb9bc51759eed8ac12dc52456a2fbb7ddf495db
+Merge: 102bab3 eeb2f6d
+Author: bors <bors@rust-lang.org>
+Date:   Fri May 6 11:57:16 2016 -0700
+
+    Auto merge of #33472 - alexcrichton:fix-nightlies-again, r=brson
+    
+    mk: Try to fix nightlies again
+    
+    Looks like the real bug on nightlies is that the `llvm-pass` run-make test is
+    not actually getting the value of `LLVM_CXXFLAGS` correct. Namely, it's blank!
+    Now the only change #33093 which actually affected this is that the argument
+    `$(LLVM_CXXFLAGS_$(2))` was moved up from a makefile rule into the definition of
+    a variable. Sounds innocuous?
+    
+    Turns out the variable this was moved into is defined with `:=`, which means
+    that it's not recursively expanded, which basically means that it's expanded
+    immediately. Unfortunately part of this expansion involves running
+    `llvm-config`, which doesn't exist at the start of distcheck build!
+    
+    This didn't show up on the bots because they run `make` *then* `make check`, and
+    the first step builds llvm-config so the next time `make` is loaded everything
+    is available. The distcheck bots, however, run just a plain `distcheck` so
+    `make` doesn't exist ahead of time. You can see this in action where the
+    distcheck bots start out with a bunch of "llvm-config not found" error messages.
+    
+    This commit just changes a few variables to be defined with `=` which
+    essentially means they're lazily expanded. I did not run a full distcheck
+    locally, but this makes the initial "llvm-config not found" error messages go
+    away so I suspect that this is the fix.
+    
+    Closes #33379 (hopefully)
+rustc: ./hyper.0.5.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling hyper v0.5.0 (file:///root/benchmarks/hyper.0.5.0)
+time: 0.032; rss: 52MB	parsing
+Lines of code:             9154
+Pre-expansion node count:  45594
+time: 0.008; rss: 52MB	configuration 1
+time: 0.000; rss: 52MB	recursion limit
+time: 0.000; rss: 52MB	crate injection
+time: 0.005; rss: 60MB	macro loading
+time: 0.000; rss: 60MB	plugin loading
+time: 0.000; rss: 60MB	plugin registration
+time: 0.188; rss: 69MB	expansion
+time: 0.030; rss: 69MB	configuration 2
+time: 0.000; rss: 69MB	gated configuration checking
+time: 0.011; rss: 69MB	maybe building test harness
+time: 0.008; rss: 69MB	prelude injection
+time: 0.001; rss: 69MB	checking that all macro invocations are gone
+time: 0.000; rss: 69MB	checking for inline asm in case the target doesn't support it
+time: 0.002; rss: 69MB	complete gated feature checking
+time: 0.001; rss: 69MB	const fn bodies and arguments
+Post-expansion node count: 107138
+time: 0.008; rss: 69MB	assigning node ids
+time: 0.003; rss: 72MB	collecting defs
+time: 0.005; rss: 75MB	external crate/lib resolution
+time: 0.012; rss: 81MB	lowering ast -> hir
+time: 0.001; rss: 83MB	indexing hir
+time: 0.001; rss: 83MB	attribute checking
+time: 0.006; rss: 83MB	early lint checks
+time: 0.001; rss: 75MB	language item collection
+time: 0.022; rss: 93MB	name resolution
+time: 0.002; rss: 93MB	lifetime resolution
+time: 0.000; rss: 93MB	looking for entry point
+time: 0.000; rss: 93MB	looking for plugin registrar
+time: 0.006; rss: 96MB	region resolution
+time: 0.001; rss: 96MB	loop checking
+time: 0.001; rss: 96MB	static item recursion checking
+time: 0.000; rss: 96MB	load_dep_graph
+time: 0.018; rss: 106MB	type collecting
+time: 0.000; rss: 106MB	variance inference
+time: 0.042; rss: 120MB	coherence checking
+time: 0.080; rss: 123MB	wf checking
+time: 0.029; rss: 123MB	item-types checking
+time: 0.468; rss: 145MB	item-bodies checking
+time: 0.000; rss: 145MB	drop-impl checking
+time: 0.036; rss: 147MB	const checking
+time: 0.007; rss: 147MB	privacy checking
+time: 0.001; rss: 147MB	stability index
+time: 0.004; rss: 147MB	intrinsic checking
+time: 0.002; rss: 147MB	effect checking
+time: 0.012; rss: 147MB	match checking
+time: 0.005; rss: 147MB	liveness checking
+time: 0.025; rss: 147MB	rvalue checking
+time: 0.050; rss: 155MB	MIR dump
+time: 0.022; rss: 155MB	MIR passes
+time: 0.064; rss: 155MB	borrow checking
+time: 0.003; rss: 155MB	reachability checking
+time: 0.006; rss: 155MB	death checking
+time: 0.006; rss: 155MB	stability checking
+time: 0.000; rss: 155MB	unused lib feature checking
+time: 0.049; rss: 155MB	lint checking
+time: 0.000; rss: 155MB	resolving dependency formats
+time: 0.010; rss: 155MB	Prepare MIR codegen passes
+  time: 0.180; rss: 166MB	translation item collection
+  time: 0.010; rss: 168MB	codegen unit partitioning
+  time: 0.138; rss: 293MB	write metadata
+time: 1.476; rss: 293MB	translation
+time: 0.001; rss: 293MB	assert dep graph
+time: 0.000; rss: 293MB	serialize dep graph
+  time: 0.097; rss: 171MB	llvm function passes [0]
+  time: 0.047; rss: 174MB	llvm module passes [0]
+  time: 1.638; rss: 177MB	codegen passes [0]
+  time: 0.001; rss: 128MB	codegen passes [0]
+time: 1.982; rss: 127MB	LLVM passes
+time: 0.175; rss: 125MB	linking
+done
