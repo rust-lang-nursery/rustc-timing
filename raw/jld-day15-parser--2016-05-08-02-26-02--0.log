@@ -1,0 +1,110 @@
+commit 1ec22171e6053c640293067418ea1901cb1c7df1
+Merge: d91f8ab 3b0e27c
+Author: bors <bors@rust-lang.org>
+Date:   Sun May 8 00:31:40 2016 -0700
+
+    Auto merge of #33130 - eddyb:mir-const, r=nikomatsakis
+    
+    Implement constant support in MIR.
+    
+    All of the intended features in `trans::consts` are now supported by `mir::constant`.
+    The implementation is considered a temporary measure until `miri` replaces it.
+    
+    A `-Z orbit` bootstrap build will only translate LLVM IR from AST for `#[rustc_no_mir]` functions.
+    
+    Furthermore, almost all checks of constant expressions have been moved to MIR.
+    In non-`const` functions, trees of temporaries are promoted, as per RFC 1414 (rvalue promotion).
+    Promotion before MIR borrowck would allow reasoning about promoted values' lifetimes.
+    
+    The improved checking comes at the cost of four `[breaking-change]`s:
+    * repeat counts must contain a constant expression, e.g.:
+    `let arr = [0; { println!("foo"); 5 }];` used to be allowed (it behaved like `let arr = [0; 5];`)
+    * dereference of a reference to a `static` cannot be used in another `static`, e.g.:
+    `static X: [u8; 1] = [1]; static Y: u8 = (&X)[0];` was unintentionally allowed before
+    * the type of a `static` *must* be `Sync`, irrespective of the initializer, e.g.
+    `static FOO: *const T = &BAR;` worked as `&T` is `Sync`, but it shouldn't because `*const T` isn't
+    * a `static` cannot wrap `UnsafeCell` around a type that *may* need drop, e.g.
+    `static X: MakeSync<UnsafeCell<Option<String>>> = MakeSync(UnsafeCell::new(None));`
+    was previously allowed based on the fact `None` alone doesn't need drop, but in `UnsafeCell`
+    it can be later changed to `Some(String)` which *does* need dropping
+    
+    The drop restrictions are relaxed by RFC 1440 (#33156), which is implemented, but feature-gated.
+    However, creating `UnsafeCell` from constants is unstable, so users can just enable the feature gate.
+rustc: ./jld-day15-parser
+cargo rustc -- -Ztime-passes -Zinput-stats
+    Updating registry `https://github.com/rust-lang/crates.io-index`
+   Compiling combine v1.3.0
+   Compiling day15 v0.1.0 (file:///root/benchmarks/jld-day15-parser)
+time: 0.001; rss: 42MB	parsing
+Lines of code:             72
+Pre-expansion node count:  673
+time: 0.000; rss: 42MB	configuration 1
+time: 0.000; rss: 42MB	recursion limit
+time: 0.000; rss: 42MB	crate injection
+time: 0.003; rss: 47MB	macro loading
+time: 0.000; rss: 47MB	plugin loading
+time: 0.000; rss: 47MB	plugin registration
+time: 0.002; rss: 48MB	expansion
+time: 0.000; rss: 48MB	configuration 2
+time: 0.000; rss: 48MB	gated configuration checking
+time: 0.000; rss: 48MB	maybe building test harness
+time: 0.000; rss: 48MB	prelude injection
+time: 0.000; rss: 48MB	checking that all macro invocations are gone
+time: 0.000; rss: 48MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 48MB	complete gated feature checking
+Post-expansion node count: 1176
+time: 0.000; rss: 48MB	assigning node ids
+time: 0.000; rss: 48MB	collecting defs
+time: 0.002; rss: 48MB	external crate/lib resolution
+time: 0.000; rss: 50MB	lowering ast -> hir
+time: 0.000; rss: 50MB	indexing hir
+time: 0.000; rss: 50MB	attribute checking
+time: 0.000; rss: 50MB	early lint checks
+time: 0.000; rss: 50MB	language item collection
+time: 0.001; rss: 57MB	name resolution
+time: 0.000; rss: 57MB	lifetime resolution
+time: 0.000; rss: 57MB	looking for entry point
+time: 0.000; rss: 57MB	looking for plugin registrar
+time: 0.000; rss: 57MB	region resolution
+time: 0.000; rss: 57MB	loop checking
+time: 0.000; rss: 57MB	static item recursion checking
+time: 0.000; rss: 57MB	load_dep_graph
+time: 0.001; rss: 60MB	type collecting
+time: 0.000; rss: 60MB	variance inference
+time: 0.007; rss: 67MB	coherence checking
+time: 0.007; rss: 73MB	wf checking
+time: 0.000; rss: 73MB	item-types checking
+time: 1.781; rss: 142MB	item-bodies checking
+time: 0.000; rss: 142MB	drop-impl checking
+time: 0.001; rss: 142MB	const checking
+time: 0.000; rss: 142MB	privacy checking
+time: 0.000; rss: 142MB	stability index
+time: 0.000; rss: 142MB	intrinsic checking
+time: 0.000; rss: 142MB	effect checking
+time: 0.000; rss: 142MB	match checking
+time: 0.000; rss: 142MB	liveness checking
+time: 0.000; rss: 142MB	rvalue checking
+time: 0.001; rss: 143MB	MIR dump
+time: 0.001; rss: 143MB	MIR passes
+time: 0.001; rss: 143MB	borrow checking
+time: 0.000; rss: 143MB	reachability checking
+time: 0.000; rss: 143MB	death checking
+time: 0.000; rss: 143MB	stability checking
+time: 0.000; rss: 143MB	unused lib feature checking
+time: 0.004; rss: 144MB	lint checking
+time: 0.001; rss: 144MB	resolving dependency formats
+time: 0.000; rss: 144MB	Prepare MIR codegen passes
+  time: 12.627; rss: 178MB	translation item collection
+  time: 0.001; rss: 178MB	codegen unit partitioning
+  time: 0.000; rss: 216MB	write metadata
+time: 39.797; rss: 216MB	translation
+time: 0.000; rss: 216MB	assert dep graph
+time: 0.000; rss: 216MB	serialize dep graph
+  time: 0.014; rss: 101MB	llvm function passes [0]
+  time: 0.001; rss: 101MB	llvm module passes [0]
+  time: 0.273; rss: 107MB	codegen passes [0]
+  time: 0.000; rss: 101MB	codegen passes [0]
+time: 0.296; rss: 100MB	LLVM passes
+  time: 0.124; rss: 100MB	running linker
+time: 0.125; rss: 100MB	linking
+done
