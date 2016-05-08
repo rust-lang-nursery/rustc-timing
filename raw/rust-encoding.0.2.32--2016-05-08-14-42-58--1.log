@@ -1,0 +1,95 @@
+commit ebe6da34ffc72a701f4189ef7be5ab2c1cb6e8c9
+Merge: cae42a4 ca03b81
+Author: bors <bors@rust-lang.org>
+Date:   Sun May 8 09:13:19 2016 -0700
+
+    Auto merge of #33414 - Nercury:master, r=alexcrichton
+    
+    Add armv7-linux-androideabi target
+    
+    This PR adds `armv7-linux-androideabi` target that matches `armeabi-v7a` Android ABI, ~~downscales `arm-linux-androideabi` target to match `armeabi` Android ABI~~ (TBD later if needed).
+    
+    This should allow us to get the best performance from every [Android ABI level](http://developer.android.com/ndk/guides/abis.html).
+    
+    Currently existing target `arm-linux-androideabi` started gaining features out of the supported range of [android `armeabi`](http://developer.android.com/ndk/guides/abis.html). While android compiler does not use a different target for later supported `armv7` architecture, it has distinct ABI name `armeabi-v7a`. We decided to add rust target `armv7-linux-androideabi` to match it.
+    
+    Note that `NEON`, `VFPv3-D32`, and `ThumbEE` instruction sets are not added, because not all android devices are guaranteed to support all or some of these, and [their availability should be checked at runtime](http://developer.android.com/ndk/guides/abis.html#v7a).
+    
+    ~~This reduces performance of existing `arm-linux-androideabi` and may make it _much_ slower (we are talking more than order of magnitude in some random ad-hoc fp benchmark that I did).~~
+    
+    Part of #33278.
+rustc: ./rust-encoding.0.2.32
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling encoding v0.2.32 (file:///root/benchmarks/rust-encoding.0.2.32)
+time: 0.031; rss: 50MB	parsing
+Lines of code:             6441
+Pre-expansion node count:  30335
+time: 0.006; rss: 51MB	configuration 1
+time: 0.000; rss: 51MB	recursion limit
+time: 0.000; rss: 51MB	crate injection
+time: 0.003; rss: 53MB	macro loading
+time: 0.000; rss: 53MB	plugin loading
+time: 0.000; rss: 53MB	plugin registration
+time: 0.044; rss: 56MB	expansion
+time: 0.006; rss: 56MB	configuration 2
+time: 0.000; rss: 56MB	gated configuration checking
+time: 0.003; rss: 56MB	maybe building test harness
+time: 0.003; rss: 56MB	prelude injection
+time: 0.000; rss: 56MB	checking that all macro invocations are gone
+time: 0.000; rss: 56MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 56MB	complete gated feature checking
+Post-expansion node count: 41656
+time: 0.003; rss: 56MB	assigning node ids
+time: 0.005; rss: 58MB	collecting defs
+time: 0.001; rss: 58MB	external crate/lib resolution
+time: 0.005; rss: 60MB	lowering ast -> hir
+time: 0.004; rss: 61MB	indexing hir
+time: 0.000; rss: 61MB	attribute checking
+time: 0.002; rss: 61MB	early lint checks
+time: 0.000; rss: 60MB	language item collection
+time: 0.008; rss: 69MB	name resolution
+time: 0.000; rss: 69MB	lifetime resolution
+time: 0.000; rss: 69MB	looking for entry point
+time: 0.000; rss: 69MB	looking for plugin registrar
+time: 0.005; rss: 70MB	region resolution
+time: 0.000; rss: 70MB	loop checking
+time: 0.000; rss: 70MB	static item recursion checking
+time: 0.000; rss: 70MB	load_dep_graph
+time: 0.005; rss: 73MB	type collecting
+time: 0.000; rss: 73MB	variance inference
+time: 0.024; rss: 90MB	coherence checking
+time: 0.021; rss: 90MB	wf checking
+time: 0.013; rss: 91MB	item-types checking
+time: 0.226; rss: 101MB	item-bodies checking
+time: 0.000; rss: 101MB	drop-impl checking
+time: 0.011; rss: 101MB	const checking
+time: 0.003; rss: 101MB	privacy checking
+time: 0.000; rss: 101MB	stability index
+time: 0.001; rss: 101MB	intrinsic checking
+time: 0.000; rss: 101MB	effect checking
+time: 0.006; rss: 101MB	match checking
+time: 0.002; rss: 101MB	liveness checking
+time: 0.006; rss: 101MB	rvalue checking
+time: 0.036; rss: 108MB	MIR dump
+time: 0.013; rss: 109MB	MIR passes
+time: 0.022; rss: 109MB	borrow checking
+time: 0.000; rss: 109MB	reachability checking
+time: 0.002; rss: 109MB	death checking
+time: 0.002; rss: 109MB	stability checking
+time: 0.000; rss: 109MB	unused lib feature checking
+time: 0.023; rss: 109MB	lint checking
+time: 0.000; rss: 109MB	resolving dependency formats
+time: 0.004; rss: 110MB	Prepare MIR codegen passes
+  time: 0.029; rss: 115MB	translation item collection
+  time: 0.001; rss: 116MB	codegen unit partitioning
+  time: 0.060; rss: 147MB	write metadata
+time: 0.403; rss: 147MB	translation
+time: 0.000; rss: 147MB	assert dep graph
+time: 0.000; rss: 147MB	serialize dep graph
+  time: 0.027; rss: 111MB	llvm function passes [0]
+  time: 0.053; rss: 115MB	llvm module passes [0]
+  time: 0.575; rss: 120MB	codegen passes [0]
+  time: 0.000; rss: 104MB	codegen passes [0]
+time: 0.722; rss: 103MB	LLVM passes
+time: 0.055; rss: 102MB	linking
+done
