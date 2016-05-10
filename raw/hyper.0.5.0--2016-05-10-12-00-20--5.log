@@ -1,0 +1,125 @@
+commit d6588097d4d65e567fb234c042e61ad8ce4d41e6
+Merge: 3585321 b62e7ff
+Author: bors <bors@rust-lang.org>
+Date:   Tue May 10 05:22:17 2016 -0700
+
+    Auto merge of #33471 - birkenfeld:issue-33464, r=jseyfried
+    
+    resolve: do not modify span of non-importable name
+    
+    This span modification is probably leftover from a time when import spans were assigned differently.
+    
+    With this change, error spans for the following are properly reported:
+    
+    ```
+    use abc::one_el;
+    use abc::{a, bbb, cccccc};
+    use a_very_long_name::{el, el2};
+    ```
+    
+    before (spans only):
+    ```
+    x.rs:3 use abc::one_el;
+               ^~~
+    x.rs:4 use abc::{a, bbb, cccccc};
+                     ^~~
+    x.rs:4 use abc::{a, bbb, cccccc};
+                        ^~~
+    x.rs:4 use abc::{a, bbb, cccccc};
+                             ^~~
+    (internal compiler error: unprintable span)
+    (internal compiler error: unprintable span)
+    ```
+    
+    after:
+    ```
+    x.rs:3 use abc::one_el;
+               ^~~~~~~~~~~
+    x.rs:4 use abc::{a, bbb, cccccc};
+                     ^
+    x.rs:4 use abc::{a, bbb, cccccc};
+                        ^~~
+    x.rs:4 use abc::{a, bbb, cccccc};
+                             ^~~~~~
+    x.rs:5 use a_very_long_name::{el, el2};
+                                  ^~
+    x.rs:5 use a_very_long_name::{el, el2};
+                                      ^~~
+    ```
+    
+    Fixes: #33464
+rustc: ./hyper.0.5.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling hyper v0.5.0 (file:///root/benchmarks/hyper.0.5.0)
+time: 0.032; rss: 53MB	parsing
+Lines of code:             9154
+Pre-expansion node count:  45594
+time: 0.008; rss: 57MB	configuration 1
+time: 0.000; rss: 57MB	recursion limit
+time: 0.000; rss: 57MB	crate injection
+time: 0.005; rss: 62MB	macro loading
+time: 0.000; rss: 62MB	plugin loading
+time: 0.000; rss: 62MB	plugin registration
+time: 0.193; rss: 71MB	expansion
+time: 0.030; rss: 71MB	configuration 2
+time: 0.000; rss: 71MB	gated configuration checking
+time: 0.011; rss: 71MB	maybe building test harness
+time: 0.009; rss: 71MB	prelude injection
+time: 0.001; rss: 71MB	checking that all macro invocations are gone
+time: 0.000; rss: 71MB	checking for inline asm in case the target doesn't support it
+time: 0.002; rss: 71MB	complete gated feature checking
+Post-expansion node count: 107141
+time: 0.008; rss: 71MB	assigning node ids
+time: 0.003; rss: 73MB	collecting defs
+time: 0.005; rss: 77MB	external crate/lib resolution
+time: 0.006; rss: 77MB	early lint checks
+time: 0.027; rss: 95MB	name resolution
+time: 0.010; rss: 101MB	lowering ast -> hir
+time: 0.001; rss: 103MB	indexing hir
+time: 0.001; rss: 103MB	attribute checking
+time: 0.001; rss: 94MB	language item collection
+time: 0.002; rss: 94MB	lifetime resolution
+time: 0.000; rss: 94MB	looking for entry point
+time: 0.000; rss: 94MB	looking for plugin registrar
+time: 0.006; rss: 98MB	region resolution
+time: 0.001; rss: 98MB	loop checking
+time: 0.001; rss: 98MB	static item recursion checking
+time: 0.000; rss: 98MB	load_dep_graph
+time: 0.018; rss: 108MB	type collecting
+time: 0.000; rss: 108MB	variance inference
+time: 0.043; rss: 122MB	coherence checking
+time: 0.080; rss: 123MB	wf checking
+time: 0.029; rss: 126MB	item-types checking
+time: 0.479; rss: 148MB	item-bodies checking
+time: 0.000; rss: 148MB	drop-impl checking
+time: 0.036; rss: 150MB	const checking
+time: 0.009; rss: 150MB	privacy checking
+time: 0.001; rss: 150MB	stability index
+time: 0.004; rss: 150MB	intrinsic checking
+time: 0.002; rss: 150MB	effect checking
+time: 0.012; rss: 150MB	match checking
+time: 0.004; rss: 150MB	liveness checking
+time: 0.024; rss: 151MB	rvalue checking
+time: 0.053; rss: 156MB	MIR dump
+time: 0.036; rss: 156MB	MIR passes
+time: 0.063; rss: 156MB	borrow checking
+time: 0.003; rss: 156MB	reachability checking
+time: 0.006; rss: 156MB	death checking
+time: 0.006; rss: 156MB	stability checking
+time: 0.000; rss: 156MB	unused lib feature checking
+time: 0.047; rss: 156MB	lint checking
+time: 0.000; rss: 156MB	resolving dependency formats
+time: 0.012; rss: 159MB	Prepare MIR codegen passes
+  time: 0.177; rss: 171MB	translation item collection
+  time: 0.008; rss: 171MB	codegen unit partitioning
+  time: 0.137; rss: 297MB	write metadata
+time: 1.471; rss: 297MB	translation
+time: 0.001; rss: 297MB	assert dep graph
+time: 0.000; rss: 297MB	serialize dep graph
+  time: 0.095; rss: 172MB	llvm function passes [0]
+  time: 0.046; rss: 175MB	llvm module passes [0]
+  time: 1.639; rss: 181MB	codegen passes [0]
+  time: 0.001; rss: 129MB	codegen passes [0]
+time: 1.983; rss: 129MB	LLVM passes
+time: 0.179; rss: 127MB	linking
+done
