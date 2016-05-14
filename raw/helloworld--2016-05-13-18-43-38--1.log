@@ -1,0 +1,90 @@
+commit 2b79e05a05f7259891adc4d7b0487d44121eb0c1
+Merge: 33a5c9d 96b2288
+Author: bors <bors@rust-lang.org>
+Date:   Fri May 13 16:00:05 2016 -0700
+
+    Auto merge of #33508 - alexcrichton:always-lower-frem, r=nikomatsakis
+    
+    trans: Always lower to `frem`
+    
+    Long ago LLVM unfortunately didn't handle the 32-bit MSVC case of `frem` where
+    it can't be lowered to `fmodf` because that symbol doesn't exist. That was since
+    fixed in http://reviews.llvm.org/D12099 (landed as r246615) and was released in
+    what appears to be LLVM 3.8. Now that we're using that branch of LLVM let's
+    remove our own hacks and help LLVM optimize a little better by giving it
+    knowledge about what we're doing.
+rustc: ./helloworld
+/root/rust/x86_64-unknown-linux-gnu/stage2/bin/rustc hello.rs -Ztime-passes -Zinput-stats
+time: 0.000; rss: 44MB	parsing
+Lines of code:             3
+Pre-expansion node count:  8
+time: 0.000; rss: 44MB	configuration 1
+time: 0.000; rss: 44MB	recursion limit
+time: 0.000; rss: 49MB	crate injection
+time: 0.003; rss: 51MB	macro loading
+time: 0.000; rss: 51MB	plugin loading
+time: 0.000; rss: 51MB	plugin registration
+time: 0.001; rss: 51MB	expansion
+time: 0.000; rss: 51MB	configuration 2
+time: 0.000; rss: 51MB	gated configuration checking
+time: 0.000; rss: 51MB	maybe building test harness
+time: 0.000; rss: 51MB	prelude injection
+time: 0.000; rss: 51MB	checking that all macro invocations are gone
+time: 0.000; rss: 51MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 51MB	complete gated feature checking
+Post-expansion node count: 68
+time: 0.000; rss: 51MB	assigning node ids
+time: 0.000; rss: 51MB	collecting defs
+time: 0.003; rss: 55MB	external crate/lib resolution
+time: 0.000; rss: 55MB	early lint checks
+time: 0.001; rss: 59MB	name resolution
+time: 0.000; rss: 59MB	lowering ast -> hir
+time: 0.000; rss: 59MB	indexing hir
+time: 0.000; rss: 59MB	attribute checking
+time: 0.000; rss: 59MB	language item collection
+time: 0.000; rss: 59MB	lifetime resolution
+time: 0.000; rss: 59MB	looking for entry point
+time: 0.000; rss: 59MB	looking for plugin registrar
+time: 0.000; rss: 59MB	region resolution
+time: 0.000; rss: 59MB	loop checking
+time: 0.000; rss: 59MB	static item recursion checking
+time: 0.000; rss: 59MB	load_dep_graph
+time: 0.000; rss: 59MB	type collecting
+time: 0.000; rss: 59MB	variance inference
+time: 0.005; rss: 68MB	coherence checking
+time: 0.000; rss: 68MB	wf checking
+time: 0.000; rss: 68MB	item-types checking
+time: 0.000; rss: 72MB	item-bodies checking
+time: 0.000; rss: 72MB	drop-impl checking
+time: 0.000; rss: 72MB	const checking
+time: 0.000; rss: 72MB	privacy checking
+time: 0.000; rss: 72MB	stability index
+time: 0.000; rss: 72MB	intrinsic checking
+time: 0.000; rss: 72MB	effect checking
+time: 0.000; rss: 72MB	match checking
+time: 0.000; rss: 72MB	liveness checking
+time: 0.000; rss: 72MB	rvalue checking
+time: 0.000; rss: 72MB	MIR dump
+time: 0.000; rss: 72MB	MIR passes
+time: 0.000; rss: 72MB	borrow checking
+time: 0.000; rss: 72MB	reachability checking
+time: 0.000; rss: 72MB	death checking
+time: 0.000; rss: 72MB	stability checking
+time: 0.000; rss: 72MB	unused lib feature checking
+time: 0.000; rss: 72MB	lint checking
+time: 0.001; rss: 72MB	resolving dependency formats
+time: 0.000; rss: 72MB	Prepare MIR codegen passes
+  time: 0.000; rss: 72MB	translation item collection
+  time: 0.000; rss: 72MB	codegen unit partitioning
+  time: 0.000; rss: 80MB	write metadata
+time: 0.006; rss: 80MB	translation
+time: 0.000; rss: 80MB	assert dep graph
+time: 0.000; rss: 80MB	serialize dep graph
+  time: 0.000; rss: 84MB	llvm function passes [0]
+  time: 0.000; rss: 84MB	llvm module passes [0]
+  time: 0.001; rss: 84MB	codegen passes [0]
+  time: 0.000; rss: 84MB	codegen passes [0]
+time: 0.002; rss: 84MB	LLVM passes
+  time: 0.139; rss: 84MB	running linker
+time: 0.140; rss: 84MB	linking
+done
