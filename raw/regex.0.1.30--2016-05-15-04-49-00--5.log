@@ -1,0 +1,99 @@
+commit 088d4178522d4e9464c6beac70b14724670ee735
+Merge: dd0ef17 0eeb14e
+Author: bors <bors@rust-lang.org>
+Date:   Sat May 14 22:04:58 2016 -0700
+
+    Auto merge of #33593 - dotdash:smart_derive, r=brson
+    
+    Improve derived implementations for enums with lots of fieldless variants
+    
+    A number of trait methods like PartialEq::eq or Hash::hash don't
+    actually need a distinct arm for each variant, because the code within
+    the arm only depends on the number and types of the fields in the
+    variants. We can easily exploit this fact to create less and better
+    code for enums with multiple variants that have no fields at all, the
+    extreme case being C-like enums.
+    
+    For nickel.rs and its by now infamous 800 variant enum, this reduces
+    optimized compile times by 25% and non-optimized compile times by 40%.
+    Also peak memory usage is down by almost 40% (310MB down to 190MB).
+    
+    To be fair, most other crates don't benefit nearly as much, because
+    they don't have as huge enums. The crates in the Rust distribution that
+    I measured saw basically no change in compile times (I only tried
+    optimized builds) and only 1-2% reduction in peak memory usage.
+rustc: ./regex.0.1.30
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling regex v0.1.30 (file:///root/benchmarks/regex.0.1.30)
+time: 0.063; rss: 63MB	parsing
+Lines of code:             8558
+Pre-expansion node count:  58217
+time: 0.011; rss: 63MB	configuration 1
+time: 0.000; rss: 63MB	recursion limit
+time: 0.000; rss: 63MB	crate injection
+time: 0.004; rss: 66MB	macro loading
+time: 0.000; rss: 66MB	plugin loading
+time: 0.000; rss: 66MB	plugin registration
+time: 0.058; rss: 69MB	expansion
+time: 0.013; rss: 69MB	configuration 2
+time: 0.000; rss: 69MB	gated configuration checking
+time: 0.006; rss: 69MB	maybe building test harness
+time: 0.006; rss: 69MB	prelude injection
+time: 0.000; rss: 69MB	checking that all macro invocations are gone
+time: 0.000; rss: 69MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 69MB	complete gated feature checking
+Post-expansion node count: 68358
+time: 0.006; rss: 69MB	assigning node ids
+time: 0.001; rss: 69MB	collecting defs
+time: 0.001; rss: 69MB	external crate/lib resolution
+time: 0.006; rss: 69MB	early lint checks
+time: 0.009; rss: 78MB	name resolution
+time: 0.009; rss: 89MB	lowering ast -> hir
+time: 0.001; rss: 91MB	indexing hir
+time: 0.001; rss: 91MB	attribute checking
+time: 0.001; rss: 83MB	language item collection
+time: 0.001; rss: 83MB	lifetime resolution
+time: 0.000; rss: 83MB	looking for entry point
+time: 0.000; rss: 83MB	looking for plugin registrar
+time: 0.006; rss: 87MB	region resolution
+time: 0.001; rss: 87MB	loop checking
+time: 0.001; rss: 87MB	static item recursion checking
+time: 0.000; rss: 87MB	load_dep_graph
+time: 0.007; rss: 98MB	type collecting
+time: 0.000; rss: 98MB	variance inference
+time: 0.025; rss: 109MB	coherence checking
+time: 0.013; rss: 109MB	wf checking
+time: 0.380; rss: 112MB	item-types checking
+time: 0.217; rss: 118MB	item-bodies checking
+time: 0.000; rss: 118MB	drop-impl checking
+time: 0.027; rss: 121MB	const checking
+time: 0.004; rss: 121MB	privacy checking
+time: 0.001; rss: 121MB	stability index
+time: 0.002; rss: 121MB	intrinsic checking
+time: 0.001; rss: 121MB	effect checking
+time: 0.004; rss: 121MB	match checking
+time: 0.002; rss: 121MB	liveness checking
+time: 0.008; rss: 121MB	rvalue checking
+time: 0.053; rss: 131MB	MIR dump
+time: 0.020; rss: 131MB	MIR passes
+time: 0.022; rss: 131MB	borrow checking
+time: 0.000; rss: 131MB	reachability checking
+time: 0.003; rss: 131MB	death checking
+time: 0.002; rss: 131MB	stability checking
+time: 0.000; rss: 131MB	unused lib feature checking
+time: 0.028; rss: 131MB	lint checking
+time: 0.000; rss: 131MB	resolving dependency formats
+time: 0.005; rss: 133MB	Prepare MIR codegen passes
+  time: 0.066; rss: 138MB	translation item collection
+  time: 0.001; rss: 138MB	codegen unit partitioning
+  time: 0.179; rss: 196MB	write metadata
+time: 0.707; rss: 193MB	translation
+time: 0.000; rss: 193MB	assert dep graph
+time: 0.000; rss: 193MB	serialize dep graph
+  time: 0.035; rss: 127MB	llvm function passes [0]
+  time: 0.019; rss: 129MB	llvm module passes [0]
+  time: 0.611; rss: 133MB	codegen passes [0]
+  time: 0.001; rss: 114MB	codegen passes [0]
+time: 0.742; rss: 111MB	LLVM passes
+time: 0.066; rss: 111MB	linking
+done
