@@ -1,0 +1,115 @@
+commit b3583193531c124e36aa1813cf5f8b8e667d016c
+Merge: 1a26d23 04baf25
+Author: bors <bors@rust-lang.org>
+Date:   Sun May 15 05:26:50 2016 -0700
+
+    Auto merge of #33612 - royalstream:royalstream-enc-enum-ptr, r=michaelwoerister
+    
+    gdb Pretty Print: generic encoded was failing on reference/pointer types
+    
+    If you debug this program using **gdb**
+    ```rust
+    fn main() {
+        let x = 10;
+        let y = Some(&x);
+        // additional code
+    }
+    ```
+    And you try to print **y**'s value from the debugger, you get the following:
+    ```
+    (gdb) print y
+    Python Exception <class 'gdb.error'> Cannot convert value to int.:
+    $1 = {RUST$ENCODED$ENUM$0$None = Some = {0x7fff5fbff97c}}
+    ```
+    What happens is that inside **debugger_pretty_printers_common.py** the method `is_null_variant` doesn't have any special handling for pointer values so it ends up calling `.as_integer()` on `discriminant_val` (which holds a pointer) and fails.
+    
+    Considering it needs to handle pointers and return _true_ when the pointer is _null_, I modified the `.as_integer()` method in **gdb_rust_pretty_printing.py** to take pointers into consideration.
+    
+    After this modification **gdb** prints **y** like this:
+    ```
+    (gdb) print y
+    $1 = Some = {0x7fff5fbff97c}
+    ```
+    Now, it would be nice to print something useful (instead of a pointer address) but the pretty printer doesn't currently handle references/pointers so that's a completely different subject.
+rustc: ./rust-encoding.0.2.32
+cargo rustc -- -Ztime-passes -Zinput-stats
+    Updating registry `https://github.com/rust-lang/crates.io-index`
+   Compiling encoding_index_tests v0.1.4 (file:///root/benchmarks/rust-encoding.0.2.32)
+   Compiling encoding-index-singlebyte v1.20141219.5 (file:///root/benchmarks/rust-encoding.0.2.32)
+   Compiling encoding-index-japanese v1.20141219.5 (file:///root/benchmarks/rust-encoding.0.2.32)
+   Compiling encoding-index-simpchinese v1.20141219.5 (file:///root/benchmarks/rust-encoding.0.2.32)
+   Compiling encoding-index-tradchinese v1.20141219.5 (file:///root/benchmarks/rust-encoding.0.2.32)
+   Compiling encoding-index-korean v1.20141219.5 (file:///root/benchmarks/rust-encoding.0.2.32)
+   Compiling encoding v0.2.32 (file:///root/benchmarks/rust-encoding.0.2.32)
+time: 0.024; rss: 54MB	parsing
+Lines of code:             6441
+Pre-expansion node count:  30335
+time: 0.005; rss: 54MB	configuration 1
+time: 0.000; rss: 54MB	recursion limit
+time: 0.000; rss: 54MB	crate injection
+time: 0.004; rss: 60MB	macro loading
+time: 0.000; rss: 60MB	plugin loading
+time: 0.000; rss: 60MB	plugin registration
+time: 0.044; rss: 60MB	expansion
+time: 0.006; rss: 60MB	configuration 2
+time: 0.000; rss: 60MB	gated configuration checking
+time: 0.003; rss: 60MB	maybe building test harness
+time: 0.003; rss: 60MB	prelude injection
+time: 0.000; rss: 60MB	checking that all macro invocations are gone
+time: 0.000; rss: 60MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 60MB	complete gated feature checking
+Post-expansion node count: 41130
+time: 0.003; rss: 60MB	assigning node ids
+time: 0.001; rss: 60MB	collecting defs
+time: 0.001; rss: 60MB	external crate/lib resolution
+time: 0.002; rss: 60MB	early lint checks
+time: 0.008; rss: 69MB	name resolution
+time: 0.004; rss: 71MB	lowering ast -> hir
+time: 0.000; rss: 71MB	indexing hir
+time: 0.000; rss: 71MB	attribute checking
+time: 0.000; rss: 73MB	language item collection
+time: 0.000; rss: 73MB	lifetime resolution
+time: 0.000; rss: 73MB	looking for entry point
+time: 0.000; rss: 73MB	looking for plugin registrar
+time: 0.002; rss: 75MB	region resolution
+time: 0.000; rss: 75MB	loop checking
+time: 0.000; rss: 75MB	static item recursion checking
+time: 0.000; rss: 75MB	load_dep_graph
+time: 0.005; rss: 78MB	type collecting
+time: 0.000; rss: 78MB	variance inference
+time: 0.022; rss: 94MB	coherence checking
+time: 0.023; rss: 97MB	wf checking
+time: 0.016; rss: 97MB	item-types checking
+time: 0.235; rss: 104MB	item-bodies checking
+time: 0.000; rss: 104MB	drop-impl checking
+time: 0.013; rss: 104MB	const checking
+time: 0.002; rss: 104MB	privacy checking
+time: 0.000; rss: 104MB	stability index
+time: 0.002; rss: 104MB	intrinsic checking
+time: 0.000; rss: 104MB	effect checking
+time: 0.007; rss: 104MB	match checking
+time: 0.002; rss: 104MB	liveness checking
+time: 0.008; rss: 104MB	rvalue checking
+time: 0.024; rss: 111MB	MIR dump
+time: 0.015; rss: 112MB	MIR passes
+time: 0.024; rss: 111MB	borrow checking
+time: 0.000; rss: 111MB	reachability checking
+time: 0.002; rss: 111MB	death checking
+time: 0.002; rss: 111MB	stability checking
+time: 0.000; rss: 111MB	unused lib feature checking
+time: 0.024; rss: 111MB	lint checking
+time: 0.000; rss: 111MB	resolving dependency formats
+time: 0.004; rss: 111MB	Prepare MIR codegen passes
+  time: 0.029; rss: 117MB	translation item collection
+  time: 0.001; rss: 117MB	codegen unit partitioning
+  time: 0.058; rss: 150MB	write metadata
+time: 0.349; rss: 150MB	translation
+time: 0.000; rss: 150MB	assert dep graph
+time: 0.000; rss: 150MB	serialize dep graph
+  time: 0.026; rss: 116MB	llvm function passes [0]
+  time: 0.050; rss: 120MB	llvm module passes [0]
+  time: 0.580; rss: 124MB	codegen passes [0]
+  time: 0.001; rss: 109MB	codegen passes [0]
+time: 0.723; rss: 108MB	LLVM passes
+time: 0.053; rss: 107MB	linking
+done
