@@ -1,0 +1,101 @@
+commit 9a140454ea47b7fd107b6e963b7ea2aef74e9518
+Merge: 9743c66 f860f8b
+Author: bors <bors@rust-lang.org>
+Date:   Wed May 18 08:47:53 2016 -0700
+
+    Auto merge of #33476 - nikomatsakis:incr-comp-xcrate, r=mw
+    
+    track incr. comp. dependencies across crates
+    
+    This PR refactors the compiler's incremental compilation hashing so that it can track dependencies across crates. The main bits are:
+    
+    - computing a hash representing the metadata for an item we are emitting
+      - we do this by making `MetaData(X)` be the current task while computing metadata for an item
+      - this naturally registers reads from any tables and things that we read for that purpose
+      - we can then hash all the inputs to those tables
+    - tracking when we access metadata
+      - we do this by registering a read of `MetaData(X)` for each foreign item `X` whose metadata we read
+    - hashing metadata from foreign items
+      - we do this by loading up metadata from a file in the incr. comp. directory
+      - if there is no file, we use the SVH for the entire crate
+    
+    There is one very simple test only at this point. The next PR will be focused on expanding out the tests.
+    
+    Note that this is based on top of https://github.com/rust-lang/rust/pull/33228
+    
+    r? @michaelwoerister
+rustc: ./rust-encoding.0.2.32
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling encoding v0.2.32 (file:///root/benchmarks/rust-encoding.0.2.32)
+time: 0.024; rss: 50MB	parsing
+Lines of code:             6441
+Pre-expansion node count:  30537
+time: 0.006; rss: 52MB	configuration 1
+time: 0.000; rss: 56MB	recursion limit
+time: 0.000; rss: 56MB	crate injection
+time: 0.019; rss: 88MB	macro loading
+time: 0.000; rss: 88MB	plugin loading
+time: 0.000; rss: 88MB	plugin registration
+time: 0.045; rss: 91MB	expansion
+time: 0.006; rss: 91MB	configuration 2
+time: 0.000; rss: 91MB	gated configuration checking
+time: 0.003; rss: 91MB	maybe building test harness
+time: 0.003; rss: 91MB	prelude injection
+time: 0.000; rss: 91MB	checking that all macro invocations are gone
+time: 0.000; rss: 91MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 91MB	complete gated feature checking
+Post-expansion node count: 41376
+time: 0.003; rss: 91MB	assigning node ids
+time: 0.001; rss: 91MB	collecting defs
+time: 0.001; rss: 91MB	external crate/lib resolution
+time: 0.002; rss: 91MB	early lint checks
+time: 0.008; rss: 93MB	name resolution
+time: 0.005; rss: 96MB	lowering ast -> hir
+time: 0.000; rss: 96MB	indexing hir
+time: 0.000; rss: 96MB	attribute checking
+time: 0.000; rss: 95MB	language item collection
+time: 0.000; rss: 95MB	lifetime resolution
+time: 0.000; rss: 95MB	looking for entry point
+time: 0.000; rss: 95MB	looking for plugin registrar
+time: 0.002; rss: 97MB	region resolution
+time: 0.000; rss: 97MB	loop checking
+time: 0.000; rss: 97MB	static item recursion checking
+time: 0.000; rss: 97MB	load_dep_graph
+time: 0.005; rss: 99MB	type collecting
+time: 0.000; rss: 99MB	variance inference
+time: 0.021; rss: 103MB	coherence checking
+time: 0.024; rss: 103MB	wf checking
+time: 0.015; rss: 104MB	item-types checking
+time: 0.223; rss: 110MB	item-bodies checking
+time: 0.000; rss: 110MB	drop-impl checking
+time: 0.013; rss: 110MB	const checking
+time: 0.002; rss: 110MB	privacy checking
+time: 0.000; rss: 110MB	stability index
+time: 0.002; rss: 110MB	intrinsic checking
+time: 0.000; rss: 110MB	effect checking
+time: 0.007; rss: 110MB	match checking
+time: 0.002; rss: 110MB	liveness checking
+time: 0.008; rss: 110MB	rvalue checking
+time: 0.023; rss: 117MB	MIR dump
+time: 0.014; rss: 116MB	MIR passes
+time: 0.024; rss: 116MB	borrow checking
+time: 0.000; rss: 116MB	reachability checking
+time: 0.002; rss: 116MB	death checking
+time: 0.002; rss: 116MB	stability checking
+time: 0.000; rss: 116MB	unused lib feature checking
+time: 0.023; rss: 116MB	lint checking
+time: 0.000; rss: 116MB	resolving dependency formats
+time: 0.004; rss: 117MB	Prepare MIR codegen passes
+  time: 0.029; rss: 119MB	translation item collection
+  time: 0.001; rss: 119MB	codegen unit partitioning
+  time: 0.058; rss: 154MB	write metadata
+time: 0.350; rss: 154MB	translation
+time: 0.000; rss: 154MB	assert dep graph
+time: 0.000; rss: 154MB	serialize dep graph
+  time: 0.026; rss: 119MB	llvm function passes [0]
+  time: 0.051; rss: 123MB	llvm module passes [0]
+  time: 0.579; rss: 127MB	codegen passes [0]
+  time: 0.001; rss: 112MB	codegen passes [0]
+time: 0.721; rss: 111MB	LLVM passes
+time: 0.054; rss: 109MB	linking
+done

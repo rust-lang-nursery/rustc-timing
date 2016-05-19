@@ -1,0 +1,59 @@
+commit 9a140454ea47b7fd107b6e963b7ea2aef74e9518
+Merge: 9743c66 f860f8b
+Author: bors <bors@rust-lang.org>
+Date:   Wed May 18 08:47:53 2016 -0700
+
+    Auto merge of #33476 - nikomatsakis:incr-comp-xcrate, r=mw
+    
+    track incr. comp. dependencies across crates
+    
+    This PR refactors the compiler's incremental compilation hashing so that it can track dependencies across crates. The main bits are:
+    
+    - computing a hash representing the metadata for an item we are emitting
+      - we do this by making `MetaData(X)` be the current task while computing metadata for an item
+      - this naturally registers reads from any tables and things that we read for that purpose
+      - we can then hash all the inputs to those tables
+    - tracking when we access metadata
+      - we do this by registering a read of `MetaData(X)` for each foreign item `X` whose metadata we read
+    - hashing metadata from foreign items
+      - we do this by loading up metadata from a file in the incr. comp. directory
+      - if there is no file, we use the SVH for the entire crate
+    
+    There is one very simple test only at this point. The next PR will be focused on expanding out the tests.
+    
+    Note that this is based on top of https://github.com/rust-lang/rust/pull/33228
+    
+    r? @michaelwoerister
+rustc: ./html5ever-2015-05-15
+cargo rustc -- -Ztime-passes -Zinput-stats
+    Updating registry `https://github.com/rust-lang/crates.io-index`
+    Updating git repository `https://github.com/reem/rust-mac`
+    Updating git repository `https://github.com/servo/string-cache`
+   Compiling phf_shared v0.7.14
+   Compiling libc v0.2.11
+   Compiling winapi v0.2.7
+   Compiling mac v0.0.2 (https://github.com/reem/rust-mac#6316d3f4)
+   Compiling void v1.0.2
+   Compiling num-traits v0.1.32
+   Compiling lazy_static v0.1.16
+   Compiling winapi-build v0.1.1
+   Compiling log v0.3.6
+   Compiling rustc-serialize v0.3.19
+   Compiling unreachable v0.1.1
+   Compiling debug_unreachable v0.0.6
+   Compiling kernel32-sys v0.2.2
+   Compiling phf v0.7.14
+   Compiling time v0.1.35
+   Compiling rand v0.3.14
+   Compiling num-integer v0.1.32
+   Compiling num-iter v0.1.32
+   Compiling phf_generator v0.7.14
+   Compiling num v0.1.32
+   Compiling serde v0.6.15
+   Compiling phf_macros v0.7.14
+   Compiling string_cache_shared v0.1.12
+   Compiling string_cache v0.1.17
+   Compiling html5ever_macros v0.0.0 (file:///root/benchmarks/html5ever-2015-05-15)
+Build failed, waiting for other jobs to finish...
+makefile:2: recipe for target 'all' failed
+done
