@@ -1,0 +1,106 @@
+commit d27bdafc3eaab2729d664f82b7d650782640f31a
+Merge: cde0fa5 0d2c26c
+Author: bors <bors@rust-lang.org>
+Date:   Fri May 20 00:34:50 2016 -0700
+
+    Auto merge of #33553 - alexcrichton:cdylibs, r=brson
+    
+    rustc: Add a new crate type, cdylib
+    
+    This commit is an implementation of [RFC 1510] which adds a new crate type,
+    `cdylib`, to the compiler. This new crate type differs from the existing `dylib`
+    crate type in a few key ways:
+    
+    * No metadata is present in the final artifact
+    * Symbol visibility rules are the same as executables, that is only reachable
+      `extern` functions are visible symbols
+    * LTO is allowed
+    * All libraries are always linked statically
+    
+    This commit is relatively simple by just plubming the compiler with another
+    crate type which takes different branches here and there. The only major change
+    is an implementation of the `Linker::export_symbols` function on Unix which now
+    actually does something. This helps restrict the public symbols from a cdylib on
+    Unix.
+    
+    With this PR a "hello world" `cdylib` is 7.2K while the same `dylib` is 2.4MB,
+    which is some nice size savings!
+    
+    [RFC 1510]: https://github.com/rust-lang/rfcs/pull/1510
+    
+    Closes #33132
+rustc: ./inflate-0.1.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling inflate v0.1.0 (file:///root/benchmarks/inflate-0.1.0)
+time: 0.004; rss: 47MB	parsing
+Lines of code:             956
+Pre-expansion node count:  4772
+time: 0.001; rss: 47MB	configuration 1
+time: 0.000; rss: 47MB	recursion limit
+time: 0.000; rss: 47MB	crate injection
+time: 0.018; rss: 84MB	macro loading
+time: 0.000; rss: 84MB	plugin loading
+time: 0.000; rss: 84MB	plugin registration
+time: 0.085; rss: 92MB	expansion
+time: 0.009; rss: 92MB	configuration 2
+time: 0.000; rss: 92MB	gated configuration checking
+time: 0.004; rss: 92MB	maybe building test harness
+time: 0.004; rss: 92MB	prelude injection
+time: 0.000; rss: 92MB	checking that all macro invocations are gone
+time: 0.000; rss: 92MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 92MB	complete gated feature checking
+Post-expansion node count: 54811
+time: 0.004; rss: 92MB	assigning node ids
+time: 0.005; rss: 92MB	collecting defs
+time: 0.001; rss: 92MB	external crate/lib resolution
+time: 0.003; rss: 92MB	early lint checks
+time: 0.013; rss: 95MB	name resolution
+time: 0.008; rss: 99MB	lowering ast -> hir
+time: 0.001; rss: 99MB	indexing hir
+time: 0.001; rss: 99MB	attribute checking
+time: 0.001; rss: 96MB	language item collection
+time: 0.001; rss: 96MB	lifetime resolution
+time: 0.000; rss: 96MB	looking for entry point
+time: 0.000; rss: 96MB	looking for plugin registrar
+time: 0.003; rss: 98MB	region resolution
+time: 0.000; rss: 98MB	loop checking
+time: 0.000; rss: 98MB	static item recursion checking
+time: 0.000; rss: 98MB	load_dep_graph
+time: 0.001; rss: 101MB	type collecting
+time: 0.000; rss: 101MB	variance inference
+time: 0.009; rss: 102MB	coherence checking
+time: 0.002; rss: 102MB	wf checking
+time: 0.002; rss: 102MB	item-types checking
+time: 3.301; rss: 115MB	item-bodies checking
+time: 0.000; rss: 115MB	drop-impl checking
+time: 0.015; rss: 115MB	const checking
+time: 0.001; rss: 115MB	privacy checking
+time: 0.000; rss: 115MB	stability index
+time: 0.000; rss: 115MB	intrinsic checking
+time: 0.001; rss: 115MB	effect checking
+time: 0.005; rss: 115MB	match checking
+time: 0.060; rss: 113MB	liveness checking
+time: 0.011; rss: 113MB	rvalue checking
+time: 0.036; rss: 126MB	MIR dump
+time: 0.017; rss: 121MB	MIR passes
+time: 0.229; rss: 124MB	borrow checking
+time: 0.000; rss: 124MB	reachability checking
+time: 0.003; rss: 124MB	death checking
+time: 0.003; rss: 124MB	stability checking
+time: 0.000; rss: 124MB	unused lib feature checking
+time: 0.022; rss: 125MB	lint checking
+time: 0.000; rss: 125MB	resolving dependency formats
+time: 0.005; rss: 128MB	Prepare MIR codegen passes
+  time: 0.012; rss: 131MB	translation item collection
+  time: 0.000; rss: 131MB	codegen unit partitioning
+  time: 0.003; rss: 148MB	write metadata
+time: 0.391; rss: 142MB	translation
+time: 0.000; rss: 142MB	assert dep graph
+time: 0.000; rss: 142MB	serialize dep graph
+  time: 0.026; rss: 110MB	llvm function passes [0]
+  time: 0.005; rss: 110MB	llvm module passes [0]
+  time: 0.495; rss: 117MB	codegen passes [0]
+  time: 0.000; rss: 106MB	codegen passes [0]
+time: 0.567; rss: 105MB	LLVM passes
+time: 0.033; rss: 105MB	linking
+done
