@@ -1,0 +1,107 @@
+commit 6e455640950c4e8cb8bff919edb4854fcf7773ca
+Merge: e24d621 cfc3865
+Author: bors <bors@rust-lang.org>
+Date:   Sun May 22 23:14:11 2016 -0700
+
+    Auto merge of #31457 - lambda:rtabort-use-libc-abort, r=alexcrichton
+    
+    Use libc::abort, not intrinsics::abort, in rtabort!
+    
+    intrinsics::abort compiles down to an illegal instruction, which on
+    Unix-like platforms causes the process to be killed with SIGILL.  A more
+    appropriate way to kill the process would be SIGABRT; this indicates
+    better that the runtime has explicitly aborted, rather than some kind of
+    compiler bug or architecture mismatch that SIGILL might indicate.
+    
+    For rtassert!, replace this with libc::abort.  libc::abort raises
+    SIGABRT, but is defined to do so in such a way that it will terminate
+    the process even if SIGABRT is currently masked or caught by a signal
+    handler that returns.
+    
+    On non-Unix platforms, retain the existing behavior.  On Windows we
+    prefer to avoid depending on the C runtime, and we need a fallback for
+    any other platforms that may be defined.  An alternative on Windows
+    would be to call TerminateProcess, but this seems less essential than
+    switching to using SIGABRT on Unix-like platforms, where it is common
+    for the process-killing signal to be printed out or logged.
+    
+    This is a [breaking-change] for any code that depends on the exact
+    signal raised to abort a process via rtabort!
+    
+    cc #31273
+    cc #31333
+rustc: ./inflate-0.1.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling inflate v0.1.0 (file:///root/benchmarks/inflate-0.1.0)
+time: 0.004; rss: 46MB	parsing
+Lines of code:             956
+Pre-expansion node count:  4772
+time: 0.001; rss: 46MB	configuration 1
+time: 0.000; rss: 50MB	recursion limit
+time: 0.000; rss: 50MB	crate injection
+time: 0.018; rss: 84MB	macro loading
+time: 0.000; rss: 84MB	plugin loading
+time: 0.000; rss: 84MB	plugin registration
+time: 0.084; rss: 92MB	expansion
+time: 0.009; rss: 92MB	configuration 2
+time: 0.000; rss: 92MB	gated configuration checking
+time: 0.004; rss: 92MB	maybe building test harness
+time: 0.004; rss: 92MB	prelude injection
+time: 0.000; rss: 92MB	checking that all macro invocations are gone
+time: 0.000; rss: 92MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 92MB	complete gated feature checking
+Post-expansion node count: 54809
+time: 0.004; rss: 92MB	assigning node ids
+time: 0.005; rss: 92MB	collecting defs
+time: 0.001; rss: 92MB	external crate/lib resolution
+time: 0.003; rss: 92MB	early lint checks
+time: 0.012; rss: 94MB	name resolution
+time: 0.008; rss: 98MB	lowering ast -> hir
+time: 0.001; rss: 98MB	indexing hir
+time: 0.000; rss: 98MB	attribute checking
+time: 0.001; rss: 96MB	language item collection
+time: 0.001; rss: 96MB	lifetime resolution
+time: 0.000; rss: 96MB	looking for entry point
+time: 0.000; rss: 96MB	looking for plugin registrar
+time: 0.004; rss: 98MB	region resolution
+time: 0.000; rss: 98MB	loop checking
+time: 0.000; rss: 98MB	static item recursion checking
+time: 0.000; rss: 98MB	load_dep_graph
+time: 0.001; rss: 101MB	type collecting
+time: 0.000; rss: 101MB	variance inference
+time: 0.010; rss: 102MB	coherence checking
+time: 0.002; rss: 102MB	wf checking
+time: 0.002; rss: 102MB	item-types checking
+time: 3.225; rss: 113MB	item-bodies checking
+time: 0.000; rss: 113MB	drop-impl checking
+time: 0.015; rss: 113MB	const checking
+time: 0.001; rss: 113MB	privacy checking
+time: 0.000; rss: 113MB	stability index
+time: 0.001; rss: 113MB	intrinsic checking
+time: 0.001; rss: 113MB	effect checking
+time: 0.005; rss: 113MB	match checking
+time: 0.060; rss: 112MB	liveness checking
+time: 0.011; rss: 112MB	rvalue checking
+time: 0.036; rss: 125MB	MIR dump
+time: 0.016; rss: 120MB	MIR passes
+time: 0.201; rss: 123MB	borrow checking
+time: 0.000; rss: 123MB	reachability checking
+time: 0.003; rss: 123MB	death checking
+time: 0.002; rss: 123MB	stability checking
+time: 0.000; rss: 123MB	unused lib feature checking
+time: 0.022; rss: 124MB	lint checking
+time: 0.000; rss: 124MB	resolving dependency formats
+time: 0.005; rss: 122MB	Prepare MIR codegen passes
+  time: 0.012; rss: 126MB	translation item collection
+  time: 0.000; rss: 126MB	codegen unit partitioning
+  time: 0.003; rss: 147MB	write metadata
+time: 0.392; rss: 140MB	translation
+time: 0.000; rss: 140MB	assert dep graph
+time: 0.000; rss: 140MB	serialize dep graph
+  time: 0.026; rss: 110MB	llvm function passes [0]
+  time: 0.005; rss: 110MB	llvm module passes [0]
+  time: 0.491; rss: 116MB	codegen passes [0]
+  time: 0.000; rss: 105MB	codegen passes [0]
+time: 0.563; rss: 105MB	LLVM passes
+time: 0.034; rss: 104MB	linking
+done
