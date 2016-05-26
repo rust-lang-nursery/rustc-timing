@@ -1,0 +1,103 @@
+commit 3c795e08d6f4a532f12f3f8e1837db5e0647f8b0
+Merge: d5759a3 5b40452
+Author: bors <bors@rust-lang.org>
+Date:   Thu May 26 02:52:49 2016 -0700
+
+    Auto merge of #33872 - nagisa:undef-is-llvm-for-sigsegv, r=eddyb
+    
+    Fix handling of FFI arguments
+    
+    r? @eddyb @nikomatsakis or whoever else.
+    
+    cc @alexcrichton @rust-lang/core
+    
+    The strategy employed here was to essentially change code we generate from
+    
+    ```llvm
+      %s = alloca %S ; potentially smaller than argument, but never larger
+      %1 = bitcast %S* %s to { i64, i64 }*
+      store { i64, i64 } %0, { i64, i64 }* %1, align 4
+    ```
+    
+    to
+    
+    ```llvm
+      %1 = alloca { i64, i64 } ; the copy of argument itself
+      store { i64, i64 } %0, { i64, i64 }* %1, align 4
+      %s = bitcast { i64, i64 }* %1 to %S* ; potentially truncate by casting to a pointer of smaller type.
+    ```
+rustc: ./regex.0.1.30
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling regex v0.1.30 (file:///root/benchmarks/regex.0.1.30)
+time: 0.119; rss: 54MB	parsing
+Lines of code:             8558
+Pre-expansion node count:  58331
+time: 0.014; rss: 54MB	configuration 1
+time: 0.000; rss: 54MB	recursion limit
+time: 0.000; rss: 54MB	crate injection
+time: 0.020; rss: 87MB	macro loading
+time: 0.000; rss: 87MB	plugin loading
+time: 0.000; rss: 87MB	plugin registration
+time: 0.075; rss: 91MB	expansion
+time: 0.016; rss: 91MB	configuration 2
+time: 0.000; rss: 91MB	gated configuration checking
+time: 0.008; rss: 91MB	maybe building test harness
+time: 0.008; rss: 91MB	prelude injection
+time: 0.001; rss: 91MB	checking that all macro invocations are gone
+time: 0.000; rss: 91MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 91MB	complete gated feature checking
+Post-expansion node count: 68487
+time: 0.009; rss: 91MB	assigning node ids
+time: 0.001; rss: 91MB	collecting defs
+time: 0.002; rss: 91MB	external crate/lib resolution
+time: 0.008; rss: 91MB	early lint checks
+time: 0.008; rss: 94MB	name resolution
+time: 0.019; rss: 102MB	lowering ast -> hir
+time: 0.001; rss: 103MB	indexing hir
+time: 0.001; rss: 103MB	attribute checking
+time: 0.001; rss: 96MB	language item collection
+time: 0.001; rss: 96MB	lifetime resolution
+time: 0.000; rss: 96MB	looking for entry point
+time: 0.000; rss: 96MB	looking for plugin registrar
+time: 0.011; rss: 99MB	region resolution
+time: 0.001; rss: 99MB	loop checking
+time: 0.001; rss: 99MB	static item recursion checking
+time: 0.000; rss: 99MB	load_dep_graph
+time: 0.008; rss: 102MB	type collecting
+time: 0.000; rss: 102MB	variance inference
+time: 0.026; rss: 106MB	coherence checking
+time: 0.015; rss: 107MB	wf checking
+time: 0.373; rss: 112MB	item-types checking
+time: 0.238; rss: 117MB	item-bodies checking
+time: 0.000; rss: 117MB	drop-impl checking
+time: 0.035; rss: 118MB	const checking
+time: 0.004; rss: 118MB	privacy checking
+time: 0.001; rss: 118MB	stability index
+time: 0.002; rss: 118MB	intrinsic checking
+time: 0.001; rss: 118MB	effect checking
+time: 0.004; rss: 118MB	match checking
+time: 0.002; rss: 119MB	liveness checking
+time: 0.008; rss: 119MB	rvalue checking
+time: 0.082; rss: 129MB	MIR dump
+time: 0.022; rss: 129MB	MIR passes
+time: 0.024; rss: 129MB	borrow checking
+time: 0.000; rss: 129MB	reachability checking
+time: 0.003; rss: 129MB	death checking
+time: 0.003; rss: 129MB	stability checking
+time: 0.000; rss: 129MB	unused lib feature checking
+time: 0.030; rss: 129MB	lint checking
+time: 0.000; rss: 129MB	resolving dependency formats
+time: 0.007; rss: 129MB	Prepare MIR codegen passes
+  time: 0.199; rss: 138MB	write metadata
+  time: 0.102; rss: 140MB	translation item collection
+  time: 0.001; rss: 140MB	codegen unit partitioning
+time: 0.915; rss: 185MB	translation
+time: 0.000; rss: 185MB	assert dep graph
+time: 0.000; rss: 185MB	serialize dep graph
+  time: 0.036; rss: 123MB	llvm function passes [0]
+  time: 0.018; rss: 124MB	llvm module passes [0]
+  time: 0.613; rss: 129MB	codegen passes [0]
+  time: 0.001; rss: 110MB	codegen passes [0]
+time: 0.741; rss: 107MB	LLVM passes
+time: 0.067; rss: 107MB	linking
+done
