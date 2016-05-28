@@ -1,0 +1,112 @@
+commit 8b012ed142f03c9082773f5091c58c82d47cae79
+Merge: 7bddce6 53ab137
+Author: bors <bors@rust-lang.org>
+Date:   Fri May 27 17:46:14 2016 -0700
+
+    Auto merge of #33706 - jseyfried:refactor_cfg, r=nrc
+    
+    Perform `cfg` attribute processing during macro expansion and fix bugs
+    
+    This PR refactors `cfg` attribute processing and fixes bugs. More specifically:
+     - It merges gated feature checking for stmt/expr attributes, `cfg_attr` processing, and `cfg` processing into a single fold.
+      - This allows feature gated `cfg` variables to be used in `cfg_attr` on unconfigured items. All other feature gated attributes can already be used on unconfigured items.
+     - It performs `cfg` attribute processing during macro expansion instead of after expansion so that macro-expanded items are configured the same as ordinary items. In particular, to match their non-expanded counterparts,
+      - macro-expanded unconfigured macro invocations are no longer expanded,
+      - macro-expanded unconfigured macro definitions are no longer usable, and
+      - feature gated `cfg` variables on macro-expanded macro definitions/invocations are now errors.
+    
+    This is a [breaking-change]. For example, the following would break:
+    ```rust
+    macro_rules! m {
+        () => {
+            #[cfg(attr)]
+            macro_rules! foo { () => {} }
+            foo!(); // This will be an error
+    
+            macro_rules! bar { () => { fn f() {} } }
+            #[cfg(attr)] bar!(); // This will no longer be expanded ...
+            fn g() { f(); } // ... so that `f` will be unresolved.
+    
+            #[cfg(target_thread_local)] // This will be a gated feature error
+            macro_rules! baz { () => {} }
+        }
+    }
+    
+    m!();
+    ```
+    
+    r? @nrc
+rustc: ./rust-encoding.0.2.32
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling encoding v0.2.32 (file:///root/benchmarks/rust-encoding.0.2.32)
+time: 0.028; rss: 50MB	parsing
+Lines of code:             6441
+Pre-expansion node count:  30087
+time: 0.004; rss: 55MB	configuration 1
+time: 0.000; rss: 55MB	recursion limit
+time: 0.000; rss: 55MB	crate injection
+time: 0.018; rss: 88MB	macro loading
+time: 0.000; rss: 88MB	plugin loading
+time: 0.000; rss: 88MB	plugin registration
+time: 0.059; rss: 92MB	expansion
+time: 0.000; rss: 92MB	gated configuration checking
+time: 0.004; rss: 92MB	maybe building test harness
+time: 0.004; rss: 92MB	prelude injection
+time: 0.000; rss: 92MB	checking that all macro invocations are gone
+time: 0.000; rss: 92MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 92MB	complete gated feature checking
+Post-expansion node count: 40831
+time: 0.004; rss: 92MB	assigning node ids
+time: 0.001; rss: 92MB	collecting defs
+time: 0.001; rss: 92MB	external crate/lib resolution
+time: 0.003; rss: 92MB	early lint checks
+time: 0.007; rss: 92MB	name resolution
+time: 0.005; rss: 97MB	lowering ast -> hir
+time: 0.000; rss: 97MB	indexing hir
+time: 0.000; rss: 97MB	attribute checking
+time: 0.000; rss: 96MB	language item collection
+time: 0.000; rss: 96MB	lifetime resolution
+time: 0.000; rss: 96MB	looking for entry point
+time: 0.000; rss: 96MB	looking for plugin registrar
+time: 0.002; rss: 98MB	region resolution
+time: 0.000; rss: 98MB	loop checking
+time: 0.000; rss: 98MB	static item recursion checking
+time: 0.000; rss: 98MB	load_dep_graph
+time: 0.005; rss: 101MB	type collecting
+time: 0.000; rss: 101MB	variance inference
+time: 0.022; rss: 102MB	coherence checking
+time: 0.026; rss: 104MB	wf checking
+time: 0.016; rss: 104MB	item-types checking
+time: 0.241; rss: 111MB	item-bodies checking
+time: 0.000; rss: 111MB	drop-impl checking
+time: 0.014; rss: 111MB	const checking
+time: 0.002; rss: 111MB	privacy checking
+time: 0.000; rss: 111MB	stability index
+time: 0.002; rss: 111MB	intrinsic checking
+time: 0.000; rss: 111MB	effect checking
+time: 0.008; rss: 111MB	match checking
+time: 0.002; rss: 111MB	liveness checking
+time: 0.008; rss: 111MB	rvalue checking
+time: 0.028; rss: 117MB	MIR dump
+time: 0.016; rss: 117MB	MIR passes
+time: 0.026; rss: 117MB	borrow checking
+time: 0.000; rss: 117MB	reachability checking
+time: 0.002; rss: 117MB	death checking
+time: 0.002; rss: 117MB	stability checking
+time: 0.000; rss: 117MB	unused lib feature checking
+time: 0.025; rss: 117MB	lint checking
+time: 0.000; rss: 117MB	resolving dependency formats
+time: 0.004; rss: 117MB	Prepare MIR codegen passes
+  time: 0.059; rss: 120MB	write metadata
+  time: 0.031; rss: 122MB	translation item collection
+  time: 0.001; rss: 122MB	codegen unit partitioning
+time: 0.375; rss: 150MB	translation
+time: 0.000; rss: 150MB	assert dep graph
+time: 0.000; rss: 150MB	serialize dep graph
+  time: 0.027; rss: 119MB	llvm function passes [0]
+  time: 0.050; rss: 123MB	llvm module passes [0]
+  time: 0.584; rss: 128MB	codegen passes [0]
+  time: 0.001; rss: 113MB	codegen passes [0]
+time: 0.728; rss: 112MB	LLVM passes
+time: 0.054; rss: 110MB	linking
+done

@@ -1,0 +1,45 @@
+commit 8b012ed142f03c9082773f5091c58c82d47cae79
+Merge: 7bddce6 53ab137
+Author: bors <bors@rust-lang.org>
+Date:   Fri May 27 17:46:14 2016 -0700
+
+    Auto merge of #33706 - jseyfried:refactor_cfg, r=nrc
+    
+    Perform `cfg` attribute processing during macro expansion and fix bugs
+    
+    This PR refactors `cfg` attribute processing and fixes bugs. More specifically:
+     - It merges gated feature checking for stmt/expr attributes, `cfg_attr` processing, and `cfg` processing into a single fold.
+      - This allows feature gated `cfg` variables to be used in `cfg_attr` on unconfigured items. All other feature gated attributes can already be used on unconfigured items.
+     - It performs `cfg` attribute processing during macro expansion instead of after expansion so that macro-expanded items are configured the same as ordinary items. In particular, to match their non-expanded counterparts,
+      - macro-expanded unconfigured macro invocations are no longer expanded,
+      - macro-expanded unconfigured macro definitions are no longer usable, and
+      - feature gated `cfg` variables on macro-expanded macro definitions/invocations are now errors.
+    
+    This is a [breaking-change]. For example, the following would break:
+    ```rust
+    macro_rules! m {
+        () => {
+            #[cfg(attr)]
+            macro_rules! foo { () => {} }
+            foo!(); // This will be an error
+    
+            macro_rules! bar { () => { fn f() {} } }
+            #[cfg(attr)] bar!(); // This will no longer be expanded ...
+            fn g() { f(); } // ... so that `f` will be unresolved.
+    
+            #[cfg(target_thread_local)] // This will be a gated feature error
+            macro_rules! baz { () => {} }
+        }
+    }
+    
+    m!();
+    ```
+    
+    r? @nrc
+rustc: ./html5ever-2015-05-15
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling html5ever_macros v0.0.0 (file:///root/benchmarks/html5ever-2015-05-15)
+   Compiling string_cache v0.1.17
+Build failed, waiting for other jobs to finish...
+makefile:2: recipe for target 'all' failed
+done
