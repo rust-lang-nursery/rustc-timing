@@ -1,0 +1,95 @@
+commit 12d16599d84c25899f02a6e53110d1e70cdcbd8a
+Merge: c2cab1f 696a570
+Author: bors <bors@rust-lang.org>
+Date:   Wed Jun 1 10:21:55 2016 -0700
+
+    Auto merge of #33814 - lambda:rtabort-use-platform-abort, r=alexcrichton
+    
+    Open code the __fastfail intrinsic for rtabort! on windows
+    
+    As described https://msdn.microsoft.com/en-us/library/dn774154.aspx
+    
+    This is a Windows 8+ mechanism for terminating the process quickly,
+    which degrades to either an access violation or bugcheck in older versions.
+    
+    I'm not sure this is better the the current mechanism of terminating
+    with an illegal instruction, but we recently converted unix to
+    terminate more correctly with SIGABORT, and this *seems* more correct
+    for windows.
+    
+    [breaking-change]
+rustc: ./issue-32062-equality-relations-complexity
+/root/rust/x86_64-unknown-linux-gnu/stage2/bin/rustc issue-32062.rs -Ztime-passes -Zinput-stats
+time: 0.001; rss: 48MB	parsing
+Lines of code:             60
+Pre-expansion node count:  578
+time: 0.000; rss: 48MB	configuration 1
+time: 0.000; rss: 48MB	recursion limit
+time: 0.000; rss: 48MB	crate injection
+time: 0.018; rss: 83MB	macro loading
+time: 0.000; rss: 83MB	plugin loading
+time: 0.000; rss: 83MB	plugin registration
+time: 0.001; rss: 83MB	expansion
+time: 0.000; rss: 83MB	gated configuration checking
+time: 0.000; rss: 83MB	maybe building test harness
+time: 0.000; rss: 83MB	prelude injection
+time: 0.000; rss: 83MB	checking that all macro invocations are gone
+time: 0.000; rss: 83MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 83MB	complete gated feature checking
+Post-expansion node count: 591
+time: 0.000; rss: 83MB	assigning node ids
+time: 0.000; rss: 83MB	collecting defs
+time: 0.004; rss: 83MB	external crate/lib resolution
+time: 0.000; rss: 83MB	early lint checks
+time: 0.000; rss: 83MB	AST validation
+time: 0.000; rss: 87MB	name resolution
+time: 0.000; rss: 87MB	lowering ast -> hir
+time: 0.000; rss: 87MB	indexing hir
+time: 0.000; rss: 87MB	attribute checking
+time: 0.000; rss: 87MB	language item collection
+time: 0.000; rss: 87MB	lifetime resolution
+time: 0.000; rss: 87MB	looking for entry point
+time: 0.000; rss: 87MB	looking for plugin registrar
+time: 0.000; rss: 87MB	region resolution
+time: 0.000; rss: 87MB	loop checking
+time: 0.000; rss: 87MB	static item recursion checking
+time: 0.000; rss: 87MB	load_dep_graph
+time: 0.001; rss: 87MB	type collecting
+time: 0.000; rss: 87MB	variance inference
+time: 0.005; rss: 87MB	coherence checking
+time: 0.008; rss: 87MB	wf checking
+time: 0.001; rss: 87MB	item-types checking
+time: 8.092; rss: 95MB	item-bodies checking
+time: 0.000; rss: 95MB	drop-impl checking
+time: 0.001; rss: 95MB	const checking
+time: 0.000; rss: 95MB	privacy checking
+time: 0.000; rss: 95MB	stability index
+time: 0.000; rss: 95MB	intrinsic checking
+time: 0.000; rss: 95MB	effect checking
+time: 0.000; rss: 94MB	match checking
+time: 0.000; rss: 94MB	liveness checking
+time: 0.001; rss: 94MB	rvalue checking
+time: 0.001; rss: 94MB	MIR dump
+time: 0.000; rss: 94MB	MIR passes
+time: 0.002; rss: 94MB	borrow checking
+time: 0.000; rss: 94MB	reachability checking
+time: 0.000; rss: 94MB	death checking
+time: 0.000; rss: 94MB	stability checking
+time: 0.000; rss: 94MB	unused lib feature checking
+time: 0.000; rss: 94MB	lint checking
+time: 0.001; rss: 94MB	resolving dependency formats
+time: 0.000; rss: 94MB	Prepare MIR codegen passes
+  time: 0.000; rss: 95MB	write metadata
+  time: 1.912; rss: 98MB	translation item collection
+  time: 0.000; rss: 98MB	codegen unit partitioning
+time: 13.318; rss: 103MB	translation
+time: 0.000; rss: 103MB	assert dep graph
+time: 0.000; rss: 103MB	serialize dep graph
+  time: 0.000; rss: 95MB	llvm function passes [0]
+  time: 0.000; rss: 95MB	llvm module passes [0]
+  time: 0.006; rss: 99MB	codegen passes [0]
+  time: 0.000; rss: 99MB	codegen passes [0]
+time: 0.007; rss: 99MB	LLVM passes
+  time: 0.107; rss: 99MB	running linker
+time: 0.107; rss: 99MB	linking
+done
