@@ -1,0 +1,121 @@
+commit 12238b984abfacb2cccea176f862c94aa1231fb5
+Merge: 382ab92 480d18c
+Author: bors <bors@rust-lang.org>
+Date:   Sat Jun 4 10:47:55 2016 -0700
+
+    Auto merge of #33816 - nikomatsakis:projection-cache-2, r=arielb1
+    
+    Projection cache and better warnings for #32330
+    
+    This PR does three things:
+    
+    - it lays the groundwork for the more precise subtyping rules discussed in #32330, but does not enable them;
+    - it issues warnings when the result of a leak-check or subtyping check relies on a late-bound region which will late become early-bound when #32330 is fixed;
+    - it introduces a cache for projection in the inference context.
+    
+    I'm not 100% happy with the approach taken by the cache here, but it seems like a step in the right direction. It results in big wins on some test cases, but not as big as previous versions -- I think because it is caching the `Vec<Obligation>` (whereas before I just returned the normalized type with an empty vector). However, that change was needed to fix an ICE in @alexcrichton's future-rs module (I haven't fully tracked the cause of that ICE yet). Also, because trans/the collector use a fresh inference context for every call to `fulfill_obligation`, they don't profit nearly as much from this cache as they ought to.
+    
+    Still, here are the results from the future-rs `retry.rs`:
+    
+    ```
+    06:26 <nmatsakis> time: 6.246; rss: 44MB  item-bodies checking
+    06:26 <nmatsakis> time: 54.783; rss: 63MB   translation item collection
+    06:26 <nmatsakis> time: 140.086; rss: 86MB    translation
+    
+    06:26 <nmatsakis> time: 0.361; rss: 46MB  item-bodies checking
+    06:26 <nmatsakis> time: 5.299; rss: 63MB    translation item collection
+    06:26 <nmatsakis> time: 12.140; rss: 86MB translation
+    ```
+    
+    ~~Another example is the example from #31849. For that, I get 34s to run item-bodies without any cache. The version of the cache included here takes 2s to run item-bodies type-checking. An alternative version which doesn't track nested obligations takes 0.2s, but that version ICEs on @alexcrichton's future-rs (and may well be incorrect, I've not fully convinced myself of that). So, a definite win, but I think there's definitely room for further progress.~~
+    
+    Pushed a modified version which improves performance of the case from #31849:
+    
+    ```
+    lunch-box. time rustc --stage0 ~/tmp/issue-31849.rs  -Z no-trans
+    real    0m33.539s
+    user    0m32.932s
+    sys     0m0.570s
+    lunch-box. time rustc --stage2 ~/tmp/issue-31849.rs  -Z no-trans
+    real    0m0.195s
+    user    0m0.154s
+    sys     0m0.042s
+    ```
+    
+    Some sort of cache is also needed for unblocking further work on lazy normalization, since that will lean even more heavily on the cache, and will also require cycle detection.
+    
+    r? @arielb1
+rustc: ./issue-32062-equality-relations-complexity
+/root/rust/x86_64-unknown-linux-gnu/stage2/bin/rustc issue-32062.rs -Ztime-passes -Zinput-stats
+time: 0.001; rss: 44MB	parsing
+Lines of code:             60
+Pre-expansion node count:  578
+time: 0.000; rss: 44MB	configuration 1
+time: 0.000; rss: 48MB	recursion limit
+time: 0.000; rss: 48MB	crate injection
+time: 0.017; rss: 83MB	macro loading
+time: 0.000; rss: 83MB	plugin loading
+time: 0.000; rss: 83MB	plugin registration
+time: 0.001; rss: 83MB	expansion
+time: 0.000; rss: 83MB	gated configuration checking
+time: 0.000; rss: 83MB	maybe building test harness
+time: 0.000; rss: 83MB	prelude injection
+time: 0.000; rss: 83MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 83MB	complete gated feature checking
+Post-expansion node count: 591
+time: 0.000; rss: 83MB	assigning node ids
+time: 0.000; rss: 83MB	collecting defs
+time: 0.004; rss: 83MB	external crate/lib resolution
+time: 0.000; rss: 83MB	early lint checks
+time: 0.000; rss: 83MB	AST validation
+time: 0.000; rss: 87MB	name resolution
+time: 0.000; rss: 87MB	lowering ast -> hir
+time: 0.000; rss: 87MB	indexing hir
+time: 0.000; rss: 87MB	attribute checking
+time: 0.000; rss: 87MB	language item collection
+time: 0.000; rss: 87MB	lifetime resolution
+time: 0.000; rss: 87MB	looking for entry point
+time: 0.000; rss: 87MB	looking for plugin registrar
+time: 0.000; rss: 87MB	region resolution
+time: 0.000; rss: 87MB	loop checking
+time: 0.000; rss: 87MB	static item recursion checking
+time: 0.000; rss: 87MB	load_dep_graph
+time: 0.001; rss: 87MB	type collecting
+time: 0.000; rss: 87MB	variance inference
+time: 0.005; rss: 87MB	coherence checking
+time: 0.008; rss: 87MB	wf checking
+time: 0.000; rss: 87MB	item-types checking
+time: 0.039; rss: 89MB	item-bodies checking
+time: 0.000; rss: 89MB	drop-impl checking
+time: 0.001; rss: 89MB	const checking
+time: 0.000; rss: 89MB	privacy checking
+time: 0.000; rss: 89MB	stability index
+time: 0.000; rss: 89MB	intrinsic checking
+time: 0.000; rss: 89MB	effect checking
+time: 0.000; rss: 93MB	match checking
+time: 0.000; rss: 93MB	liveness checking
+time: 0.002; rss: 93MB	rvalue checking
+time: 0.001; rss: 93MB	MIR dump
+time: 0.000; rss: 93MB	MIR passes
+time: 0.002; rss: 93MB	borrow checking
+time: 0.000; rss: 93MB	reachability checking
+time: 0.000; rss: 93MB	death checking
+time: 0.000; rss: 93MB	stability checking
+time: 0.000; rss: 93MB	unused lib feature checking
+time: 0.000; rss: 93MB	lint checking
+time: 0.002; rss: 93MB	resolving dependency formats
+time: 0.000; rss: 93MB	Prepare MIR codegen passes
+  time: 0.000; rss: 93MB	write metadata
+  time: 0.145; rss: 93MB	translation item collection
+  time: 0.000; rss: 93MB	codegen unit partitioning
+time: 0.476; rss: 93MB	translation
+time: 0.000; rss: 93MB	assert dep graph
+time: 0.000; rss: 93MB	serialize dep graph
+  time: 0.000; rss: 96MB	llvm function passes [0]
+  time: 0.000; rss: 96MB	llvm module passes [0]
+  time: 0.006; rss: 100MB	codegen passes [0]
+  time: 0.000; rss: 100MB	codegen passes [0]
+time: 0.007; rss: 100MB	LLVM passes
+  time: 0.106; rss: 100MB	running linker
+time: 0.106; rss: 100MB	linking
+done

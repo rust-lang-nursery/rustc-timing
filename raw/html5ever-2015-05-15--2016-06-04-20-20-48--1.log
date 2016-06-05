@@ -1,0 +1,54 @@
+commit 12238b984abfacb2cccea176f862c94aa1231fb5
+Merge: 382ab92 480d18c
+Author: bors <bors@rust-lang.org>
+Date:   Sat Jun 4 10:47:55 2016 -0700
+
+    Auto merge of #33816 - nikomatsakis:projection-cache-2, r=arielb1
+    
+    Projection cache and better warnings for #32330
+    
+    This PR does three things:
+    
+    - it lays the groundwork for the more precise subtyping rules discussed in #32330, but does not enable them;
+    - it issues warnings when the result of a leak-check or subtyping check relies on a late-bound region which will late become early-bound when #32330 is fixed;
+    - it introduces a cache for projection in the inference context.
+    
+    I'm not 100% happy with the approach taken by the cache here, but it seems like a step in the right direction. It results in big wins on some test cases, but not as big as previous versions -- I think because it is caching the `Vec<Obligation>` (whereas before I just returned the normalized type with an empty vector). However, that change was needed to fix an ICE in @alexcrichton's future-rs module (I haven't fully tracked the cause of that ICE yet). Also, because trans/the collector use a fresh inference context for every call to `fulfill_obligation`, they don't profit nearly as much from this cache as they ought to.
+    
+    Still, here are the results from the future-rs `retry.rs`:
+    
+    ```
+    06:26 <nmatsakis> time: 6.246; rss: 44MB  item-bodies checking
+    06:26 <nmatsakis> time: 54.783; rss: 63MB   translation item collection
+    06:26 <nmatsakis> time: 140.086; rss: 86MB    translation
+    
+    06:26 <nmatsakis> time: 0.361; rss: 46MB  item-bodies checking
+    06:26 <nmatsakis> time: 5.299; rss: 63MB    translation item collection
+    06:26 <nmatsakis> time: 12.140; rss: 86MB translation
+    ```
+    
+    ~~Another example is the example from #31849. For that, I get 34s to run item-bodies without any cache. The version of the cache included here takes 2s to run item-bodies type-checking. An alternative version which doesn't track nested obligations takes 0.2s, but that version ICEs on @alexcrichton's future-rs (and may well be incorrect, I've not fully convinced myself of that). So, a definite win, but I think there's definitely room for further progress.~~
+    
+    Pushed a modified version which improves performance of the case from #31849:
+    
+    ```
+    lunch-box. time rustc --stage0 ~/tmp/issue-31849.rs  -Z no-trans
+    real    0m33.539s
+    user    0m32.932s
+    sys     0m0.570s
+    lunch-box. time rustc --stage2 ~/tmp/issue-31849.rs  -Z no-trans
+    real    0m0.195s
+    user    0m0.154s
+    sys     0m0.042s
+    ```
+    
+    Some sort of cache is also needed for unblocking further work on lazy normalization, since that will lean even more heavily on the cache, and will also require cycle detection.
+    
+    r? @arielb1
+rustc: ./html5ever-2015-05-15
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling html5ever_macros v0.0.0 (file:///root/benchmarks/html5ever-2015-05-15)
+   Compiling string_cache v0.1.17
+Build failed, waiting for other jobs to finish...
+makefile:2: recipe for target 'all' failed
+done
