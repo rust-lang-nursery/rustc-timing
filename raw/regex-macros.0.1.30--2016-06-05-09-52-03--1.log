@@ -1,0 +1,89 @@
+commit 8cbffc5bcfbc4696173678d50d519e9e61676265
+Merge: 22b36c7 cee244d
+Author: bors <bors@rust-lang.org>
+Date:   Sun Jun 5 06:08:37 2016 -0700
+
+    Auto merge of #33905 - eddyb:mir-overflow, r=nikomatsakis
+    
+    [MIR] Implement overflow checking
+    
+    The initial set of changes is from @Aatch's #33255 PR, rebased on master, plus:
+    
+    Added an `Assert` terminator to MIR, to simplify working with overflow and bounds checks.
+    With this terminator, error cases can be accounted for directly, instead of looking for lang item calls.
+    It also keeps the MIR slimmer, with no extra explicit blocks for the actual panic calls.
+    
+    Warnings can be produced when the `Assert` is known to always panic at runtime, e.g.:
+    ```rust
+    warning: index out of bounds: the len is 1 but the index is 3
+     --> <anon>:1:14
+    1 |> fn main() { &[std::io::stdout()][3]; }
+      |>              ^^^^^^^^^^^^^^^^^^^^^^
+    ```
+    
+    Generalized the `OperandValue::FatPtr` optimization to any aggregate pair of immediates.
+    This allows us to generate the same IR for overflow checks as old trans, not something worse.
+    For example, addition on `i16` calls `llvm.sadd.with.overflow.i16`, which returns `{i16, i1}`.
+    However, the Rust type `(i16, bool)`, has to be `{i16, i8}`, only an immediate `bool` is `i1`.
+    But if we split the pair into an `i16` and an `i1`, we can pass them around as such for free.
+    
+    The latest addition is a rebase of #34054, updated to work for pairs too. Closes #34054, fixes #33873.
+    
+    Last but not least, the `#[rustc_inherit_overflow_checks]` attribute was introduced to control the
+    overflow checking behavior of generic or `#[inline]` functions, when translated in another crate.
+    
+    It is **not** intended to be used by crates other than `libcore`, which is in the unusual position of
+    being distributed as only an optimized build with no checks, even when used from debug mode.
+    Before MIR-based translation, this worked out fine, as the decision for overflow was made at
+    translation time, in the crate being compiled, but MIR stored in `rlib` has to contain the checks.
+    
+    To avoid always generating the checks and slowing everything down, a decision was made to
+    use an attribute in the few spots of `libcore` that need it (see #33255 for previous discussion):
+    * `core::ops::{Add, Sub, Mul, Neg, Shl, Shr}` implementations for integers, which have `#[inline]` methods and can be used in generic abstractions from other crates
+    * `core::ops::{Add, Sub, Mul, Neg, Shl, Shr}Assign` same as above, for augmented assignment
+    * `pow` and `abs` methods on integers, which intentionally piggy-back on built-in multiplication and negation, respectively, to get overflow checks
+    * `core::iter::{Iterator, Chain, Peek}::count` and `core::iter::Enumerate::{next, nth}`, also documented as panicking on overflow, from addition, counting elements of an iterator in an `usize`
+rustc: ./regex-macros.0.1.30
+cd regex_macros && cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling regex_macros v0.1.17 (file:///root/benchmarks/regex-macros.0.1.30/regex_macros)
+time: 0.003; rss: 51MB	parsing
+Lines of code:             639
+Pre-expansion node count:  2072
+time: 0.000; rss: 51MB	configuration 1
+time: 0.000; rss: 51MB	recursion limit
+time: 0.000; rss: 51MB	crate injection
+time: 0.017; rss: 84MB	macro loading
+time: 0.000; rss: 84MB	plugin loading
+time: 0.000; rss: 84MB	plugin registration
+time: 0.051; rss: 90MB	expansion
+time: 0.000; rss: 90MB	gated configuration checking
+time: 0.007; rss: 90MB	maybe building test harness
+time: 0.007; rss: 90MB	prelude injection
+time: 0.000; rss: 90MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 90MB	complete gated feature checking
+Post-expansion node count: 69643
+time: 0.006; rss: 90MB	assigning node ids
+time: 0.000; rss: 90MB	collecting defs
+time: 0.102; rss: 174MB	external crate/lib resolution
+time: 0.004; rss: 174MB	early lint checks
+time: 0.000; rss: 174MB	AST validation
+time: 0.010; rss: 180MB	name resolution
+time: 0.006; rss: 182MB	lowering ast -> hir
+time: 0.001; rss: 182MB	indexing hir
+time: 0.000; rss: 182MB	attribute checking
+time: 0.001; rss: 178MB	language item collection
+time: 0.001; rss: 178MB	lifetime resolution
+time: 0.000; rss: 178MB	looking for entry point
+time: 0.000; rss: 178MB	looking for plugin registrar
+time: 0.002; rss: 179MB	region resolution
+time: 0.000; rss: 179MB	loop checking
+time: 0.000; rss: 179MB	static item recursion checking
+time: 0.000; rss: 179MB	load_dep_graph
+time: 0.015; rss: 182MB	type collecting
+time: 0.000; rss: 182MB	variance inference
+time: 0.011; rss: 183MB	coherence checking
+time: 0.008; rss: 184MB	wf checking
+time: 0.001; rss: 184MB	item-types checking
+time: 1.089; rss: 204MB	item-bodies checking
+makefile:2: recipe for target 'all' failed
+done

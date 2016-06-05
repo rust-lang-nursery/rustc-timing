@@ -1,0 +1,71 @@
+commit 8cbffc5bcfbc4696173678d50d519e9e61676265
+Merge: 22b36c7 cee244d
+Author: bors <bors@rust-lang.org>
+Date:   Sun Jun 5 06:08:37 2016 -0700
+
+    Auto merge of #33905 - eddyb:mir-overflow, r=nikomatsakis
+    
+    [MIR] Implement overflow checking
+    
+    The initial set of changes is from @Aatch's #33255 PR, rebased on master, plus:
+    
+    Added an `Assert` terminator to MIR, to simplify working with overflow and bounds checks.
+    With this terminator, error cases can be accounted for directly, instead of looking for lang item calls.
+    It also keeps the MIR slimmer, with no extra explicit blocks for the actual panic calls.
+    
+    Warnings can be produced when the `Assert` is known to always panic at runtime, e.g.:
+    ```rust
+    warning: index out of bounds: the len is 1 but the index is 3
+     --> <anon>:1:14
+    1 |> fn main() { &[std::io::stdout()][3]; }
+      |>              ^^^^^^^^^^^^^^^^^^^^^^
+    ```
+    
+    Generalized the `OperandValue::FatPtr` optimization to any aggregate pair of immediates.
+    This allows us to generate the same IR for overflow checks as old trans, not something worse.
+    For example, addition on `i16` calls `llvm.sadd.with.overflow.i16`, which returns `{i16, i1}`.
+    However, the Rust type `(i16, bool)`, has to be `{i16, i8}`, only an immediate `bool` is `i1`.
+    But if we split the pair into an `i16` and an `i1`, we can pass them around as such for free.
+    
+    The latest addition is a rebase of #34054, updated to work for pairs too. Closes #34054, fixes #33873.
+    
+    Last but not least, the `#[rustc_inherit_overflow_checks]` attribute was introduced to control the
+    overflow checking behavior of generic or `#[inline]` functions, when translated in another crate.
+    
+    It is **not** intended to be used by crates other than `libcore`, which is in the unusual position of
+    being distributed as only an optimized build with no checks, even when used from debug mode.
+    Before MIR-based translation, this worked out fine, as the decision for overflow was made at
+    translation time, in the crate being compiled, but MIR stored in `rlib` has to contain the checks.
+    
+    To avoid always generating the checks and slowing everything down, a decision was made to
+    use an attribute in the few spots of `libcore` that need it (see #33255 for previous discussion):
+    * `core::ops::{Add, Sub, Mul, Neg, Shl, Shr}` implementations for integers, which have `#[inline]` methods and can be used in generic abstractions from other crates
+    * `core::ops::{Add, Sub, Mul, Neg, Shl, Shr}Assign` same as above, for augmented assignment
+    * `pow` and `abs` methods on integers, which intentionally piggy-back on built-in multiplication and negation, respectively, to get overflow checks
+    * `core::iter::{Iterator, Chain, Peek}::count` and `core::iter::Enumerate::{next, nth}`, also documented as panicking on overflow, from addition, counting elements of an iterator in an `usize`
+rustc: ./piston-image-0.3.11
+cargo rustc -- -Ztime-passes -Zinput-stats
+    Updating registry `https://github.com/rust-lang/crates.io-index`
+   Compiling num-traits v0.1.32
+   Compiling color_quant v1.0.0
+   Compiling lzw v0.8.0
+   Compiling libc v0.2.11
+   Compiling byteorder v0.3.13
+   Compiling glob v0.2.11
+   Compiling bitflags v0.7.0
+   Compiling gcc v0.3.28
+   Compiling rustc-serialize v0.3.19
+   Compiling gif v0.5.1
+   Compiling rand v0.3.14
+   Compiling miniz-sys v0.1.7
+   Compiling num-integer v0.1.32
+   Compiling flate2 v0.2.14
+   Compiling num-iter v0.1.32
+   Compiling num-complex v0.1.32
+   Compiling num-bigint v0.1.32
+   Compiling num-rational v0.1.32
+   Compiling num v0.1.32
+   Compiling enum_primitive v0.0.1
+   Compiling png v0.3.1
+makefile:2: recipe for target 'all' failed
+done

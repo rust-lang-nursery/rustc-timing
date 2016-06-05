@@ -1,0 +1,119 @@
+commit 8cbffc5bcfbc4696173678d50d519e9e61676265
+Merge: 22b36c7 cee244d
+Author: bors <bors@rust-lang.org>
+Date:   Sun Jun 5 06:08:37 2016 -0700
+
+    Auto merge of #33905 - eddyb:mir-overflow, r=nikomatsakis
+    
+    [MIR] Implement overflow checking
+    
+    The initial set of changes is from @Aatch's #33255 PR, rebased on master, plus:
+    
+    Added an `Assert` terminator to MIR, to simplify working with overflow and bounds checks.
+    With this terminator, error cases can be accounted for directly, instead of looking for lang item calls.
+    It also keeps the MIR slimmer, with no extra explicit blocks for the actual panic calls.
+    
+    Warnings can be produced when the `Assert` is known to always panic at runtime, e.g.:
+    ```rust
+    warning: index out of bounds: the len is 1 but the index is 3
+     --> <anon>:1:14
+    1 |> fn main() { &[std::io::stdout()][3]; }
+      |>              ^^^^^^^^^^^^^^^^^^^^^^
+    ```
+    
+    Generalized the `OperandValue::FatPtr` optimization to any aggregate pair of immediates.
+    This allows us to generate the same IR for overflow checks as old trans, not something worse.
+    For example, addition on `i16` calls `llvm.sadd.with.overflow.i16`, which returns `{i16, i1}`.
+    However, the Rust type `(i16, bool)`, has to be `{i16, i8}`, only an immediate `bool` is `i1`.
+    But if we split the pair into an `i16` and an `i1`, we can pass them around as such for free.
+    
+    The latest addition is a rebase of #34054, updated to work for pairs too. Closes #34054, fixes #33873.
+    
+    Last but not least, the `#[rustc_inherit_overflow_checks]` attribute was introduced to control the
+    overflow checking behavior of generic or `#[inline]` functions, when translated in another crate.
+    
+    It is **not** intended to be used by crates other than `libcore`, which is in the unusual position of
+    being distributed as only an optimized build with no checks, even when used from debug mode.
+    Before MIR-based translation, this worked out fine, as the decision for overflow was made at
+    translation time, in the crate being compiled, but MIR stored in `rlib` has to contain the checks.
+    
+    To avoid always generating the checks and slowing everything down, a decision was made to
+    use an attribute in the few spots of `libcore` that need it (see #33255 for previous discussion):
+    * `core::ops::{Add, Sub, Mul, Neg, Shl, Shr}` implementations for integers, which have `#[inline]` methods and can be used in generic abstractions from other crates
+    * `core::ops::{Add, Sub, Mul, Neg, Shl, Shr}Assign` same as above, for augmented assignment
+    * `pow` and `abs` methods on integers, which intentionally piggy-back on built-in multiplication and negation, respectively, to get overflow checks
+    * `core::iter::{Iterator, Chain, Peek}::count` and `core::iter::Enumerate::{next, nth}`, also documented as panicking on overflow, from addition, counting elements of an iterator in an `usize`
+rustc: ./issue-32062-equality-relations-complexity
+/root/rust/x86_64-unknown-linux-gnu/stage2/bin/rustc issue-32062.rs -Ztime-passes -Zinput-stats
+time: 0.001; rss: 44MB	parsing
+Lines of code:             60
+Pre-expansion node count:  578
+time: 0.000; rss: 49MB	configuration 1
+time: 0.000; rss: 49MB	recursion limit
+time: 0.000; rss: 49MB	crate injection
+time: 0.018; rss: 83MB	macro loading
+time: 0.000; rss: 83MB	plugin loading
+time: 0.000; rss: 83MB	plugin registration
+time: 0.001; rss: 83MB	expansion
+time: 0.000; rss: 83MB	gated configuration checking
+time: 0.000; rss: 83MB	maybe building test harness
+time: 0.000; rss: 83MB	prelude injection
+time: 0.000; rss: 83MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 83MB	complete gated feature checking
+Post-expansion node count: 591
+time: 0.000; rss: 83MB	assigning node ids
+time: 0.000; rss: 83MB	collecting defs
+time: 0.004; rss: 83MB	external crate/lib resolution
+time: 0.000; rss: 83MB	early lint checks
+time: 0.000; rss: 83MB	AST validation
+time: 0.000; rss: 87MB	name resolution
+time: 0.000; rss: 87MB	lowering ast -> hir
+time: 0.000; rss: 87MB	indexing hir
+time: 0.000; rss: 87MB	attribute checking
+time: 0.000; rss: 87MB	language item collection
+time: 0.000; rss: 87MB	lifetime resolution
+time: 0.000; rss: 87MB	looking for entry point
+time: 0.000; rss: 87MB	looking for plugin registrar
+time: 0.000; rss: 87MB	region resolution
+time: 0.000; rss: 87MB	loop checking
+time: 0.000; rss: 87MB	static item recursion checking
+time: 0.000; rss: 87MB	load_dep_graph
+time: 0.001; rss: 87MB	type collecting
+time: 0.000; rss: 87MB	variance inference
+time: 0.005; rss: 87MB	coherence checking
+time: 0.008; rss: 87MB	wf checking
+time: 0.000; rss: 87MB	item-types checking
+time: 0.038; rss: 89MB	item-bodies checking
+time: 0.000; rss: 89MB	drop-impl checking
+time: 0.001; rss: 93MB	const checking
+time: 0.000; rss: 93MB	privacy checking
+time: 0.000; rss: 93MB	stability index
+time: 0.000; rss: 93MB	intrinsic checking
+time: 0.000; rss: 93MB	effect checking
+time: 0.000; rss: 93MB	match checking
+time: 0.000; rss: 93MB	liveness checking
+time: 0.002; rss: 93MB	rvalue checking
+time: 0.001; rss: 93MB	MIR dump
+time: 0.000; rss: 93MB	MIR passes
+time: 0.002; rss: 93MB	borrow checking
+time: 0.000; rss: 93MB	reachability checking
+time: 0.000; rss: 93MB	death checking
+time: 0.000; rss: 93MB	stability checking
+time: 0.000; rss: 93MB	unused lib feature checking
+time: 0.000; rss: 93MB	lint checking
+time: 0.001; rss: 93MB	resolving dependency formats
+time: 0.007; rss: 93MB	Prepare MIR codegen passes
+  time: 0.000; rss: 93MB	write metadata
+  time: 0.087; rss: 93MB	translation item collection
+  time: 0.000; rss: 93MB	codegen unit partitioning
+time: 0.422; rss: 97MB	translation
+time: 0.000; rss: 97MB	assert dep graph
+time: 0.000; rss: 97MB	serialize dep graph
+  time: 0.000; rss: 96MB	llvm function passes [0]
+  time: 0.000; rss: 96MB	llvm module passes [0]
+  time: 0.006; rss: 100MB	codegen passes [0]
+  time: 0.000; rss: 100MB	codegen passes [0]
+time: 0.007; rss: 100MB	LLVM passes
+  time: 0.109; rss: 100MB	running linker
+time: 0.109; rss: 100MB	linking
+done
