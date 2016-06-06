@@ -1,0 +1,88 @@
+commit 763f9234b052c7911dc4cf952a81a85c51c57784
+Merge: 4a4a13a f158a2f
+Author: bors <bors@rust-lang.org>
+Date:   Mon Jun 6 05:08:50 2016 -0700
+
+    Auto merge of #34006 - eddyb:mir-const-fixes, r=nikomatsakis
+    
+     [MIR] Fix double-rounding of float constants and ignore NaN sign in tests.
+    
+    Fixes #32805 by handling f32 and f64 separately in rustc_const_eval.
+    
+    Also removes `#[rustc_no_mir]` from a couple libstd tests by ignoring NaN sign.
+    Turns out that runtime evaluation of `0.0 / 0.0` produces a NaN with the sign bit set,
+    whereas LLVM constant folds it to a NaN with the sign bit unset, which we were testing for.
+rustc: ./rust-encoding.0.2.32
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling encoding v0.2.32 (file:///root/benchmarks/rust-encoding.0.2.32)
+time: 0.028; rss: 51MB	parsing
+Lines of code:             6441
+Pre-expansion node count:  30015
+time: 0.004; rss: 51MB	configuration 1
+time: 0.000; rss: 55MB	recursion limit
+time: 0.000; rss: 55MB	crate injection
+time: 0.018; rss: 89MB	macro loading
+time: 0.000; rss: 89MB	plugin loading
+time: 0.000; rss: 89MB	plugin registration
+time: 0.060; rss: 92MB	expansion
+time: 0.000; rss: 92MB	gated configuration checking
+time: 0.004; rss: 92MB	maybe building test harness
+time: 0.004; rss: 92MB	prelude injection
+time: 0.000; rss: 92MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 92MB	complete gated feature checking
+Post-expansion node count: 40773
+time: 0.004; rss: 92MB	assigning node ids
+time: 0.001; rss: 93MB	collecting defs
+time: 0.001; rss: 93MB	external crate/lib resolution
+time: 0.003; rss: 93MB	early lint checks
+time: 0.000; rss: 93MB	AST validation
+time: 0.008; rss: 95MB	name resolution
+time: 0.005; rss: 98MB	lowering ast -> hir
+time: 0.000; rss: 98MB	indexing hir
+time: 0.000; rss: 98MB	attribute checking
+time: 0.000; rss: 96MB	language item collection
+time: 0.001; rss: 96MB	lifetime resolution
+time: 0.000; rss: 96MB	looking for entry point
+time: 0.000; rss: 96MB	looking for plugin registrar
+time: 0.002; rss: 98MB	region resolution
+time: 0.000; rss: 98MB	loop checking
+time: 0.000; rss: 98MB	static item recursion checking
+time: 0.000; rss: 98MB	load_dep_graph
+time: 0.018; rss: 101MB	type collecting
+time: 0.000; rss: 101MB	variance inference
+time: 0.023; rss: 105MB	coherence checking
+time: 0.029; rss: 105MB	wf checking
+time: 0.017; rss: 105MB	item-types checking
+time: 0.245; rss: 113MB	item-bodies checking
+time: 0.000; rss: 113MB	drop-impl checking
+time: 0.014; rss: 113MB	const checking
+time: 0.002; rss: 113MB	privacy checking
+time: 0.000; rss: 113MB	stability index
+time: 0.002; rss: 113MB	intrinsic checking
+time: 0.000; rss: 113MB	effect checking
+time: 0.008; rss: 113MB	match checking
+time: 0.001; rss: 113MB	liveness checking
+time: 0.008; rss: 113MB	rvalue checking
+time: 0.028; rss: 120MB	MIR dump
+time: 0.017; rss: 121MB	MIR passes
+time: 0.026; rss: 121MB	borrow checking
+time: 0.000; rss: 121MB	reachability checking
+time: 0.002; rss: 121MB	death checking
+time: 0.002; rss: 121MB	stability checking
+time: 0.000; rss: 121MB	unused lib feature checking
+time: 0.025; rss: 121MB	lint checking
+time: 0.000; rss: 121MB	resolving dependency formats
+time: 0.027; rss: 121MB	Prepare MIR codegen passes
+  time: 0.059; rss: 123MB	write metadata
+  time: 0.029; rss: 126MB	translation item collection
+  time: 0.001; rss: 126MB	codegen unit partitioning
+time: 0.373; rss: 160MB	translation
+time: 0.000; rss: 160MB	assert dep graph
+time: 0.000; rss: 160MB	serialize dep graph
+  time: 0.027; rss: 121MB	llvm function passes [0]
+  time: 0.050; rss: 125MB	llvm module passes [0]
+  time: 0.579; rss: 129MB	codegen passes [0]
+  time: 0.001; rss: 114MB	codegen passes [0]
+time: 0.721; rss: 113MB	LLVM passes
+time: 0.054; rss: 111MB	linking
+done
