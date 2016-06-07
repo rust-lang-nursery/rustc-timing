@@ -1,0 +1,86 @@
+commit 9b2becaf6e20463253a80cbcb5ec2ecefb949d1e
+Merge: f352550 02cbc0e
+Author: bors <bors@rust-lang.org>
+Date:   Tue Jun 7 06:31:32 2016 -0700
+
+    Auto merge of #34128 - eddyb:mir-trans-fixes, r=luqmana
+    
+    [MIR] Fix MIR trans edge cases that showed up on crater.
+    
+    These fixes cover all of the [regressions found by crater](https://gist.github.com/nikomatsakis/88ce89ed06ef7f7f19bfd1e221d7f7ec) (for #34096).
+    
+    Two of them were `Pair` edge cases (ZSTs and constants) causing LLVM assertions, the other one was  causing stack overflows in debug scripts compiled in debug mode, due to the `fn_ret_cast` `alloca` ending up in a loop.
+rustc: ./issue-32278-big-array-of-strings
+/root/rust/x86_64-unknown-linux-gnu/stage2/bin/rustc big-array-of-strings.rs -Ztime-passes -Zinput-stats
+time: 0.172; rss: 69MB	parsing
+Lines of code:             65577
+Pre-expansion node count:  65552
+time: 0.015; rss: 69MB	configuration 1
+time: 0.000; rss: 69MB	recursion limit
+time: 0.000; rss: 69MB	crate injection
+time: 0.018; rss: 102MB	macro loading
+time: 0.000; rss: 102MB	plugin loading
+time: 0.000; rss: 102MB	plugin registration
+time: 0.053; rss: 109MB	expansion
+time: 0.000; rss: 109MB	gated configuration checking
+time: 0.006; rss: 109MB	maybe building test harness
+time: 0.006; rss: 109MB	prelude injection
+time: 0.000; rss: 109MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 109MB	complete gated feature checking
+Post-expansion node count: 65565
+time: 0.009; rss: 109MB	assigning node ids
+time: 0.001; rss: 109MB	collecting defs
+time: 0.004; rss: 110MB	external crate/lib resolution
+time: 0.010; rss: 110MB	early lint checks
+time: 0.001; rss: 110MB	AST validation
+time: 0.002; rss: 110MB	name resolution
+time: 0.011; rss: 124MB	lowering ast -> hir
+time: 0.002; rss: 124MB	indexing hir
+time: 0.001; rss: 124MB	attribute checking
+time: 0.001; rss: 109MB	language item collection
+time: 0.001; rss: 109MB	lifetime resolution
+time: 0.000; rss: 109MB	looking for entry point
+time: 0.000; rss: 109MB	looking for plugin registrar
+time: 0.009; rss: 117MB	region resolution
+time: 0.001; rss: 117MB	loop checking
+time: 0.002; rss: 117MB	static item recursion checking
+time: 0.000; rss: 117MB	load_dep_graph
+time: 0.000; rss: 119MB	type collecting
+time: 0.000; rss: 119MB	variance inference
+time: 0.006; rss: 120MB	coherence checking
+time: 0.001; rss: 120MB	wf checking
+time: 1.473; rss: 138MB	item-types checking
+time: 0.000; rss: 138MB	item-bodies checking
+time: 0.000; rss: 138MB	drop-impl checking
+time: 0.020; rss: 141MB	const checking
+time: 0.002; rss: 141MB	privacy checking
+time: 0.001; rss: 141MB	stability index
+time: 0.001; rss: 141MB	intrinsic checking
+time: 0.001; rss: 141MB	effect checking
+time: 0.001; rss: 141MB	match checking
+time: 0.001; rss: 141MB	liveness checking
+time: 0.000; rss: 141MB	rvalue checking
+time: 0.061; rss: 148MB	MIR dump
+time: 0.002; rss: 148MB	MIR passes
+time: 0.001; rss: 148MB	borrow checking
+time: 0.000; rss: 148MB	reachability checking
+time: 0.001; rss: 148MB	death checking
+time: 0.001; rss: 148MB	stability checking
+time: 0.000; rss: 148MB	unused lib feature checking
+time: 0.033; rss: 148MB	lint checking
+time: 0.002; rss: 148MB	resolving dependency formats
+time: 0.001; rss: 148MB	Prepare MIR codegen passes
+  time: 0.000; rss: 149MB	write metadata
+  time: 0.001; rss: 149MB	translation item collection
+  time: 0.000; rss: 149MB	codegen unit partitioning
+time: 0.094; rss: 150MB	translation
+time: 0.000; rss: 150MB	assert dep graph
+time: 0.000; rss: 150MB	serialize dep graph
+  time: 0.003; rss: 107MB	llvm function passes [0]
+  time: 0.000; rss: 107MB	llvm module passes [0]
+  time: 0.166; rss: 110MB	codegen passes [0]
+  time: 0.000; rss: 97MB	codegen passes [0]
+time: 0.182; rss: 97MB	LLVM passes
+  time: 0.186; rss: 97MB	running linker
+time: 0.188; rss: 97MB	linking
+done
