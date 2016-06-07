@@ -1,0 +1,91 @@
+commit f35255038bacaf2dd3c8a1188657f76c8f974375
+Merge: 763f923 bcec7a5
+Author: bors <bors@rust-lang.org>
+Date:   Tue Jun 7 00:04:53 2016 -0700
+
+    Auto merge of #34012 - eddyb:tick-erased, r=nikomatsakis
+    
+    rustc: add ReErased to be used by trait selection, MIR and trans.
+    
+    `ReErased` replaces `ReStatic` (i.e. `'static`) for erasing regions.
+    Using a distinct lifetime helps prevent accidental mix-ups between the two.
+    It also allows cleaner type printing (see test changes), including in symbol names:
+    ```rust
+    str..pattern..CharSearcher$LT$$u27$static$GT$::drop.30560::h840c2f2afc03bbea // before
+    str..pattern..CharSearcher::drop.30561::h6bd31d2af614377a // after
+    ```
+    Not that we should be producing symbols this way, but it's still better.
+rustc: ./hyper.0.5.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling hyper v0.5.0 (file:///root/benchmarks/hyper.0.5.0)
+time: 0.036; rss: 53MB	parsing
+Lines of code:             9154
+Pre-expansion node count:  44646
+time: 0.007; rss: 53MB	configuration 1
+time: 0.000; rss: 57MB	recursion limit
+time: 0.000; rss: 57MB	crate injection
+time: 0.019; rss: 91MB	macro loading
+time: 0.000; rss: 91MB	plugin loading
+time: 0.000; rss: 91MB	plugin registration
+time: 0.242; rss: 101MB	expansion
+time: 0.000; rss: 101MB	gated configuration checking
+time: 0.014; rss: 101MB	maybe building test harness
+time: 0.011; rss: 101MB	prelude injection
+time: 0.000; rss: 101MB	checking for inline asm in case the target doesn't support it
+time: 0.002; rss: 101MB	complete gated feature checking
+Post-expansion node count: 101566
+time: 0.010; rss: 101MB	assigning node ids
+time: 0.003; rss: 101MB	collecting defs
+time: 0.011; rss: 115MB	external crate/lib resolution
+time: 0.008; rss: 115MB	early lint checks
+time: 0.001; rss: 115MB	AST validation
+time: 0.022; rss: 118MB	name resolution
+time: 0.012; rss: 124MB	lowering ast -> hir
+time: 0.001; rss: 126MB	indexing hir
+time: 0.001; rss: 126MB	attribute checking
+time: 0.001; rss: 118MB	language item collection
+time: 0.002; rss: 118MB	lifetime resolution
+time: 0.000; rss: 118MB	looking for entry point
+time: 0.000; rss: 118MB	looking for plugin registrar
+time: 0.006; rss: 122MB	region resolution
+time: 0.001; rss: 122MB	loop checking
+time: 0.001; rss: 122MB	static item recursion checking
+time: 0.000; rss: 122MB	load_dep_graph
+time: 0.044; rss: 123MB	type collecting
+time: 0.001; rss: 123MB	variance inference
+time: 0.047; rss: 132MB	coherence checking
+time: 0.112; rss: 133MB	wf checking
+time: 0.039; rss: 133MB	item-types checking
+time: 0.584; rss: 144MB	item-bodies checking
+time: 0.000; rss: 144MB	drop-impl checking
+time: 0.047; rss: 146MB	const checking
+time: 0.007; rss: 146MB	privacy checking
+time: 0.001; rss: 146MB	stability index
+time: 0.006; rss: 146MB	intrinsic checking
+time: 0.002; rss: 146MB	effect checking
+time: 0.016; rss: 146MB	match checking
+time: 0.005; rss: 146MB	liveness checking
+time: 0.034; rss: 146MB	rvalue checking
+time: 0.072; rss: 158MB	MIR dump
+time: 0.047; rss: 158MB	MIR passes
+time: 0.076; rss: 158MB	borrow checking
+time: 0.003; rss: 158MB	reachability checking
+time: 0.005; rss: 158MB	death checking
+time: 0.006; rss: 158MB	stability checking
+time: 0.000; rss: 158MB	unused lib feature checking
+time: 0.053; rss: 158MB	lint checking
+time: 0.000; rss: 158MB	resolving dependency formats
+time: 0.097; rss: 160MB	Prepare MIR codegen passes
+  time: 0.132; rss: 167MB	write metadata
+  time: 0.192; rss: 171MB	translation item collection
+  time: 0.006; rss: 171MB	codegen unit partitioning
+time: 1.679; rss: 292MB	translation
+time: 0.001; rss: 292MB	assert dep graph
+time: 0.000; rss: 292MB	serialize dep graph
+  time: 0.098; rss: 181MB	llvm function passes [0]
+  time: 0.051; rss: 183MB	llvm module passes [0]
+  time: 1.622; rss: 184MB	codegen passes [0]
+  time: 0.001; rss: 135MB	codegen passes [0]
+time: 1.975; rss: 135MB	LLVM passes
+time: 0.176; rss: 133MB	linking
+done
