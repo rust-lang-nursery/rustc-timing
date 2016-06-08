@@ -1,0 +1,86 @@
+commit ec872dc8a3f008299ca1508105ee064d1f0f0367
+Merge: 39a523b e252865
+Author: bors <bors@rust-lang.org>
+Date:   Tue Jun 7 14:45:39 2016 -0700
+
+    Auto merge of #34141 - eddyb:trans-abi-memcpy, r=nikomatsakis
+    
+    trans: always use a memcpy for ABI argument/return casts.
+    
+    When storing incoming arguments or values returned by call/invoke, always do a `memcpy` from a temporary of the cast type, if there is an ABI cast.
+    While Clang has gotten smarter ([store](https://godbolt.org/g/EphFuK) vs [memcpy](https://godbolt.org/g/5dikH9)), a `memcpy` will always work.
+    This is what @dotdash has wanted to do all along, and it fixes #32049.
+rustc: ./inflate-0.1.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling inflate v0.1.0 (file:///root/benchmarks/inflate-0.1.0)
+time: 0.004; rss: 46MB	parsing
+Lines of code:             956
+Pre-expansion node count:  4743
+time: 0.001; rss: 46MB	configuration 1
+time: 0.000; rss: 46MB	recursion limit
+time: 0.000; rss: 46MB	crate injection
+time: 0.018; rss: 79MB	macro loading
+time: 0.000; rss: 79MB	plugin loading
+time: 0.000; rss: 79MB	plugin registration
+time: 0.095; rss: 92MB	expansion
+time: 0.000; rss: 92MB	gated configuration checking
+time: 0.005; rss: 92MB	maybe building test harness
+time: 0.004; rss: 92MB	prelude injection
+time: 0.000; rss: 92MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 92MB	complete gated feature checking
+Post-expansion node count: 54776
+time: 0.004; rss: 92MB	assigning node ids
+time: 0.005; rss: 92MB	collecting defs
+time: 0.001; rss: 92MB	external crate/lib resolution
+time: 0.003; rss: 92MB	early lint checks
+time: 0.000; rss: 92MB	AST validation
+time: 0.012; rss: 94MB	name resolution
+time: 0.008; rss: 98MB	lowering ast -> hir
+time: 0.001; rss: 98MB	indexing hir
+time: 0.001; rss: 98MB	attribute checking
+time: 0.001; rss: 95MB	language item collection
+time: 0.001; rss: 95MB	lifetime resolution
+time: 0.000; rss: 95MB	looking for entry point
+time: 0.000; rss: 95MB	looking for plugin registrar
+time: 0.003; rss: 98MB	region resolution
+time: 0.000; rss: 98MB	loop checking
+time: 0.000; rss: 98MB	static item recursion checking
+time: 0.000; rss: 98MB	load_dep_graph
+time: 0.002; rss: 100MB	type collecting
+time: 0.000; rss: 100MB	variance inference
+time: 0.010; rss: 101MB	coherence checking
+time: 0.002; rss: 101MB	wf checking
+time: 0.002; rss: 101MB	item-types checking
+time: 3.416; rss: 114MB	item-bodies checking
+time: 0.000; rss: 114MB	drop-impl checking
+time: 0.016; rss: 115MB	const checking
+time: 0.001; rss: 115MB	privacy checking
+time: 0.000; rss: 115MB	stability index
+time: 0.001; rss: 115MB	intrinsic checking
+time: 0.001; rss: 115MB	effect checking
+time: 0.004; rss: 115MB	match checking
+time: 0.060; rss: 114MB	liveness checking
+time: 0.011; rss: 114MB	rvalue checking
+time: 0.040; rss: 127MB	MIR dump
+time: 0.021; rss: 125MB	MIR passes
+time: 0.236; rss: 126MB	borrow checking
+time: 0.000; rss: 126MB	reachability checking
+time: 0.003; rss: 126MB	death checking
+time: 0.003; rss: 126MB	stability checking
+time: 0.000; rss: 126MB	unused lib feature checking
+time: 0.022; rss: 128MB	lint checking
+time: 0.000; rss: 128MB	resolving dependency formats
+time: 0.161; rss: 130MB	Prepare MIR codegen passes
+  time: 0.003; rss: 131MB	write metadata
+  time: 0.011; rss: 135MB	translation item collection
+  time: 0.000; rss: 135MB	codegen unit partitioning
+time: 0.391; rss: 140MB	translation
+time: 0.000; rss: 140MB	assert dep graph
+time: 0.000; rss: 140MB	serialize dep graph
+  time: 0.026; rss: 111MB	llvm function passes [0]
+  time: 0.005; rss: 111MB	llvm module passes [0]
+  time: 0.497; rss: 119MB	codegen passes [0]
+  time: 0.000; rss: 105MB	codegen passes [0]
+time: 0.575; rss: 105MB	LLVM passes
+time: 0.034; rss: 104MB	linking
+done

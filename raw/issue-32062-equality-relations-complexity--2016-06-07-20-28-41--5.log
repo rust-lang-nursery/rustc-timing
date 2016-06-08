@@ -1,0 +1,86 @@
+commit ec872dc8a3f008299ca1508105ee064d1f0f0367
+Merge: 39a523b e252865
+Author: bors <bors@rust-lang.org>
+Date:   Tue Jun 7 14:45:39 2016 -0700
+
+    Auto merge of #34141 - eddyb:trans-abi-memcpy, r=nikomatsakis
+    
+    trans: always use a memcpy for ABI argument/return casts.
+    
+    When storing incoming arguments or values returned by call/invoke, always do a `memcpy` from a temporary of the cast type, if there is an ABI cast.
+    While Clang has gotten smarter ([store](https://godbolt.org/g/EphFuK) vs [memcpy](https://godbolt.org/g/5dikH9)), a `memcpy` will always work.
+    This is what @dotdash has wanted to do all along, and it fixes #32049.
+rustc: ./issue-32062-equality-relations-complexity
+/root/rust/x86_64-unknown-linux-gnu/stage2/bin/rustc issue-32062.rs -Ztime-passes -Zinput-stats
+time: 0.000; rss: 44MB	parsing
+Lines of code:             60
+Pre-expansion node count:  578
+time: 0.000; rss: 44MB	configuration 1
+time: 0.000; rss: 44MB	recursion limit
+time: 0.000; rss: 44MB	crate injection
+time: 0.018; rss: 82MB	macro loading
+time: 0.000; rss: 82MB	plugin loading
+time: 0.000; rss: 82MB	plugin registration
+time: 0.001; rss: 82MB	expansion
+time: 0.000; rss: 82MB	gated configuration checking
+time: 0.000; rss: 82MB	maybe building test harness
+time: 0.000; rss: 82MB	prelude injection
+time: 0.000; rss: 82MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 82MB	complete gated feature checking
+Post-expansion node count: 591
+time: 0.000; rss: 82MB	assigning node ids
+time: 0.000; rss: 82MB	collecting defs
+time: 0.003; rss: 82MB	external crate/lib resolution
+time: 0.000; rss: 82MB	early lint checks
+time: 0.000; rss: 82MB	AST validation
+time: 0.000; rss: 82MB	name resolution
+time: 0.000; rss: 86MB	lowering ast -> hir
+time: 0.000; rss: 86MB	indexing hir
+time: 0.000; rss: 86MB	attribute checking
+time: 0.000; rss: 86MB	language item collection
+time: 0.000; rss: 86MB	lifetime resolution
+time: 0.000; rss: 86MB	looking for entry point
+time: 0.000; rss: 86MB	looking for plugin registrar
+time: 0.000; rss: 86MB	region resolution
+time: 0.000; rss: 86MB	loop checking
+time: 0.000; rss: 86MB	static item recursion checking
+time: 0.000; rss: 86MB	load_dep_graph
+time: 0.001; rss: 86MB	type collecting
+time: 0.000; rss: 86MB	variance inference
+time: 0.005; rss: 86MB	coherence checking
+time: 0.007; rss: 86MB	wf checking
+time: 0.000; rss: 86MB	item-types checking
+time: 0.034; rss: 88MB	item-bodies checking
+time: 0.000; rss: 88MB	drop-impl checking
+time: 0.001; rss: 88MB	const checking
+time: 0.000; rss: 88MB	privacy checking
+time: 0.000; rss: 88MB	stability index
+time: 0.000; rss: 88MB	intrinsic checking
+time: 0.000; rss: 88MB	effect checking
+time: 0.000; rss: 88MB	match checking
+time: 0.000; rss: 88MB	liveness checking
+time: 0.001; rss: 88MB	rvalue checking
+time: 0.001; rss: 92MB	MIR dump
+time: 0.000; rss: 92MB	MIR passes
+time: 0.002; rss: 92MB	borrow checking
+time: 0.000; rss: 92MB	reachability checking
+time: 0.000; rss: 92MB	death checking
+time: 0.000; rss: 92MB	stability checking
+time: 0.000; rss: 92MB	unused lib feature checking
+time: 0.000; rss: 92MB	lint checking
+time: 0.001; rss: 92MB	resolving dependency formats
+time: 0.006; rss: 92MB	Prepare MIR codegen passes
+  time: 0.000; rss: 92MB	write metadata
+  time: 0.081; rss: 92MB	translation item collection
+  time: 0.000; rss: 92MB	codegen unit partitioning
+time: 0.368; rss: 92MB	translation
+time: 0.000; rss: 92MB	assert dep graph
+time: 0.000; rss: 92MB	serialize dep graph
+  time: 0.000; rss: 95MB	llvm function passes [0]
+  time: 0.000; rss: 95MB	llvm module passes [0]
+  time: 0.006; rss: 100MB	codegen passes [0]
+  time: 0.000; rss: 100MB	codegen passes [0]
+time: 0.007; rss: 99MB	LLVM passes
+  time: 0.107; rss: 99MB	running linker
+time: 0.107; rss: 99MB	linking
+done
