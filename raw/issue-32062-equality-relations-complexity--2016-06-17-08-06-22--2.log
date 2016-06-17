@@ -1,0 +1,130 @@
+commit c8eff682fd486a405dfbfcc89e613dcbccac0904
+Merge: be203ac 5df05c6
+Author: bors <bors@rust-lang.org>
+Date:   Fri Jun 17 03:36:32 2016 -0700
+
+    Auto merge of #33090 - bluss:special-zip-2, r=aturon
+    
+    Specialize .zip() for efficient slice and slice iteration
+    
+    The idea is to introduce a private trait TrustedRandomAccess and specialize .zip() for random access iterators into a counted loop.
+    
+    The implementation in the PR is internal and has no visible effect in the API
+    
+    Why a counted loop? To have each slice iterator compile to just a pointer, and both pointers are indexed with the same loop counter value in the generated code. When this succeeds, copying loops are readily recognized and replaced with memcpy and addition loops autovectorize well.
+    
+    The TrustedRandomAccess approach works very well on the surface. Microbenchmarks optimize well, following the ideas above, and that is a dramatic improvement of .zip()'s codegen.
+    
+    ```rust
+    // old zip before this PR: bad, byte-for-byte loop
+    // with specialized zip: memcpy
+    pub fn copy_zip(xs: &[u8], ys: &mut [u8]) {
+        for (a, b) in ys.iter_mut().zip(xs) {
+            *a = *b;
+        }
+    }
+    
+    // old zip before this PR: single addition per iteration
+    // with specialized zip: vectorized
+    pub fn add_zip(xs: &[f32], ys: &mut [f32]) {
+        for (a, b) in ys.iter_mut().zip(xs) { *a += *b; }
+    }
+    
+    // old zip before this PR: single addition per iteration
+    // with specialized zip: vectorized (!!)
+    pub fn add_zip3(xs: &[f32], ys: &[f32], zs: &mut [f32]) {
+        for ((a, b), c) in zs.iter_mut().zip(xs).zip(ys) { *a += *b * *c; }
+    }
+    ```
+    
+    Yet in more complex situations, the .zip() loop can still fall back to its old behavior where phantom null checks throw in fake premature end of the loop conditionals. Remember that a NULL inside
+    Option<(&T, &T)> makes it a `None` value and a premature (in this case)
+    end of the loop.
+    
+    So even if we have 1) an explicit `Some` in the code and 2) the types of the pointers are `&T` or `&mut T` which are nonnull, we can still get a phantom null check at that point.
+    
+    One example that illustrates the difference is `copy_zip` with slice versus Vec arguments. The involved iterator types are exactly the same, but the Vec version doesn't compile down to memcpy. Investigating into this, the function argument metadata emitted to llvm plays the biggest role. As eddyb summarized, we need nonnull for the loop to autovectorize and noalias for it to replace with memcpy.
+    
+    There was an experiment to use `assume` to add a non-null assumption on each of the two elements in the specialized zip iterator, but this only helped in some of the test cases and regressed others. Instead I think the nonnull/noalias metadata issue is something we need to solve separately anyway.
+    
+    These have conditionally implemented TrustedRandomAccess
+    
+    - Enumerate
+    - Zip
+    
+    These have not implemented it
+    
+    - Map is sideeffectful. The forward case would be workable, but the double ended case is complicated.
+    - Chain, exact length semantics unclear
+    - Filter, FilterMap, FlatMap and many others don't offer random access and/or exact length
+rustc: ./issue-32062-equality-relations-complexity
+/root/rust/x86_64-unknown-linux-gnu/stage2/bin/rustc issue-32062.rs -Ztime-passes -Zinput-stats
+time: 0.000; rss: 44MB	parsing
+Lines of code:             60
+Pre-expansion node count:  578
+time: 0.000; rss: 44MB	configuration
+time: 0.000; rss: 44MB	recursion limit
+time: 0.000; rss: 44MB	crate injection
+time: 0.000; rss: 44MB	plugin loading
+time: 0.000; rss: 44MB	plugin registration
+time: 0.019; rss: 82MB	expansion
+time: 0.000; rss: 82MB	maybe building test harness
+time: 0.000; rss: 82MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 82MB	complete gated feature checking
+Post-expansion node count: 591
+time: 0.000; rss: 82MB	assigning node ids
+time: 0.000; rss: 82MB	collecting defs
+time: 0.003; rss: 82MB	external crate/lib resolution
+time: 0.000; rss: 82MB	early lint checks
+time: 0.000; rss: 82MB	AST validation
+time: 0.000; rss: 82MB	name resolution
+time: 0.000; rss: 82MB	lowering ast -> hir
+time: 0.000; rss: 82MB	indexing hir
+time: 0.000; rss: 82MB	attribute checking
+time: 0.000; rss: 82MB	language item collection
+time: 0.000; rss: 82MB	lifetime resolution
+time: 0.000; rss: 82MB	looking for entry point
+time: 0.000; rss: 82MB	looking for plugin registrar
+time: 0.000; rss: 82MB	region resolution
+time: 0.000; rss: 82MB	loop checking
+time: 0.000; rss: 82MB	static item recursion checking
+time: 0.000; rss: 86MB	load_dep_graph
+time: 0.001; rss: 86MB	type collecting
+time: 0.000; rss: 86MB	variance inference
+time: 0.005; rss: 86MB	coherence checking
+time: 0.007; rss: 86MB	wf checking
+time: 0.000; rss: 86MB	item-types checking
+time: 0.035; rss: 88MB	item-bodies checking
+time: 0.000; rss: 88MB	drop-impl checking
+time: 0.001; rss: 88MB	const checking
+time: 0.000; rss: 88MB	privacy checking
+time: 0.000; rss: 88MB	stability index
+time: 0.000; rss: 88MB	intrinsic checking
+time: 0.000; rss: 88MB	effect checking
+time: 0.000; rss: 88MB	match checking
+time: 0.000; rss: 88MB	liveness checking
+time: 0.001; rss: 88MB	rvalue checking
+time: 0.001; rss: 88MB	MIR dump
+time: 0.000; rss: 88MB	MIR passes
+time: 0.002; rss: 88MB	borrow checking
+time: 0.000; rss: 88MB	reachability checking
+time: 0.000; rss: 88MB	death checking
+time: 0.000; rss: 88MB	stability checking
+time: 0.000; rss: 88MB	unused lib feature checking
+time: 0.000; rss: 88MB	lint checking
+time: 0.001; rss: 88MB	resolving dependency formats
+time: 0.006; rss: 88MB	Prepare MIR codegen passes
+  time: 0.000; rss: 92MB	write metadata
+  time: 0.081; rss: 92MB	translation item collection
+  time: 0.000; rss: 92MB	codegen unit partitioning
+time: 0.366; rss: 92MB	translation
+time: 0.000; rss: 92MB	assert dep graph
+time: 0.000; rss: 92MB	serialize dep graph
+  time: 0.000; rss: 93MB	llvm function passes [0]
+  time: 0.000; rss: 93MB	llvm module passes [0]
+  time: 0.005; rss: 97MB	codegen passes [0]
+  time: 0.000; rss: 97MB	codegen passes [0]
+time: 0.007; rss: 97MB	LLVM passes
+  time: 0.107; rss: 97MB	running linker
+time: 0.108; rss: 97MB	linking
+done
