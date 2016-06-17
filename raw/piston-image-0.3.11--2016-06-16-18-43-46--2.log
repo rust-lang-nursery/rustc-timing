@@ -1,0 +1,30 @@
+commit 18f28719efd4268bcd8747b65810646e86901155
+Merge: 12b6345 24e7491
+Author: bors <bors@rust-lang.org>
+Date:   Thu Jun 16 12:13:25 2016 -0700
+
+    Auto merge of #34187 - luser:extern-crate-abspaths, r=michaelwoerister
+    
+    Add an abs_path member to FileMap, use it when writing debug info.
+    
+    Fixes #34179.
+    
+    When items are inlined from extern crates, the filename in the debug info
+    is taken from the FileMap that's serialized in the rlib metadata.
+    Currently this is just FileMap.name, which is whatever path is passed to rustc.
+    Since libcore and libstd are built by invoking rustc with relative paths,
+    they wind up with relative paths in the rlib, and when linked into a binary
+    the debug info uses relative paths for the names, but since the compilation
+    directory for the final binary, tools trying to read source filenames
+    will wind up with bad paths. We noticed this in Firefox with source
+    filenames from libcore/libstd having bad paths.
+    
+    This change stores an absolute path in FileMap.abs_path, and uses that
+    if available for writing debug info. This is not going to magically make
+    debuggers able to find the source, but it will at least provide sensible
+    paths.
+rustc: ./piston-image-0.3.11
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling png v0.3.1
+makefile:2: recipe for target 'all' failed
+done
