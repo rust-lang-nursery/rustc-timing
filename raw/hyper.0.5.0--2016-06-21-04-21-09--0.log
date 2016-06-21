@@ -1,0 +1,149 @@
+commit 45cde975cb9b5f3ebe1261b5a962c75731e884e4
+Merge: 4ba60ab 7279af8
+Author: bors <bors@rust-lang.org>
+Date:   Mon Jun 20 21:04:48 2016 -0700
+
+    Auto merge of #34189 - eddyb:mir-trans-imm, r=nagisa
+    
+    trans: generalize immediate temporaries to all MIR locals.
+    
+    Added `Mir::local_index` which gives you an unified index for `Arg`, `Var`, `Temp` and `ReturnPointer`.
+    Also available is `Mir::count_locals` which returns the total number of the above locals.
+    This simplifies a lot of the code which can treat all of the local lvalues in the same manner.
+    If we had `-> impl Iterator`, I could have added a bunch of useful `Ty` or `Lvalue` iterators for all locals.
+    We could of course manually write such iterators as they are needed.
+    
+    The only place which currently takes advantage of unified locals is trans' alloca elision.
+    Currently it's not as good as it could be, due to our usage of `llvm.dbg.declare` in debug mode.
+    But passing some arguments and variables as immediates has some effect on release-mode `libsyntax`:
+    
+    Old trans:
+    ```
+    time: 11.500; rss: 710MB        translation
+    time: 0.002; rss: 710MB assert dep graph
+    time: 0.000; rss: 710MB serialize dep graph
+      time: 4.410; rss: 628MB       llvm function passes [0]
+      time: 84.485; rss: 633MB      llvm module passes [0]
+      time: 23.898; rss: 634MB      codegen passes [0]
+      time: 0.002; rss: 634MB       codegen passes [0]
+    time: 113.408; rss: 634MB       LLVM passes
+    ```
+    `-Z orbit`, previously:
+    ```
+    time: 12.588; rss: 723MB        translation
+    time: 0.002; rss: 723MB assert dep graph
+    time: 0.000; rss: 723MB serialize dep graph
+      time: 4.597; rss: 642MB       llvm function passes [0]
+      time: 77.347; rss: 646MB      llvm module passes [0]
+      time: 24.703; rss: 648MB      codegen passes [0]
+      time: 0.002; rss: 615MB       codegen passes [0]
+    time: 107.233; rss: 615MB       LLVM passes
+    ```
+    `-Z orbit`, after this PR:
+    ```
+    time: 13.820; rss: 672MB        translation
+    time: 0.002; rss: 672MB assert dep graph
+    time: 0.000; rss: 672MB serialize dep graph
+      time: 3.969; rss: 591MB       llvm function passes [0]
+      time: 72.294; rss: 595MB      llvm module passes [0]
+      time: 24.610; rss: 597MB      codegen passes [0]
+      time: 0.002; rss: 597MB       codegen passes [0]
+    time: 101.439; rss: 597MB       LLVM passes
+    ```
+rustc: ./hyper.0.5.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+    Updating registry `https://github.com/rust-lang/crates.io-index`
+   Compiling log v0.3.6
+   Compiling pkg-config v0.3.8
+   Compiling matches v0.1.2
+   Compiling winapi-build v0.1.1
+   Compiling winapi v0.2.7
+   Compiling bitflags v0.3.3
+   Compiling unicase v0.1.0
+   Compiling httparse v0.1.6
+   Compiling libc v0.1.12
+   Compiling rustc-serialize v0.3.19
+   Compiling libc v0.2.12
+   Compiling kernel32-sys v0.2.2
+   Compiling gcc v0.3.28
+   Compiling mime v0.0.11
+   Compiling lazy_static v0.1.16
+   Compiling traitobject v0.0.1
+   Compiling typeable v0.1.2
+   Compiling rand v0.3.14
+   Compiling time v0.1.35
+   Compiling num_cpus v0.2.13
+   Compiling openssl-sys v0.6.7
+   Compiling openssl v0.6.7
+   Compiling uuid v0.1.18
+   Compiling url v0.2.38
+   Compiling cookie v0.1.21
+   Compiling hyper v0.5.0 (file:///root/benchmarks/hyper.0.5.0)
+time: 0.030; rss: 52MB	parsing
+Lines of code:             9154
+Pre-expansion node count:  44646
+time: 0.005; rss: 56MB	configuration
+time: 0.000; rss: 56MB	recursion limit
+time: 0.000; rss: 56MB	crate injection
+time: 0.000; rss: 56MB	plugin loading
+time: 0.000; rss: 56MB	plugin registration
+time: 0.175; rss: 97MB	expansion
+time: 0.000; rss: 97MB	maybe building test harness
+time: 0.000; rss: 97MB	checking for inline asm in case the target doesn't support it
+time: 0.003; rss: 97MB	complete gated feature checking
+Post-expansion node count: 100536
+time: 0.008; rss: 97MB	assigning node ids
+time: 0.004; rss: 98MB	collecting defs
+time: 0.011; rss: 107MB	external crate/lib resolution
+time: 0.006; rss: 107MB	early lint checks
+time: 0.001; rss: 107MB	AST validation
+time: 0.025; rss: 114MB	name resolution
+time: 0.011; rss: 121MB	lowering ast -> hir
+time: 0.002; rss: 121MB	indexing hir
+time: 0.002; rss: 121MB	attribute checking
+time: 0.001; rss: 114MB	language item collection
+time: 0.002; rss: 114MB	lifetime resolution
+time: 0.000; rss: 114MB	looking for entry point
+time: 0.000; rss: 114MB	looking for plugin registrar
+time: 0.006; rss: 118MB	region resolution
+time: 0.001; rss: 118MB	loop checking
+time: 0.001; rss: 118MB	static item recursion checking
+time: 0.000; rss: 118MB	load_dep_graph
+time: 0.033; rss: 121MB	type collecting
+time: 0.000; rss: 121MB	variance inference
+time: 0.046; rss: 129MB	coherence checking
+time: 0.095; rss: 131MB	wf checking
+time: 0.035; rss: 131MB	item-types checking
+time: 0.523; rss: 141MB	item-bodies checking
+time: 0.000; rss: 141MB	drop-impl checking
+time: 0.044; rss: 144MB	const checking
+time: 0.007; rss: 144MB	privacy checking
+time: 0.001; rss: 144MB	stability index
+time: 0.006; rss: 144MB	intrinsic checking
+time: 0.002; rss: 144MB	effect checking
+time: 0.014; rss: 144MB	match checking
+time: 0.005; rss: 144MB	liveness checking
+time: 0.031; rss: 144MB	rvalue checking
+time: 0.061; rss: 154MB	MIR dump
+time: 0.044; rss: 154MB	MIR passes
+time: 0.072; rss: 154MB	borrow checking
+time: 0.003; rss: 154MB	reachability checking
+time: 0.005; rss: 154MB	death checking
+time: 0.005; rss: 154MB	stability checking
+time: 0.000; rss: 154MB	unused lib feature checking
+time: 0.051; rss: 154MB	lint checking
+time: 0.000; rss: 154MB	resolving dependency formats
+time: 0.093; rss: 158MB	Prepare MIR codegen passes
+  time: 0.127; rss: 164MB	write metadata
+  time: 0.180; rss: 164MB	translation item collection
+  time: 0.008; rss: 166MB	codegen unit partitioning
+time: 1.625; rss: 287MB	translation
+time: 0.001; rss: 287MB	assert dep graph
+time: 0.000; rss: 287MB	serialize dep graph
+  time: 0.096; rss: 177MB	llvm function passes [0]
+  time: 0.048; rss: 177MB	llvm module passes [0]
+  time: 1.638; rss: 181MB	codegen passes [0]
+  time: 0.001; rss: 133MB	codegen passes [0]
+time: 1.980; rss: 133MB	LLVM passes
+time: 0.181; rss: 130MB	linking
+done
