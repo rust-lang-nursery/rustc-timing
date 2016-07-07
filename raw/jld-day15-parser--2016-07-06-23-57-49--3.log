@@ -1,0 +1,88 @@
+commit de78655bca47cac8e783dbb563e7e5c25c1fae40
+Merge: 5c674a1 547a930
+Author: bors <bors@rust-lang.org>
+Date:   Wed Jul 6 20:04:11 2016 -0700
+
+    Auto merge of #34652 - jseyfried:fix_expansion_perf, r=nrc
+    
+    Fix expansion performance regression
+    
+    **syntax-[breaking-change] cc #31645**
+    
+    This fixes #34630 by reverting commit 5bf7970 of PR #33943, which landed in #34424.
+    
+    By removing the `Rc<_>` wrapping around `Delimited` and `SequenceRepetition` in `TokenTree`, 5bf7970 made cloning `TokenTree`s more expensive. While this had no measurable performance impact on the compiler's crates, it caused an order of magnitude performance regression on some macro-heavy code in the wild. I believe this is due to clones of `TokenTree`s in `macro_parser.rs` and/or `macro_rules.rs`.
+    
+    r? @nrc
+rustc: ./jld-day15-parser
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling day15 v0.1.0 (file:///root/benchmarks/jld-day15-parser)
+time: 0.001; rss: 77MB	parsing
+Lines of code:             72
+Pre-expansion node count:  654
+time: 0.000; rss: 77MB	configuration
+time: 0.000; rss: 77MB	recursion limit
+time: 0.000; rss: 77MB	crate injection
+time: 0.000; rss: 81MB	plugin loading
+time: 0.000; rss: 81MB	plugin registration
+time: 0.020; rss: 115MB	expansion
+time: 0.000; rss: 115MB	maybe building test harness
+time: 0.000; rss: 115MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 115MB	complete gated feature checking
+Post-expansion node count: 1155
+time: 0.000; rss: 115MB	assigning node ids
+time: 0.000; rss: 115MB	collecting defs
+time: 0.004; rss: 119MB	external crate/lib resolution
+time: 0.000; rss: 119MB	early lint checks
+time: 0.000; rss: 119MB	AST validation
+time: 0.001; rss: 119MB	name resolution
+time: 0.000; rss: 119MB	lowering ast -> hir
+time: 0.000; rss: 119MB	indexing hir
+time: 0.000; rss: 119MB	attribute checking
+time: 0.000; rss: 119MB	language item collection
+time: 0.000; rss: 119MB	lifetime resolution
+time: 0.000; rss: 119MB	looking for entry point
+time: 0.000; rss: 119MB	looking for plugin registrar
+time: 0.000; rss: 119MB	region resolution
+time: 0.000; rss: 119MB	loop checking
+time: 0.000; rss: 119MB	static item recursion checking
+time: 0.000; rss: 119MB	load_dep_graph
+time: 0.001; rss: 119MB	type collecting
+time: 0.000; rss: 119MB	variance inference
+time: 0.005; rss: 119MB	coherence checking
+time: 0.006; rss: 123MB	wf checking
+time: 0.000; rss: 123MB	item-types checking
+time: 0.047; rss: 132MB	item-bodies checking
+time: 0.000; rss: 132MB	drop-impl checking
+time: 0.001; rss: 132MB	const checking
+time: 0.000; rss: 132MB	privacy checking
+time: 0.000; rss: 132MB	stability index
+time: 0.000; rss: 132MB	intrinsic checking
+time: 0.000; rss: 132MB	effect checking
+time: 0.000; rss: 132MB	match checking
+time: 0.000; rss: 132MB	liveness checking
+time: 0.000; rss: 132MB	rvalue checking
+time: 0.001; rss: 132MB	MIR dump
+time: 0.001; rss: 132MB	MIR passes
+time: 0.001; rss: 132MB	borrow checking
+time: 0.000; rss: 132MB	reachability checking
+time: 0.000; rss: 132MB	death checking
+time: 0.000; rss: 132MB	stability checking
+time: 0.000; rss: 132MB	unused lib feature checking
+time: 0.004; rss: 132MB	lint checking
+time: 0.002; rss: 132MB	resolving dependency formats
+time: 0.002; rss: 132MB	Prepare MIR codegen passes
+  time: 0.000; rss: 132MB	write metadata
+  time: 0.613; rss: 138MB	translation item collection
+  time: 0.000; rss: 138MB	codegen unit partitioning
+time: 3.232; rss: 165MB	translation
+time: 0.000; rss: 165MB	assert dep graph
+time: 0.000; rss: 165MB	serialize dep graph
+  time: 0.175; rss: 143MB	llvm function passes [0]
+  time: 0.014; rss: 143MB	llvm module passes [0]
+  time: 2.736; rss: 148MB	codegen passes [0]
+  time: 0.001; rss: 148MB	codegen passes [0]
+time: 2.932; rss: 148MB	LLVM passes
+  time: 0.125; rss: 142MB	running linker
+time: 0.126; rss: 142MB	linking
+done

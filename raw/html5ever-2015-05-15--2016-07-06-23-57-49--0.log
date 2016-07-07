@@ -1,0 +1,47 @@
+commit de78655bca47cac8e783dbb563e7e5c25c1fae40
+Merge: 5c674a1 547a930
+Author: bors <bors@rust-lang.org>
+Date:   Wed Jul 6 20:04:11 2016 -0700
+
+    Auto merge of #34652 - jseyfried:fix_expansion_perf, r=nrc
+    
+    Fix expansion performance regression
+    
+    **syntax-[breaking-change] cc #31645**
+    
+    This fixes #34630 by reverting commit 5bf7970 of PR #33943, which landed in #34424.
+    
+    By removing the `Rc<_>` wrapping around `Delimited` and `SequenceRepetition` in `TokenTree`, 5bf7970 made cloning `TokenTree`s more expensive. While this had no measurable performance impact on the compiler's crates, it caused an order of magnitude performance regression on some macro-heavy code in the wild. I believe this is due to clones of `TokenTree`s in `macro_parser.rs` and/or `macro_rules.rs`.
+    
+    r? @nrc
+rustc: ./html5ever-2015-05-15
+cargo rustc -- -Ztime-passes -Zinput-stats
+    Updating registry `https://github.com/rust-lang/crates.io-index`
+    Updating git repository `https://github.com/reem/rust-mac`
+    Updating git repository `https://github.com/servo/string-cache`
+   Compiling winapi v0.2.7
+   Compiling libc v0.2.13
+   Compiling winapi-build v0.1.1
+   Compiling phf_shared v0.7.15
+   Compiling num-traits v0.1.32
+   Compiling void v1.0.2
+   Compiling rustc-serialize v0.3.19
+   Compiling mac v0.0.2 (https://github.com/reem/rust-mac#6316d3f4)
+   Compiling lazy_static v0.1.16
+   Compiling unreachable v0.1.1
+   Compiling log v0.3.6
+   Compiling debug_unreachable v0.0.6
+   Compiling phf v0.7.15
+   Compiling kernel32-sys v0.2.2
+   Compiling time v0.1.35
+   Compiling rand v0.3.14
+   Compiling num-integer v0.1.32
+   Compiling num-iter v0.1.32
+   Compiling num v0.1.32
+   Compiling serde v0.6.15
+   Compiling phf_generator v0.7.15
+   Compiling phf_macros v0.7.15
+   Compiling string_cache_shared v0.1.12
+Build failed, waiting for other jobs to finish...
+makefile:2: recipe for target 'all' failed
+done
