@@ -1,0 +1,112 @@
+commit 34f35ed29c8acdbe1e3c172786fc41d6f4fb6090
+Merge: 6aba7be f66da5e
+Author: bors <bors@rust-lang.org>
+Date:   Sun Jul 17 09:07:50 2016 -0700
+
+    Auto merge of #34871 - petrochenkov:inherent, r=jseyfried
+    
+    Do not resolve inherent static methods from other crates prematurely
+    
+    Under some specific circumstances paths like `Type::method` can be resolved early in rustc_resolve instead of type checker. `Type` must be defined in another crate, it should be an enum or a trait object (i.e. a type that acts as a "module" in resolve), and `method` should be an inherent static method.
+    As a result, such paths don't go through `resolve_ufcs`, may be resolved incorrectly and break some invariants in type checker. This patch removes special treatment of such methods.
+    
+    The removed code was introduced in https://github.com/rust-lang/rust/commit/2bd46e767c0fe5b6188df61cb9daf8f2e65a3ed0 to fix a problem that no longer exists.
+    
+    r? @jseyfried
+rustc: ./hyper.0.5.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+    Updating registry `https://github.com/rust-lang/crates.io-index`
+   Compiling log v0.3.6
+   Compiling libc v0.2.14
+   Compiling rustc-serialize v0.3.19
+   Compiling pkg-config v0.3.8
+   Compiling unicase v0.1.0
+   Compiling httparse v0.1.6
+   Compiling matches v0.1.2
+   Compiling bitflags v0.3.3
+   Compiling lazy_static v0.1.16
+   Compiling winapi v0.2.8
+   Compiling libc v0.1.12
+   Compiling traitobject v0.0.1
+   Compiling winapi-build v0.1.1
+   Compiling gcc v0.3.31
+   Compiling typeable v0.1.2
+   Compiling mime v0.0.11
+   Compiling kernel32-sys v0.2.2
+   Compiling rand v0.3.14
+   Compiling num_cpus v0.2.13
+   Compiling time v0.1.35
+   Compiling openssl-sys v0.6.7
+   Compiling openssl v0.6.7
+   Compiling uuid v0.1.18
+   Compiling url v0.2.38
+   Compiling cookie v0.1.21
+   Compiling hyper v0.5.0 (file:///root/benchmarks/hyper.0.5.0)
+time: 0.032; rss: 89MB	parsing
+Lines of code:             9154
+Pre-expansion node count:  44838
+time: 0.005; rss: 93MB	configuration
+time: 0.000; rss: 93MB	recursion limit
+time: 0.000; rss: 93MB	crate injection
+time: 0.000; rss: 93MB	plugin loading
+time: 0.000; rss: 93MB	plugin registration
+time: 0.116; rss: 132MB	expansion
+time: 0.000; rss: 132MB	maybe building test harness
+time: 0.008; rss: 132MB	assigning node ids
+Post-expansion node count: 101581
+time: 0.000; rss: 132MB	checking for inline asm in case the target doesn't support it
+time: 0.002; rss: 132MB	complete gated feature checking
+time: 0.003; rss: 132MB	collecting defs
+time: 0.011; rss: 143MB	external crate/lib resolution
+time: 0.006; rss: 143MB	early lint checks
+time: 0.001; rss: 143MB	AST validation
+time: 0.020; rss: 147MB	name resolution
+time: 0.010; rss: 156MB	lowering ast -> hir
+time: 0.001; rss: 158MB	indexing hir
+time: 0.001; rss: 158MB	attribute checking
+time: 0.001; rss: 151MB	language item collection
+time: 0.001; rss: 151MB	lifetime resolution
+time: 0.000; rss: 151MB	looking for entry point
+time: 0.000; rss: 151MB	looking for plugin registrar
+time: 0.005; rss: 155MB	region resolution
+time: 0.001; rss: 155MB	loop checking
+time: 0.000; rss: 155MB	static item recursion checking
+time: 0.000; rss: 155MB	load_dep_graph
+time: 0.031; rss: 157MB	type collecting
+time: 0.000; rss: 157MB	variance inference
+time: 0.044; rss: 165MB	coherence checking
+time: 0.098; rss: 166MB	wf checking
+time: 0.037; rss: 166MB	item-types checking
+time: 0.530; rss: 178MB	item-bodies checking
+time: 0.000; rss: 178MB	drop-impl checking
+time: 0.046; rss: 180MB	const checking
+time: 0.006; rss: 180MB	privacy checking
+time: 0.001; rss: 180MB	stability index
+time: 0.006; rss: 180MB	intrinsic checking
+time: 0.002; rss: 180MB	effect checking
+time: 0.015; rss: 180MB	match checking
+time: 0.005; rss: 180MB	liveness checking
+time: 0.031; rss: 180MB	rvalue checking
+time: 0.064; rss: 192MB	MIR dump
+time: 0.044; rss: 192MB	MIR passes
+time: 0.073; rss: 192MB	borrow checking
+time: 0.003; rss: 192MB	reachability checking
+time: 0.005; rss: 192MB	death checking
+time: 0.005; rss: 192MB	stability checking
+time: 0.000; rss: 192MB	unused lib feature checking
+time: 0.052; rss: 192MB	lint checking
+time: 0.000; rss: 192MB	resolving dependency formats
+time: 0.092; rss: 194MB	Prepare MIR codegen passes
+  time: 0.131; rss: 199MB	write metadata
+  time: 0.191; rss: 203MB	translation item collection
+  time: 0.022; rss: 207MB	codegen unit partitioning
+time: 3.670; rss: 325MB	translation
+time: 0.001; rss: 325MB	assert dep graph
+time: 0.000; rss: 325MB	serialize dep graph
+  time: 1.118; rss: 213MB	llvm function passes [0]
+  time: 0.430; rss: 215MB	llvm module passes [0]
+  time: 16.122; rss: 215MB	codegen passes [0]
+  time: 0.018; rss: 215MB	codegen passes [0]
+time: 18.819; rss: 215MB	LLVM passes
+time: 0.151; rss: 165MB	linking
+done
