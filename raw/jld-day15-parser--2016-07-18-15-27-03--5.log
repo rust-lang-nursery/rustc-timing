@@ -1,0 +1,88 @@
+commit 9c888980763e8ba16caa67f5f08e13109bbc6fa5
+Merge: 06ca016 22f77a9
+Author: bors <bors@rust-lang.org>
+Date:   Mon Jul 18 11:29:25 2016 -0700
+
+    Auto merge of #34899 - michaelwoerister:always_internalize_symbols, r=eddyb
+    
+    Run base::internalize_symbols() even for single-codegen-unit crates.
+    
+    The initial linkage-assignment (especially for closures) is a conservative one that makes some symbols more visible than they need to be. While this is not a correctness problem, it does force the LLVM inliner to be more conservative too, which results in poor performance. Once translation is based solely on MIR, it will be easier to also make the initial linkage assignment a better fitting one. Until then `internalize_symbols()` does a good job of preventing most performance regressions.
+    
+    This should solve the regressions reported in https://github.com/rust-lang/rust/issues/34891 and maybe also those in https://github.com/rust-lang/rust/issues/34831.
+    
+    As a side-effect, this will also solve most of the problematic cases described in https://github.com/rust-lang/rust/issues/34793. Not reliably so, however. For that, we still need a solution like the one implement in https://github.com/rust-lang/rust/pull/34830.
+    
+    cc @rust-lang/compiler
+rustc: ./jld-day15-parser
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling day15 v0.1.0 (file:///root/benchmarks/jld-day15-parser)
+time: 0.001; rss: 80MB	parsing
+Lines of code:             72
+Pre-expansion node count:  654
+time: 0.000; rss: 84MB	configuration
+time: 0.000; rss: 84MB	recursion limit
+time: 0.000; rss: 84MB	crate injection
+time: 0.000; rss: 84MB	plugin loading
+time: 0.000; rss: 84MB	plugin registration
+time: 0.020; rss: 119MB	expansion
+time: 0.000; rss: 119MB	maybe building test harness
+time: 0.000; rss: 119MB	assigning node ids
+Post-expansion node count: 1155
+time: 0.000; rss: 119MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 119MB	complete gated feature checking
+time: 0.000; rss: 119MB	collecting defs
+time: 0.004; rss: 123MB	external crate/lib resolution
+time: 0.000; rss: 123MB	early lint checks
+time: 0.000; rss: 123MB	AST validation
+time: 0.001; rss: 123MB	name resolution
+time: 0.000; rss: 123MB	lowering ast -> hir
+time: 0.000; rss: 123MB	indexing hir
+time: 0.000; rss: 123MB	attribute checking
+time: 0.000; rss: 123MB	language item collection
+time: 0.000; rss: 123MB	lifetime resolution
+time: 0.000; rss: 123MB	looking for entry point
+time: 0.000; rss: 123MB	looking for plugin registrar
+time: 0.000; rss: 123MB	region resolution
+time: 0.000; rss: 123MB	loop checking
+time: 0.000; rss: 123MB	static item recursion checking
+time: 0.000; rss: 123MB	load_dep_graph
+time: 0.001; rss: 123MB	type collecting
+time: 0.000; rss: 123MB	variance inference
+time: 0.005; rss: 123MB	coherence checking
+time: 0.006; rss: 123MB	wf checking
+time: 0.000; rss: 127MB	item-types checking
+time: 0.047; rss: 136MB	item-bodies checking
+time: 0.000; rss: 136MB	drop-impl checking
+time: 0.001; rss: 136MB	const checking
+time: 0.000; rss: 136MB	privacy checking
+time: 0.000; rss: 136MB	stability index
+time: 0.000; rss: 136MB	intrinsic checking
+time: 0.000; rss: 136MB	effect checking
+time: 0.000; rss: 136MB	match checking
+time: 0.000; rss: 136MB	liveness checking
+time: 0.001; rss: 136MB	rvalue checking
+time: 0.001; rss: 136MB	MIR dump
+time: 0.001; rss: 136MB	MIR passes
+time: 0.001; rss: 136MB	borrow checking
+time: 0.000; rss: 136MB	reachability checking
+time: 0.000; rss: 136MB	death checking
+time: 0.000; rss: 136MB	stability checking
+time: 0.000; rss: 136MB	unused lib feature checking
+time: 0.004; rss: 136MB	lint checking
+time: 0.002; rss: 136MB	resolving dependency formats
+time: 0.002; rss: 136MB	Prepare MIR codegen passes
+  time: 0.000; rss: 136MB	write metadata
+  time: 0.621; rss: 142MB	translation item collection
+  time: 0.003; rss: 142MB	codegen unit partitioning
+time: 3.367; rss: 167MB	translation
+time: 0.000; rss: 167MB	assert dep graph
+time: 0.000; rss: 167MB	serialize dep graph
+  time: 0.174; rss: 146MB	llvm function passes [0]
+  time: 0.046; rss: 147MB	llvm module passes [0]
+  time: 2.730; rss: 151MB	codegen passes [0]
+  time: 0.001; rss: 151MB	codegen passes [0]
+time: 2.957; rss: 151MB	LLVM passes
+  time: 0.130; rss: 145MB	running linker
+time: 0.131; rss: 145MB	linking
+done
