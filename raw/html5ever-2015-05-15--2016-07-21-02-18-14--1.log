@@ -1,0 +1,40 @@
+commit e7c822cee29b5b939340c2cb0dfefa9a49742d77
+Merge: 936bfea ee6011f
+Author: bors <bors@rust-lang.org>
+Date:   Wed Jul 20 19:02:00 2016 -0700
+
+    Auto merge of #34873 - alexcrichton:down-with-compiler-rt-for-good, r=brson
+    
+    mk: Stop using cmake for compiler-rt
+    
+    The compiler-rt build system has been a never ending cause of pain for Rust
+    unfortunately:
+    
+    * The build system is very difficult to invoke and configure to only build
+      compiler-rt, especially across platforms.
+    * The standard build system doesn't actually do what we want, not working for
+      some of our platforms and requiring a significant number of patches on our end
+      which are difficult to apply when updating compiler-rt.
+    * Compiling compiler-rt requires LLVM to be compiled, which... is a big
+      dependency! This also means that over time compiler-rt is not guaranteed to
+      build against older versions of LLVM (or newer versions), and we often want to
+      work with multiple versions of LLVM simultaneously.
+    
+    The makefiles and rustbuild already know how to compile C code, the code here is
+    far from the *only* C code we're compiling. This patch jettisons all logic to
+    work with compiler-rt's build system and just goes straight to the source. We
+    just list all files manually (copied from compiler-rt's
+    lib/builtins/CMakeLists.txt) and compile them into an archive.
+    
+    It's likely that this means we'll fail to pick up new files when we upgrade
+    compiler-rt, but that seems like a much less significant cost to pay than what
+    we're currently paying.
+    
+    cc #34400, first steps towards that
+rustc: ./html5ever-2015-05-15
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling html5ever_macros v0.0.0 (file:///root/benchmarks/html5ever-2015-05-15)
+   Compiling string_cache v0.1.17
+Build failed, waiting for other jobs to finish...
+makefile:2: recipe for target 'all' failed
+done

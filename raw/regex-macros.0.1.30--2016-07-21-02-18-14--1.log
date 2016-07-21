@@ -1,0 +1,74 @@
+commit e7c822cee29b5b939340c2cb0dfefa9a49742d77
+Merge: 936bfea ee6011f
+Author: bors <bors@rust-lang.org>
+Date:   Wed Jul 20 19:02:00 2016 -0700
+
+    Auto merge of #34873 - alexcrichton:down-with-compiler-rt-for-good, r=brson
+    
+    mk: Stop using cmake for compiler-rt
+    
+    The compiler-rt build system has been a never ending cause of pain for Rust
+    unfortunately:
+    
+    * The build system is very difficult to invoke and configure to only build
+      compiler-rt, especially across platforms.
+    * The standard build system doesn't actually do what we want, not working for
+      some of our platforms and requiring a significant number of patches on our end
+      which are difficult to apply when updating compiler-rt.
+    * Compiling compiler-rt requires LLVM to be compiled, which... is a big
+      dependency! This also means that over time compiler-rt is not guaranteed to
+      build against older versions of LLVM (or newer versions), and we often want to
+      work with multiple versions of LLVM simultaneously.
+    
+    The makefiles and rustbuild already know how to compile C code, the code here is
+    far from the *only* C code we're compiling. This patch jettisons all logic to
+    work with compiler-rt's build system and just goes straight to the source. We
+    just list all files manually (copied from compiler-rt's
+    lib/builtins/CMakeLists.txt) and compile them into an archive.
+    
+    It's likely that this means we'll fail to pick up new files when we upgrade
+    compiler-rt, but that seems like a much less significant cost to pay than what
+    we're currently paying.
+    
+    cc #34400, first steps towards that
+rustc: ./regex-macros.0.1.30
+cd regex_macros && cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling regex_macros v0.1.17 (file:///root/benchmarks/regex-macros.0.1.30/regex_macros)
+time: 0.002; rss: 81MB	parsing
+Lines of code:             639
+Pre-expansion node count:  2088
+time: 0.000; rss: 86MB	configuration
+time: 0.000; rss: 86MB	recursion limit
+time: 0.000; rss: 86MB	crate injection
+time: 0.000; rss: 86MB	plugin loading
+time: 0.000; rss: 86MB	plugin registration
+time: 0.041; rss: 125MB	expansion
+time: 0.000; rss: 125MB	maybe building test harness
+time: 0.005; rss: 125MB	assigning node ids
+Post-expansion node count: 69587
+time: 0.000; rss: 125MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 125MB	complete gated feature checking
+time: 0.000; rss: 125MB	collecting defs
+time: 0.106; rss: 225MB	external crate/lib resolution
+time: 0.003; rss: 225MB	early lint checks
+time: 0.000; rss: 225MB	AST validation
+time: 0.021; rss: 230MB	name resolution
+time: 0.004; rss: 233MB	lowering ast -> hir
+time: 0.001; rss: 232MB	indexing hir
+time: 0.000; rss: 232MB	attribute checking
+time: 0.000; rss: 226MB	language item collection
+time: 0.001; rss: 226MB	lifetime resolution
+time: 0.000; rss: 226MB	looking for entry point
+time: 0.000; rss: 226MB	looking for plugin registrar
+time: 0.002; rss: 228MB	region resolution
+time: 0.000; rss: 228MB	loop checking
+time: 0.000; rss: 228MB	static item recursion checking
+time: 0.000; rss: 228MB	load_dep_graph
+time: 0.013; rss: 231MB	type collecting
+time: 0.000; rss: 231MB	variance inference
+time: 0.011; rss: 232MB	coherence checking
+time: 0.008; rss: 233MB	wf checking
+time: 0.001; rss: 233MB	item-types checking
+time: 0.895; rss: 252MB	item-bodies checking
+makefile:2: recipe for target 'all' failed
+done

@@ -1,0 +1,104 @@
+commit e7c822cee29b5b939340c2cb0dfefa9a49742d77
+Merge: 936bfea ee6011f
+Author: bors <bors@rust-lang.org>
+Date:   Wed Jul 20 19:02:00 2016 -0700
+
+    Auto merge of #34873 - alexcrichton:down-with-compiler-rt-for-good, r=brson
+    
+    mk: Stop using cmake for compiler-rt
+    
+    The compiler-rt build system has been a never ending cause of pain for Rust
+    unfortunately:
+    
+    * The build system is very difficult to invoke and configure to only build
+      compiler-rt, especially across platforms.
+    * The standard build system doesn't actually do what we want, not working for
+      some of our platforms and requiring a significant number of patches on our end
+      which are difficult to apply when updating compiler-rt.
+    * Compiling compiler-rt requires LLVM to be compiled, which... is a big
+      dependency! This also means that over time compiler-rt is not guaranteed to
+      build against older versions of LLVM (or newer versions), and we often want to
+      work with multiple versions of LLVM simultaneously.
+    
+    The makefiles and rustbuild already know how to compile C code, the code here is
+    far from the *only* C code we're compiling. This patch jettisons all logic to
+    work with compiler-rt's build system and just goes straight to the source. We
+    just list all files manually (copied from compiler-rt's
+    lib/builtins/CMakeLists.txt) and compile them into an archive.
+    
+    It's likely that this means we'll fail to pick up new files when we upgrade
+    compiler-rt, but that seems like a much less significant cost to pay than what
+    we're currently paying.
+    
+    cc #34400, first steps towards that
+rustc: ./helloworld
+/root/rust/x86_64-unknown-linux-gnu/stage2/bin/rustc hello.rs -Ztime-passes -Zinput-stats
+time: 0.000; rss: 80MB	parsing
+Lines of code:             3
+Pre-expansion node count:  8
+time: 0.000; rss: 84MB	configuration
+time: 0.000; rss: 84MB	recursion limit
+time: 0.000; rss: 84MB	crate injection
+time: 0.000; rss: 84MB	plugin loading
+time: 0.000; rss: 84MB	plugin registration
+time: 0.020; rss: 120MB	expansion
+time: 0.000; rss: 120MB	maybe building test harness
+time: 0.000; rss: 120MB	assigning node ids
+Post-expansion node count: 68
+time: 0.000; rss: 120MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 120MB	complete gated feature checking
+time: 0.000; rss: 120MB	collecting defs
+time: 0.003; rss: 120MB	external crate/lib resolution
+time: 0.000; rss: 120MB	early lint checks
+time: 0.000; rss: 120MB	AST validation
+time: 0.000; rss: 120MB	name resolution
+time: 0.000; rss: 120MB	lowering ast -> hir
+time: 0.000; rss: 120MB	indexing hir
+time: 0.000; rss: 120MB	attribute checking
+time: 0.000; rss: 120MB	language item collection
+time: 0.000; rss: 120MB	lifetime resolution
+time: 0.000; rss: 120MB	looking for entry point
+time: 0.000; rss: 120MB	looking for plugin registrar
+time: 0.000; rss: 120MB	region resolution
+time: 0.000; rss: 120MB	loop checking
+time: 0.000; rss: 120MB	static item recursion checking
+time: 0.000; rss: 120MB	load_dep_graph
+time: 0.000; rss: 124MB	type collecting
+time: 0.000; rss: 124MB	variance inference
+time: 0.005; rss: 124MB	coherence checking
+time: 0.000; rss: 124MB	wf checking
+time: 0.000; rss: 124MB	item-types checking
+time: 0.000; rss: 124MB	item-bodies checking
+time: 0.000; rss: 124MB	drop-impl checking
+time: 0.000; rss: 124MB	const checking
+time: 0.000; rss: 124MB	privacy checking
+time: 0.000; rss: 124MB	stability index
+time: 0.000; rss: 124MB	intrinsic checking
+time: 0.000; rss: 124MB	effect checking
+time: 0.000; rss: 124MB	match checking
+time: 0.000; rss: 124MB	liveness checking
+time: 0.000; rss: 124MB	rvalue checking
+time: 0.000; rss: 124MB	MIR dump
+time: 0.001; rss: 124MB	MIR passes
+time: 0.000; rss: 124MB	borrow checking
+time: 0.000; rss: 124MB	reachability checking
+time: 0.000; rss: 124MB	death checking
+time: 0.000; rss: 124MB	stability checking
+time: 0.000; rss: 124MB	unused lib feature checking
+time: 0.000; rss: 124MB	lint checking
+time: 0.001; rss: 124MB	resolving dependency formats
+time: 0.000; rss: 124MB	Prepare MIR codegen passes
+  time: 0.000; rss: 128MB	write metadata
+  time: 0.001; rss: 128MB	translation item collection
+  time: 0.000; rss: 128MB	codegen unit partitioning
+time: 0.014; rss: 128MB	translation
+time: 0.000; rss: 128MB	assert dep graph
+time: 0.000; rss: 128MB	serialize dep graph
+  time: 0.001; rss: 128MB	llvm function passes [0]
+  time: 0.000; rss: 128MB	llvm module passes [0]
+  time: 0.012; rss: 132MB	codegen passes [0]
+  time: 0.001; rss: 132MB	codegen passes [0]
+time: 0.020; rss: 132MB	LLVM passes
+  time: 0.151; rss: 132MB	running linker
+time: 0.151; rss: 132MB	linking
+done
