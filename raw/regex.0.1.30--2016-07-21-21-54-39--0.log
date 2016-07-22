@@ -1,0 +1,96 @@
+commit 62690b3c3fa6e157daa7f7c5a3af005f37eb4199
+Merge: 7588653 ede39ae
+Author: bors <bors@rust-lang.org>
+Date:   Thu Jul 21 16:19:54 2016 -0700
+
+    Auto merge of #34544 - 3Hren:issue/xx/reinterpret-format-precision-for-strings, r=alexcrichton
+    
+    feat: reinterpret `precision` field for strings
+    
+    This commit changes the behavior of formatting string arguments with both width and precision fields set.
+    
+    Documentation says that the `width` field is the "minimum width" that the format should take up. If the value's string does not fill up this many characters, then the padding specified by fill/alignment will be used to take up the required space.
+    
+    This is true for all formatted types except string, which is truncated down to `precision` number of chars and then all of `fill`, `align` and `width` fields are completely ignored.
+    
+    For example: `format!("{:/^10.8}", "1234567890);` emits "12345678". In the contrast Python version works as the expected:
+    ```python
+    >>> '{:/^10.8}'.format('1234567890')
+    '/12345678/'
+    ```
+    
+    This commit gives back the `Python` behavior by changing the `precision` field meaning to the truncation and nothing more. The result string *will* be prepended/appended up to the `width` field with the proper `fill` char.
+    
+    __However, this is the breaking change, I admit.__ Feel free to close it, but otherwise it should be mentioned in the `std::fmt` documentation somewhere near of `fill/align/width` fields description.
+rustc: ./regex.0.1.30
+cargo rustc -- -Ztime-passes -Zinput-stats
+    Updating registry `https://github.com/rust-lang/crates.io-index`
+   Compiling regex v0.1.30 (file:///root/benchmarks/regex.0.1.30)
+time: 0.064; rss: 99MB	parsing
+Lines of code:             8558
+Pre-expansion node count:  58076
+time: 0.011; rss: 99MB	configuration
+time: 0.000; rss: 99MB	recursion limit
+time: 0.000; rss: 99MB	crate injection
+time: 0.000; rss: 99MB	plugin loading
+time: 0.000; rss: 99MB	plugin registration
+time: 0.037; rss: 134MB	expansion
+time: 0.000; rss: 134MB	maybe building test harness
+time: 0.006; rss: 134MB	assigning node ids
+Post-expansion node count: 68148
+time: 0.000; rss: 134MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 134MB	complete gated feature checking
+time: 0.001; rss: 135MB	collecting defs
+time: 0.001; rss: 135MB	external crate/lib resolution
+time: 0.006; rss: 135MB	early lint checks
+time: 0.001; rss: 135MB	AST validation
+time: 0.007; rss: 136MB	name resolution
+time: 0.009; rss: 146MB	lowering ast -> hir
+time: 0.001; rss: 148MB	indexing hir
+time: 0.001; rss: 148MB	attribute checking
+time: 0.001; rss: 139MB	language item collection
+time: 0.001; rss: 139MB	lifetime resolution
+time: 0.000; rss: 139MB	looking for entry point
+time: 0.000; rss: 139MB	looking for plugin registrar
+time: 0.006; rss: 142MB	region resolution
+time: 0.001; rss: 142MB	loop checking
+time: 0.001; rss: 142MB	static item recursion checking
+time: 0.000; rss: 142MB	load_dep_graph
+time: 0.010; rss: 144MB	type collecting
+time: 0.000; rss: 144MB	variance inference
+time: 0.026; rss: 148MB	coherence checking
+time: 0.014; rss: 149MB	wf checking
+time: 0.333; rss: 157MB	item-types checking
+time: 0.206; rss: 162MB	item-bodies checking
+time: 0.000; rss: 162MB	drop-impl checking
+time: 0.028; rss: 164MB	const checking
+time: 0.004; rss: 164MB	privacy checking
+time: 0.001; rss: 164MB	stability index
+time: 0.002; rss: 164MB	intrinsic checking
+time: 0.001; rss: 164MB	effect checking
+time: 0.004; rss: 164MB	match checking
+time: 0.002; rss: 164MB	liveness checking
+time: 0.008; rss: 164MB	rvalue checking
+time: 0.054; rss: 176MB	MIR dump
+time: 0.022; rss: 176MB	MIR passes
+time: 0.022; rss: 176MB	borrow checking
+time: 0.000; rss: 176MB	reachability checking
+time: 0.003; rss: 176MB	death checking
+time: 0.003; rss: 176MB	stability checking
+time: 0.000; rss: 176MB	unused lib feature checking
+time: 0.029; rss: 176MB	lint checking
+time: 0.000; rss: 176MB	resolving dependency formats
+time: 0.019; rss: 178MB	Prepare MIR codegen passes
+  time: 0.174; rss: 188MB	write metadata
+  time: 0.059; rss: 190MB	translation item collection
+  time: 0.008; rss: 191MB	codegen unit partitioning
+time: 1.550; rss: 237MB	translation
+time: 0.000; rss: 237MB	assert dep graph
+time: 0.000; rss: 237MB	serialize dep graph
+  time: 0.410; rss: 167MB	llvm function passes [0]
+  time: 0.188; rss: 168MB	llvm module passes [0]
+  time: 5.998; rss: 170MB	codegen passes [0]
+  time: 0.002; rss: 170MB	codegen passes [0]
+time: 7.022; rss: 170MB	LLVM passes
+time: 0.063; rss: 150MB	linking
+done
