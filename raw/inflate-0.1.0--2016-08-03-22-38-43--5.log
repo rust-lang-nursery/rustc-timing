@@ -1,0 +1,86 @@
+commit 0a3180baab7c361ee85958c88d971190649c3b70
+Merge: a0b4e67 63f0c4d
+Author: bors <bors@rust-lang.org>
+Date:   Wed Aug 3 13:24:53 2016 -0700
+
+    Auto merge of #35261 - eddyb:llvm-autoupgrade, r=nikomatsakis
+    
+    Support removed LLVM intrinsics by invoking its AutoUpgrade mechanism.
+    
+    Turns out that LLVM sometimes renames platform intrinsics or replaces them with first-class instructions.
+    For example, signed minimum became `select (icmp SLT, a, b), a, b` where `a` and `b` are vectors.
+    
+    This is blocking the Servo rustup ([relevant failure](http://build.servo.org/builders/windows-dev/builds/226/steps/compile/logs/stdio)), as they're using a few such intrinsics.
+    The fix in this PR is to invoke LLVM's own `AutoUpgrade` mechanism to do the replacements.
+rustc: ./inflate-0.1.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling inflate v0.1.0 (file:///root/benchmarks/inflate-0.1.0)
+time: 0.004; rss: 46MB	parsing
+Lines of code:             956
+Pre-expansion node count:  4738
+time: 0.001; rss: 50MB	configuration
+time: 0.000; rss: 50MB	recursion limit
+time: 0.000; rss: 50MB	crate injection
+time: 0.000; rss: 50MB	plugin loading
+time: 0.000; rss: 50MB	plugin registration
+time: 0.090; rss: 89MB	expansion
+time: 0.000; rss: 89MB	maybe building test harness
+time: 0.004; rss: 89MB	assigning node ids
+Post-expansion node count: 55769
+time: 0.000; rss: 89MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 89MB	complete gated feature checking
+time: 0.005; rss: 89MB	collecting defs
+time: 0.001; rss: 89MB	external crate/lib resolution
+time: 0.003; rss: 89MB	early lint checks
+time: 0.000; rss: 89MB	AST validation
+time: 0.010; rss: 91MB	name resolution
+time: 0.006; rss: 96MB	lowering ast -> hir
+time: 0.001; rss: 98MB	indexing hir
+time: 0.001; rss: 98MB	attribute checking
+time: 0.001; rss: 95MB	language item collection
+time: 0.001; rss: 95MB	lifetime resolution
+time: 0.000; rss: 95MB	looking for entry point
+time: 0.000; rss: 95MB	looking for plugin registrar
+time: 0.003; rss: 96MB	region resolution
+time: 0.000; rss: 96MB	loop checking
+time: 0.000; rss: 96MB	static item recursion checking
+time: 0.000; rss: 96MB	load_dep_graph
+time: 0.002; rss: 98MB	type collecting
+time: 0.000; rss: 98MB	variance inference
+time: 0.010; rss: 99MB	coherence checking
+time: 0.002; rss: 99MB	wf checking
+time: 0.002; rss: 99MB	item-types checking
+time: 3.381; rss: 116MB	item-bodies checking
+time: 0.000; rss: 116MB	drop-impl checking
+time: 0.016; rss: 116MB	const checking
+time: 0.001; rss: 116MB	privacy checking
+time: 0.000; rss: 116MB	stability index
+time: 0.001; rss: 116MB	intrinsic checking
+time: 0.001; rss: 116MB	effect checking
+time: 0.005; rss: 116MB	match checking
+time: 0.064; rss: 114MB	liveness checking
+time: 0.011; rss: 114MB	rvalue checking
+time: 0.039; rss: 128MB	MIR dump
+time: 0.022; rss: 126MB	MIR passes
+time: 0.207; rss: 127MB	borrow checking
+time: 0.000; rss: 127MB	reachability checking
+time: 0.003; rss: 127MB	death checking
+time: 0.002; rss: 127MB	stability checking
+time: 0.000; rss: 127MB	unused lib feature checking
+time: 0.020; rss: 128MB	lint checking
+time: 0.000; rss: 128MB	resolving dependency formats
+time: 0.122; rss: 126MB	Prepare MIR codegen passes
+  time: 0.003; rss: 127MB	write metadata
+  time: 0.010; rss: 128MB	translation item collection
+  time: 0.001; rss: 129MB	codegen unit partitioning
+  time: 0.002; rss: 148MB	internalize symbols
+time: 0.386; rss: 141MB	translation
+time: 0.000; rss: 141MB	assert dep graph
+time: 0.000; rss: 141MB	serialize dep graph
+  time: 0.026; rss: 108MB	llvm function passes [0]
+  time: 0.005; rss: 109MB	llvm module passes [0]
+  time: 0.499; rss: 114MB	codegen passes [0]
+  time: 0.000; rss: 114MB	codegen passes [0]
+time: 0.558; rss: 114MB	LLVM passes
+time: 0.034; rss: 103MB	linking
+done

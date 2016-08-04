@@ -1,0 +1,49 @@
+commit 0a3180baab7c361ee85958c88d971190649c3b70
+Merge: a0b4e67 63f0c4d
+Author: bors <bors@rust-lang.org>
+Date:   Wed Aug 3 13:24:53 2016 -0700
+
+    Auto merge of #35261 - eddyb:llvm-autoupgrade, r=nikomatsakis
+    
+    Support removed LLVM intrinsics by invoking its AutoUpgrade mechanism.
+    
+    Turns out that LLVM sometimes renames platform intrinsics or replaces them with first-class instructions.
+    For example, signed minimum became `select (icmp SLT, a, b), a, b` where `a` and `b` are vectors.
+    
+    This is blocking the Servo rustup ([relevant failure](http://build.servo.org/builders/windows-dev/builds/226/steps/compile/logs/stdio)), as they're using a few such intrinsics.
+    The fix in this PR is to invoke LLVM's own `AutoUpgrade` mechanism to do the replacements.
+rustc: ./html5ever-2015-05-15
+cargo rustc -- -Ztime-passes -Zinput-stats
+    Updating registry `https://github.com/rust-lang/crates.io-index`
+    Updating git repository `https://github.com/reem/rust-mac`
+    Updating git repository `https://github.com/servo/string-cache`
+ Downloading num-traits v0.1.34
+ Downloading serde v0.8.0
+   Compiling log v0.3.6
+   Compiling num-traits v0.1.34
+   Compiling libc v0.2.14
+   Compiling mac v0.0.2 (https://github.com/reem/rust-mac#6316d3f4)
+   Compiling lazy_static v0.1.16
+   Compiling winapi v0.2.8
+   Compiling winapi-build v0.1.1
+   Compiling void v1.0.2
+   Compiling phf_shared v0.7.16
+   Compiling unreachable v0.1.1
+   Compiling rustc-serialize v0.3.19
+   Compiling debug_unreachable v0.0.6
+   Compiling kernel32-sys v0.2.2
+   Compiling phf v0.7.16
+   Compiling rand v0.3.14
+   Compiling time v0.1.35
+   Compiling num-integer v0.1.32
+   Compiling num-iter v0.1.32
+   Compiling num v0.1.34
+   Compiling serde v0.6.15
+   Compiling phf_generator v0.7.16
+   Compiling phf_macros v0.7.16
+   Compiling string_cache_shared v0.1.12
+   Compiling string_cache v0.1.17
+   Compiling html5ever_macros v0.0.0 (file:///root/benchmarks/html5ever-2015-05-15)
+Build failed, waiting for other jobs to finish...
+makefile:2: recipe for target 'all' failed
+done
