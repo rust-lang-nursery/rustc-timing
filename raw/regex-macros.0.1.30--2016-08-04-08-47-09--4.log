@@ -1,0 +1,66 @@
+commit e804a3cf256106c097d44f6e0212cd183122da07
+Merge: 271d048 06acf16
+Author: bors <bors@rust-lang.org>
+Date:   Thu Aug 4 03:01:37 2016 -0700
+
+    Auto merge of #35168 - scottcarr:deaggregation, r=nikomatsakis
+    
+    [MIR] Deaggregate structs to enable further optimizations
+    
+    Currently, we generate MIR like:
+    
+    ```
+    tmp0 = ...;
+    tmp1 = ...;
+    tmp3 = Foo { a: ..., b: ... };
+    ```
+    
+    This PR implements "deaggregation," i.e.:
+    
+    ```
+    tmp3.0 = ...
+    tmp3.1 = ...
+    ```
+    
+    Currently, the code only deaggregates structs, not enums.  My understanding is that we do not have MIR to set the discriminant of an enum.
+rustc: ./regex-macros.0.1.30
+cd regex_macros && cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling regex_macros v0.1.17 (file:///root/benchmarks/regex-macros.0.1.30/regex_macros)
+time: 0.002; rss: 46MB	parsing
+Lines of code:             639
+Pre-expansion node count:  2088
+time: 0.000; rss: 50MB	configuration
+time: 0.000; rss: 50MB	recursion limit
+time: 0.000; rss: 50MB	crate injection
+time: 0.000; rss: 50MB	plugin loading
+time: 0.000; rss: 50MB	plugin registration
+time: 0.039; rss: 89MB	expansion
+time: 0.000; rss: 89MB	maybe building test harness
+time: 0.004; rss: 89MB	assigning node ids
+Post-expansion node count: 69587
+time: 0.000; rss: 89MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 89MB	complete gated feature checking
+time: 0.000; rss: 89MB	collecting defs
+time: 0.082; rss: 168MB	external crate/lib resolution
+time: 0.003; rss: 168MB	early lint checks
+time: 0.000; rss: 168MB	AST validation
+time: 0.022; rss: 176MB	name resolution
+time: 0.004; rss: 181MB	lowering ast -> hir
+time: 0.001; rss: 180MB	indexing hir
+time: 0.000; rss: 180MB	attribute checking
+time: 0.001; rss: 174MB	language item collection
+time: 0.000; rss: 174MB	lifetime resolution
+time: 0.000; rss: 174MB	looking for entry point
+time: 0.000; rss: 174MB	looking for plugin registrar
+time: 0.002; rss: 177MB	region resolution
+time: 0.000; rss: 177MB	loop checking
+time: 0.000; rss: 177MB	static item recursion checking
+time: 0.000; rss: 177MB	load_dep_graph
+time: 0.012; rss: 178MB	type collecting
+time: 0.000; rss: 178MB	variance inference
+time: 0.010; rss: 180MB	coherence checking
+time: 0.008; rss: 181MB	wf checking
+time: 0.001; rss: 181MB	item-types checking
+time: 0.874; rss: 198MB	item-bodies checking
+makefile:2: recipe for target 'all' failed
+done

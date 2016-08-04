@@ -1,0 +1,97 @@
+commit e804a3cf256106c097d44f6e0212cd183122da07
+Merge: 271d048 06acf16
+Author: bors <bors@rust-lang.org>
+Date:   Thu Aug 4 03:01:37 2016 -0700
+
+    Auto merge of #35168 - scottcarr:deaggregation, r=nikomatsakis
+    
+    [MIR] Deaggregate structs to enable further optimizations
+    
+    Currently, we generate MIR like:
+    
+    ```
+    tmp0 = ...;
+    tmp1 = ...;
+    tmp3 = Foo { a: ..., b: ... };
+    ```
+    
+    This PR implements "deaggregation," i.e.:
+    
+    ```
+    tmp3.0 = ...
+    tmp3.1 = ...
+    ```
+    
+    Currently, the code only deaggregates structs, not enums.  My understanding is that we do not have MIR to set the discriminant of an enum.
+rustc: ./regex.0.1.30
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling regex v0.1.30 (file:///root/benchmarks/regex.0.1.30)
+time: 0.063; rss: 62MB	parsing
+Lines of code:             8558
+Pre-expansion node count:  58076
+time: 0.009; rss: 62MB	configuration
+time: 0.000; rss: 62MB	recursion limit
+time: 0.000; rss: 62MB	crate injection
+time: 0.000; rss: 62MB	plugin loading
+time: 0.000; rss: 62MB	plugin registration
+time: 0.035; rss: 98MB	expansion
+time: 0.000; rss: 98MB	maybe building test harness
+time: 0.006; rss: 98MB	assigning node ids
+Post-expansion node count: 68148
+time: 0.000; rss: 98MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 98MB	complete gated feature checking
+time: 0.001; rss: 99MB	collecting defs
+time: 0.001; rss: 99MB	external crate/lib resolution
+time: 0.006; rss: 99MB	early lint checks
+time: 0.001; rss: 99MB	AST validation
+time: 0.006; rss: 100MB	name resolution
+time: 0.008; rss: 109MB	lowering ast -> hir
+time: 0.002; rss: 112MB	indexing hir
+time: 0.001; rss: 112MB	attribute checking
+time: 0.001; rss: 102MB	language item collection
+time: 0.001; rss: 102MB	lifetime resolution
+time: 0.000; rss: 102MB	looking for entry point
+time: 0.000; rss: 102MB	looking for plugin registrar
+time: 0.005; rss: 105MB	region resolution
+time: 0.001; rss: 105MB	loop checking
+time: 0.001; rss: 105MB	static item recursion checking
+time: 0.000; rss: 105MB	load_dep_graph
+time: 0.010; rss: 107MB	type collecting
+time: 0.000; rss: 107MB	variance inference
+time: 0.026; rss: 111MB	coherence checking
+time: 0.014; rss: 112MB	wf checking
+time: 0.326; rss: 120MB	item-types checking
+time: 0.207; rss: 125MB	item-bodies checking
+time: 0.000; rss: 125MB	drop-impl checking
+time: 0.027; rss: 127MB	const checking
+time: 0.004; rss: 127MB	privacy checking
+time: 0.001; rss: 127MB	stability index
+time: 0.002; rss: 127MB	intrinsic checking
+time: 0.001; rss: 127MB	effect checking
+time: 0.004; rss: 127MB	match checking
+time: 0.002; rss: 127MB	liveness checking
+time: 0.008; rss: 127MB	rvalue checking
+time: 0.052; rss: 138MB	MIR dump
+time: 0.021; rss: 138MB	MIR passes
+time: 0.022; rss: 138MB	borrow checking
+time: 0.000; rss: 138MB	reachability checking
+time: 0.003; rss: 138MB	death checking
+time: 0.002; rss: 138MB	stability checking
+time: 0.000; rss: 138MB	unused lib feature checking
+time: 0.028; rss: 138MB	lint checking
+time: 0.000; rss: 138MB	resolving dependency formats
+time: 0.019; rss: 140MB	Prepare MIR codegen passes
+  time: 0.171; rss: 151MB	write metadata
+  time: 0.058; rss: 153MB	translation item collection
+  time: 0.008; rss: 153MB	codegen unit partitioning
+  time: 0.017; rss: 199MB	internalize symbols
+time: 0.710; rss: 199MB	translation
+time: 0.000; rss: 199MB	assert dep graph
+time: 0.000; rss: 199MB	serialize dep graph
+  time: 0.033; rss: 129MB	llvm function passes [0]
+  time: 0.017; rss: 130MB	llvm module passes [0]
+  time: 0.599; rss: 133MB	codegen passes [0]
+  time: 0.001; rss: 133MB	codegen passes [0]
+time: 0.698; rss: 133MB	LLVM passes
+time: 0.061; rss: 114MB	linking
+done
