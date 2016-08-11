@@ -1,0 +1,56 @@
+commit 42001edc998f3406ecc04afa48bf07ce91247b67
+Merge: 695b3d8 f37bf6d
+Author: bors <bors@rust-lang.org>
+Date:   Thu Aug 11 05:04:41 2016 -0700
+
+    Auto merge of #35403 - scottcarr:lvalue_refactor, r=nikomatsakis
+    
+    refactor lvalue_ty to be method of lvalue
+    
+    Currently `Mir` (and `MirContext`) implement a method `lvalue_ty` (and actually many more `foo_ty`).  But this should be a method of `Lvalue`.
+    
+    If you have an `lvalue` and you want to get its type, the natural thing to write is:
+    
+    ```
+    lvalue.ty()
+    ```
+    
+    Of course it needs context, but still:
+    
+    ```
+    lvalue.ty(mir, tcx)
+    ```
+    
+    Makes more sense than
+    
+    ```
+    mir.lvalue_ty(lvalue, tcx)
+    ```
+    
+    I actually think we should go a step farther and have traits so we could get the type of some value generically, but that's up for debate.  The thing I'm running into a lot in the compiler is I have a value of type `Foo` and I know that there is some related type `Bar` which I can get through some combination of method calls, but it's often not as direct as I would imagine.  Unless you already know the code, its not clear why you would look in `Mir` for a method to get the type of an `Lvalue`.
+rustc: ./piston-image-0.3.11
+cargo rustc -- -Ztime-passes -Zinput-stats
+    Updating registry `https://github.com/rust-lang/crates.io-index`
+   Compiling gcc v0.3.32
+   Compiling byteorder v0.3.13
+   Compiling color_quant v1.0.0
+   Compiling lzw v0.8.0
+   Compiling rustc-serialize v0.3.19
+   Compiling bitflags v0.7.0
+   Compiling libc v0.2.15
+   Compiling glob v0.2.11
+   Compiling num-traits v0.1.34
+   Compiling gif v0.5.1
+   Compiling rand v0.3.14
+   Compiling miniz-sys v0.1.7
+   Compiling flate2 v0.2.14
+   Compiling num-integer v0.1.32
+   Compiling num-iter v0.1.32
+   Compiling num-complex v0.1.33
+   Compiling num-bigint v0.1.33
+   Compiling num-rational v0.1.32
+   Compiling num v0.1.34
+   Compiling enum_primitive v0.0.1
+   Compiling png v0.3.1
+makefile:2: recipe for target 'all' failed
+done

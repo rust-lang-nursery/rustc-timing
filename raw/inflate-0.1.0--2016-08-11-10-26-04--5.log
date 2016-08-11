@@ -1,0 +1,103 @@
+commit 42001edc998f3406ecc04afa48bf07ce91247b67
+Merge: 695b3d8 f37bf6d
+Author: bors <bors@rust-lang.org>
+Date:   Thu Aug 11 05:04:41 2016 -0700
+
+    Auto merge of #35403 - scottcarr:lvalue_refactor, r=nikomatsakis
+    
+    refactor lvalue_ty to be method of lvalue
+    
+    Currently `Mir` (and `MirContext`) implement a method `lvalue_ty` (and actually many more `foo_ty`).  But this should be a method of `Lvalue`.
+    
+    If you have an `lvalue` and you want to get its type, the natural thing to write is:
+    
+    ```
+    lvalue.ty()
+    ```
+    
+    Of course it needs context, but still:
+    
+    ```
+    lvalue.ty(mir, tcx)
+    ```
+    
+    Makes more sense than
+    
+    ```
+    mir.lvalue_ty(lvalue, tcx)
+    ```
+    
+    I actually think we should go a step farther and have traits so we could get the type of some value generically, but that's up for debate.  The thing I'm running into a lot in the compiler is I have a value of type `Foo` and I know that there is some related type `Bar` which I can get through some combination of method calls, but it's often not as direct as I would imagine.  Unless you already know the code, its not clear why you would look in `Mir` for a method to get the type of an `Lvalue`.
+rustc: ./inflate-0.1.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling inflate v0.1.0 (file:///root/benchmarks/inflate-0.1.0)
+time: 0.004; rss: 52MB	parsing
+Lines of code:             956
+Pre-expansion node count:  4738
+time: 0.000; rss: 52MB	configuration
+time: 0.000; rss: 52MB	recursion limit
+time: 0.000; rss: 52MB	crate injection
+time: 0.000; rss: 52MB	plugin loading
+time: 0.000; rss: 52MB	plugin registration
+time: 0.074; rss: 92MB	expansion
+time: 0.000; rss: 92MB	maybe building test harness
+time: 0.003; rss: 92MB	assigning node ids
+Post-expansion node count: 55769
+time: 0.000; rss: 92MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 92MB	complete gated feature checking
+time: 0.005; rss: 92MB	collecting defs
+time: 0.001; rss: 92MB	external crate/lib resolution
+time: 0.002; rss: 92MB	early lint checks
+time: 0.000; rss: 92MB	AST validation
+time: 0.010; rss: 94MB	name resolution
+time: 0.006; rss: 99MB	lowering ast -> hir
+time: 0.001; rss: 101MB	indexing hir
+time: 0.001; rss: 101MB	attribute checking
+time: 0.001; rss: 98MB	language item collection
+time: 0.001; rss: 98MB	lifetime resolution
+time: 0.000; rss: 98MB	looking for entry point
+time: 0.000; rss: 98MB	looking for plugin registrar
+time: 0.003; rss: 99MB	region resolution
+time: 0.000; rss: 99MB	loop checking
+time: 0.000; rss: 99MB	static item recursion checking
+time: 0.000; rss: 99MB	load_dep_graph
+time: 0.002; rss: 100MB	type collecting
+time: 0.000; rss: 100MB	variance inference
+time: 0.010; rss: 102MB	coherence checking
+time: 0.002; rss: 102MB	wf checking
+time: 0.002; rss: 102MB	item-types checking
+time: 2.534; rss: 116MB	item-bodies checking
+time: 0.000; rss: 116MB	drop-impl checking
+time: 0.015; rss: 117MB	const checking
+time: 0.001; rss: 117MB	privacy checking
+time: 0.000; rss: 117MB	stability index
+time: 0.001; rss: 117MB	intrinsic checking
+time: 0.001; rss: 117MB	effect checking
+time: 0.004; rss: 117MB	match checking
+time: 0.066; rss: 117MB	liveness checking
+time: 0.011; rss: 117MB	rvalue checking
+time: 0.032; rss: 131MB	MIR dump
+time: 0.018; rss: 129MB	MIR passes
+time: 0.198; rss: 130MB	borrow checking
+time: 0.000; rss: 130MB	reachability checking
+time: 0.003; rss: 130MB	death checking
+time: 0.002; rss: 130MB	stability checking
+time: 0.000; rss: 130MB	unused lib feature checking
+time: 0.020; rss: 130MB	lint checking
+time: 0.000; rss: 130MB	resolving dependency formats
+time: 0.135; rss: 129MB	Prepare MIR codegen passes
+  time: 0.003; rss: 130MB	write metadata
+  time: 0.009; rss: 131MB	translation item collection
+  time: 0.001; rss: 131MB	codegen unit partitioning
+  time: 0.002; rss: 152MB	internalize symbols
+time: 0.199; rss: 145MB	translation
+time: 0.000; rss: 145MB	assert dep graph
+time: 0.000; rss: 145MB	serialize dep graph
+  time: 0.026; rss: 111MB	llvm function passes [0]
+  time: 0.005; rss: 112MB	llvm module passes [0]
+  time: 0.646; rss: 120MB	codegen passes [0]
+  time: 0.000; rss: 119MB	codegen passes [0]
+time: 0.712; rss: 119MB	LLVM passes
+time: 0.000; rss: 119MB	serialize work products
+time: 0.047; rss: 103MB	linking
+done
