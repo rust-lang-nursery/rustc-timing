@@ -1,0 +1,108 @@
+commit f55ac6944a88d4da62b30a16cc95893ca050c328
+Merge: 68d9284 23f0494
+Author: bors <bors@rust-lang.org>
+Date:   Fri Aug 12 01:26:12 2016 -0700
+
+    Auto merge of #35091 - eddyb:impl-trait, r=nikomatsakis
+    
+    Implement `impl Trait` in return type position by anonymization.
+    
+    This is the first step towards implementing `impl Trait` (cc #34511).
+    `impl Trait` types are only allowed in function and inherent method return types, and capture all named lifetime and type parameters, being invariant over them.
+    No lifetimes that are not explicitly named lifetime parameters are allowed to escape from the function body.
+    The exposed traits are only those listed explicitly, i.e. `Foo` and `Clone` in `impl Foo + Clone`, with the exception of "auto traits" (like `Send` or `Sync`) which "leak" the actual contents.
+    
+    The implementation strategy is anonymization, i.e.:
+    ```rust
+    fn foo<T>(xs: Vec<T>) -> impl Iterator<Item=impl FnOnce() -> T> {
+        xs.into_iter().map(|x| || x)
+    }
+    
+    // is represented as:
+    type A</*invariant over*/ T> where A<T>: Iterator<Item=B<T>>;
+    type B</*invariant over*/ T> where B<T>: FnOnce() -> T;
+    fn foo<T>(xs: Vec<T>) -> A<T> {
+        xs.into_iter().map(|x| || x): $0 where $0: Iterator<Item=$1>, $1: FnOnce() -> T
+    }
+    ```
+    `$0` and `$1` are resolved (to `iter::Map<vec::Iter<T>, closure>` and the closure, respectively) and assigned to `A` and `B`, after checking the body of `foo`. `A` and `B` are *never* resolved for user-facing type equality (typeck), but always for the low-level representation and specialization (trans).
+    
+    The "auto traits" exception is implemented by collecting bounds like `impl Trait: Send` that have failed for the obscure `impl Trait` type (i.e. `A` or `B` above), pretending they succeeded within the function and trying them again after type-checking the whole crate, by replacing `impl Trait` with the real type.
+    
+    While passing around values which have explicit lifetime parameters (of the function with `-> impl Trait`) in their type *should* work, regionck appears to assign inference variables in *way* too many cases, and never properly resolving them to either explicit lifetime parameters, or `'static`.
+    We might not be able to handle lifetime parameters in `impl Trait` without changes to lifetime inference, but type parameters can have arbitrary lifetimes in them from the caller, so most type-generic usecases (or not generic at all) should not run into this problem.
+    
+    cc @rust-lang/lang
+rustc: ./issue-32062-equality-relations-complexity
+/root/rust/x86_64-unknown-linux-gnu/stage2/bin/rustc issue-32062.rs -Ztime-passes -Zinput-stats
+time: 0.000; rss: 50MB	parsing
+Lines of code:             60
+Pre-expansion node count:  582
+time: 0.000; rss: 50MB	configuration
+time: 0.000; rss: 50MB	recursion limit
+time: 0.000; rss: 50MB	crate injection
+time: 0.000; rss: 50MB	plugin loading
+time: 0.000; rss: 50MB	plugin registration
+time: 0.017; rss: 86MB	expansion
+time: 0.000; rss: 86MB	maybe building test harness
+time: 0.000; rss: 86MB	assigning node ids
+Post-expansion node count: 595
+time: 0.000; rss: 86MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 86MB	complete gated feature checking
+time: 0.000; rss: 86MB	collecting defs
+time: 0.002; rss: 86MB	external crate/lib resolution
+time: 0.000; rss: 86MB	early lint checks
+time: 0.000; rss: 86MB	AST validation
+time: 0.000; rss: 86MB	name resolution
+time: 0.000; rss: 86MB	lowering ast -> hir
+time: 0.000; rss: 86MB	indexing hir
+time: 0.000; rss: 86MB	attribute checking
+time: 0.000; rss: 86MB	language item collection
+time: 0.000; rss: 86MB	lifetime resolution
+time: 0.000; rss: 86MB	looking for entry point
+time: 0.000; rss: 86MB	looking for plugin registrar
+time: 0.000; rss: 86MB	region resolution
+time: 0.000; rss: 86MB	loop checking
+time: 0.000; rss: 86MB	static item recursion checking
+time: 0.000; rss: 86MB	load_dep_graph
+time: 0.001; rss: 90MB	type collecting
+time: 0.000; rss: 90MB	variance inference
+time: 0.004; rss: 90MB	coherence checking
+time: 0.007; rss: 90MB	wf checking
+time: 0.000; rss: 90MB	item-types checking
+time: 0.031; rss: 92MB	item-bodies checking
+time: 0.000; rss: 92MB	drop-impl checking
+time: 0.001; rss: 92MB	const checking
+time: 0.000; rss: 92MB	privacy checking
+time: 0.000; rss: 92MB	stability index
+time: 0.000; rss: 92MB	intrinsic checking
+time: 0.000; rss: 92MB	effect checking
+time: 0.000; rss: 92MB	match checking
+time: 0.000; rss: 92MB	liveness checking
+time: 0.001; rss: 92MB	rvalue checking
+time: 0.001; rss: 92MB	MIR dump
+time: 0.000; rss: 92MB	MIR passes
+time: 0.002; rss: 92MB	borrow checking
+time: 0.000; rss: 92MB	reachability checking
+time: 0.000; rss: 92MB	death checking
+time: 0.000; rss: 92MB	stability checking
+time: 0.000; rss: 92MB	unused lib feature checking
+time: 0.000; rss: 92MB	lint checking
+time: 0.001; rss: 92MB	resolving dependency formats
+time: 0.006; rss: 92MB	Prepare MIR codegen passes
+  time: 0.000; rss: 92MB	write metadata
+  time: 0.078; rss: 96MB	translation item collection
+  time: 0.000; rss: 96MB	codegen unit partitioning
+  time: 0.000; rss: 96MB	internalize symbols
+time: 0.455; rss: 96MB	translation
+time: 0.000; rss: 96MB	assert dep graph
+time: 0.000; rss: 96MB	serialize dep graph
+  time: 0.000; rss: 98MB	llvm function passes [0]
+  time: 0.000; rss: 98MB	llvm module passes [0]
+  time: 0.009; rss: 102MB	codegen passes [0]
+  time: 0.000; rss: 102MB	codegen passes [0]
+time: 0.010; rss: 102MB	LLVM passes
+time: 0.000; rss: 102MB	serialize work products
+  time: 0.106; rss: 102MB	running linker
+time: 0.107; rss: 102MB	linking
+done
