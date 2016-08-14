@@ -1,0 +1,116 @@
+commit eec30ea65792fd07826a931a9e0c5dfa3c050b2f
+Merge: 2b7ea14 95b68aa
+Author: bors <bors@rust-lang.org>
+Date:   Sat Aug 13 23:37:11 2016 -0700
+
+    Auto merge of #35453 - jseyfried:hygienize_metavariables, r=nrc
+    
+    macros: Make metavariables hygienic
+    
+    This PR makes metavariables hygienic. For example, consider:
+    ```rust
+    macro_rules! foo {
+        ($x:tt) => { // Suppose that this token tree argument is always a metavariable.
+            macro_rules! bar { ($x:expr, $y:expr) => { ($x, $y) } }
+        }
+    }
+    
+    fn main() {
+        foo!($z); // This currently compiles.
+        foo!($y); // This is an error today but compiles after this PR.
+    }
+    ```
+    Today, the `macro_rules! bar { ... }` definition is only valid when the metavariable passed to `foo` is not `$y` (since it unhygienically conflicts with the `$y` in the definition of `bar`) or `$x` (c.f. #35450).
+    
+    After this PR, the definition of `bar` is always valid (and `bar!(a, b)` always expands to `(a, b)` as expected).
+    
+    This can break code that was allowed in #34925 (landed two weeks ago). For example,
+    ```rust
+    macro_rules! outer {
+        ($t:tt) => {
+            macro_rules! inner { ($i:item) => { $t } }
+        }
+    }
+    
+    outer!($i); // This `$i` should not interact with the `$i` in the definition of `inner!`.
+    inner!(fn main() {}); // After this PR, this is an error ("unknown macro variable `i`").
+    ```
+    
+    Due to the severe limitations on nested `macro_rules!` before #34925, this is not a breaking change for stable/beta.
+    
+    Fixes #35450.
+    
+    r? @nrc
+rustc: ./hyper.0.5.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling hyper v0.5.0 (file:///root/benchmarks/hyper.0.5.0)
+time: 0.026; rss: 58MB	parsing
+Lines of code:             9154
+Pre-expansion node count:  44838
+time: 0.003; rss: 58MB	configuration
+time: 0.000; rss: 58MB	recursion limit
+time: 0.000; rss: 58MB	crate injection
+time: 0.000; rss: 58MB	plugin loading
+time: 0.000; rss: 58MB	plugin registration
+time: 0.094; rss: 99MB	expansion
+time: 0.000; rss: 99MB	maybe building test harness
+time: 0.005; rss: 99MB	assigning node ids
+Post-expansion node count: 101581
+time: 0.000; rss: 99MB	checking for inline asm in case the target doesn't support it
+time: 0.002; rss: 99MB	complete gated feature checking
+time: 0.003; rss: 99MB	collecting defs
+time: 0.010; rss: 110MB	external crate/lib resolution
+time: 0.003; rss: 110MB	early lint checks
+time: 0.001; rss: 110MB	AST validation
+time: 0.019; rss: 117MB	name resolution
+time: 0.008; rss: 123MB	lowering ast -> hir
+time: 0.002; rss: 125MB	indexing hir
+time: 0.001; rss: 125MB	attribute checking
+time: 0.001; rss: 119MB	language item collection
+time: 0.002; rss: 119MB	lifetime resolution
+time: 0.000; rss: 119MB	looking for entry point
+time: 0.000; rss: 119MB	looking for plugin registrar
+time: 0.006; rss: 123MB	region resolution
+time: 0.001; rss: 123MB	loop checking
+time: 0.001; rss: 123MB	static item recursion checking
+time: 0.000; rss: 123MB	load_dep_graph
+time: 0.023; rss: 124MB	type collecting
+time: 0.000; rss: 124MB	variance inference
+time: 0.048; rss: 131MB	coherence checking
+time: 0.079; rss: 134MB	wf checking
+time: 0.032; rss: 134MB	item-types checking
+time: 0.476; rss: 145MB	item-bodies checking
+time: 0.000; rss: 145MB	drop-impl checking
+time: 0.042; rss: 147MB	const checking
+time: 0.008; rss: 147MB	privacy checking
+time: 0.001; rss: 147MB	stability index
+time: 0.005; rss: 147MB	intrinsic checking
+time: 0.002; rss: 147MB	effect checking
+time: 0.013; rss: 147MB	match checking
+time: 0.004; rss: 147MB	liveness checking
+time: 0.030; rss: 147MB	rvalue checking
+time: 0.051; rss: 158MB	MIR dump
+time: 0.038; rss: 158MB	MIR passes
+time: 0.068; rss: 159MB	borrow checking
+time: 0.003; rss: 159MB	reachability checking
+time: 0.005; rss: 159MB	death checking
+time: 0.006; rss: 159MB	stability checking
+time: 0.000; rss: 159MB	unused lib feature checking
+time: 0.049; rss: 159MB	lint checking
+time: 0.000; rss: 159MB	resolving dependency formats
+time: 0.090; rss: 161MB	Prepare MIR codegen passes
+  time: 0.125; rss: 167MB	write metadata
+  time: 0.170; rss: 171MB	translation item collection
+  time: 0.020; rss: 173MB	codegen unit partitioning
+  time: 0.034; rss: 302MB	internalize symbols
+time: 1.718; rss: 302MB	translation
+time: 0.000; rss: 302MB	assert dep graph
+time: 0.000; rss: 302MB	serialize dep graph
+  time: 0.098; rss: 190MB	llvm function passes [0]
+  time: 0.048; rss: 188MB	llvm module passes [0]
+  time: 1.798; rss: 192MB	codegen passes [0]
+  time: 0.001; rss: 191MB	codegen passes [0]
+time: 2.108; rss: 191MB	LLVM passes
+time: 0.000; rss: 191MB	serialize work products
+time: 0.166; rss: 125MB	linking
+done
