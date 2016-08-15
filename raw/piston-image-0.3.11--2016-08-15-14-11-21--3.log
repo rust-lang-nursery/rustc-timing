@@ -1,0 +1,25 @@
+commit f65d96fe3fa3cfae2cfc88be40f7416a22c88bf2
+Merge: b72fa8c 67f19e5
+Author: bors <bors@rust-lang.org>
+Date:   Mon Aug 15 08:35:18 2016 -0700
+
+    Auto merge of #35340 - michaelwoerister:incr-comp-cli-args, r=nikomatsakis
+    
+    Take commandline arguments into account for incr. comp.
+    
+    Implements the conservative strategy described in https://github.com/rust-lang/rust/issues/33727.
+    
+    From now one, every time a new commandline option is added, one has to specify if it influences the incremental compilation cache. I've tried to implement this as automatic as possible: One just has to added either the `[TRACKED]` or the `[UNTRACKED]` marker next to the field. The `Options`, `CodegenOptions`, and `DebuggingOptions` definitions in `session::config` show plenty of examples.
+    
+    The PR removes some cruft from `session::config::Options`, mostly unnecessary copies of flags also present in `DebuggingOptions` or `CodeGenOptions` in the same struct.
+    
+    One notable removal is the `cfg` field that contained the values passed via `--cfg` commandline arguments. I chose to remove it because (1) its content is only a subset of what later is stored in `hir::Crate::config` and it's pretty likely that reading the cfgs from `Options` would not be what you wanted, and (2) we could not incorporate it into the dep-tracking hash of the `Options` struct because of how the test framework works, leaving us with a piece of untracked but vital data.
+    
+    It is now recommended (just as before) to access the crate config via the `krate()` method in the HIR map.
+    
+    Because the `cfg` field is not present in the `Options` struct any more, some methods in the `CompilerCalls` trait now take the crate config as an explicit parameter -- which might constitute a breaking change for plugin authors.
+rustc: ./piston-image-0.3.11
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling png v0.3.1
+makefile:2: recipe for target 'all' failed
+done

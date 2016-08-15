@@ -1,0 +1,93 @@
+commit f65d96fe3fa3cfae2cfc88be40f7416a22c88bf2
+Merge: b72fa8c 67f19e5
+Author: bors <bors@rust-lang.org>
+Date:   Mon Aug 15 08:35:18 2016 -0700
+
+    Auto merge of #35340 - michaelwoerister:incr-comp-cli-args, r=nikomatsakis
+    
+    Take commandline arguments into account for incr. comp.
+    
+    Implements the conservative strategy described in https://github.com/rust-lang/rust/issues/33727.
+    
+    From now one, every time a new commandline option is added, one has to specify if it influences the incremental compilation cache. I've tried to implement this as automatic as possible: One just has to added either the `[TRACKED]` or the `[UNTRACKED]` marker next to the field. The `Options`, `CodegenOptions`, and `DebuggingOptions` definitions in `session::config` show plenty of examples.
+    
+    The PR removes some cruft from `session::config::Options`, mostly unnecessary copies of flags also present in `DebuggingOptions` or `CodeGenOptions` in the same struct.
+    
+    One notable removal is the `cfg` field that contained the values passed via `--cfg` commandline arguments. I chose to remove it because (1) its content is only a subset of what later is stored in `hir::Crate::config` and it's pretty likely that reading the cfgs from `Options` would not be what you wanted, and (2) we could not incorporate it into the dep-tracking hash of the `Options` struct because of how the test framework works, leaving us with a piece of untracked but vital data.
+    
+    It is now recommended (just as before) to access the crate config via the `krate()` method in the HIR map.
+    
+    Because the `cfg` field is not present in the `Options` struct any more, some methods in the `CompilerCalls` trait now take the crate config as an explicit parameter -- which might constitute a breaking change for plugin authors.
+rustc: ./hyper.0.5.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling hyper v0.5.0 (file:///root/benchmarks/hyper.0.5.0)
+time: 0.026; rss: 51MB	parsing
+Lines of code:             9154
+Pre-expansion node count:  44838
+time: 0.003; rss: 51MB	configuration
+time: 0.000; rss: 51MB	recursion limit
+time: 0.000; rss: 51MB	crate injection
+time: 0.000; rss: 51MB	plugin loading
+time: 0.000; rss: 51MB	plugin registration
+time: 0.093; rss: 93MB	expansion
+time: 0.000; rss: 93MB	maybe building test harness
+time: 0.005; rss: 93MB	assigning node ids
+Post-expansion node count: 101581
+time: 0.000; rss: 93MB	checking for inline asm in case the target doesn't support it
+time: 0.002; rss: 93MB	complete gated feature checking
+time: 0.003; rss: 93MB	collecting defs
+time: 0.010; rss: 104MB	external crate/lib resolution
+time: 0.003; rss: 104MB	early lint checks
+time: 0.001; rss: 104MB	AST validation
+time: 0.020; rss: 111MB	name resolution
+time: 0.008; rss: 117MB	lowering ast -> hir
+time: 0.002; rss: 119MB	indexing hir
+time: 0.001; rss: 119MB	attribute checking
+time: 0.001; rss: 113MB	language item collection
+time: 0.002; rss: 113MB	lifetime resolution
+time: 0.000; rss: 113MB	looking for entry point
+time: 0.000; rss: 113MB	looking for plugin registrar
+time: 0.006; rss: 116MB	region resolution
+time: 0.001; rss: 116MB	loop checking
+time: 0.001; rss: 116MB	static item recursion checking
+time: 0.000; rss: 116MB	load_dep_graph
+time: 0.023; rss: 118MB	type collecting
+time: 0.000; rss: 118MB	variance inference
+time: 0.045; rss: 126MB	coherence checking
+time: 0.083; rss: 128MB	wf checking
+time: 0.033; rss: 128MB	item-types checking
+time: 0.489; rss: 139MB	item-bodies checking
+time: 0.000; rss: 139MB	drop-impl checking
+time: 0.043; rss: 141MB	const checking
+time: 0.006; rss: 141MB	privacy checking
+time: 0.001; rss: 141MB	stability index
+time: 0.005; rss: 141MB	intrinsic checking
+time: 0.002; rss: 141MB	effect checking
+time: 0.013; rss: 141MB	match checking
+time: 0.005; rss: 141MB	liveness checking
+time: 0.031; rss: 141MB	rvalue checking
+time: 0.056; rss: 158MB	MIR dump
+time: 0.044; rss: 160MB	MIR passes
+time: 0.069; rss: 160MB	borrow checking
+time: 0.003; rss: 160MB	reachability checking
+time: 0.005; rss: 160MB	death checking
+time: 0.006; rss: 160MB	stability checking
+time: 0.000; rss: 160MB	unused lib feature checking
+time: 0.050; rss: 160MB	lint checking
+time: 0.000; rss: 160MB	resolving dependency formats
+time: 0.097; rss: 162MB	Prepare MIR codegen passes
+  time: 0.138; rss: 174MB	write metadata
+  time: 0.180; rss: 178MB	translation item collection
+  time: 0.020; rss: 180MB	codegen unit partitioning
+  time: 0.035; rss: 309MB	internalize symbols
+time: 1.819; rss: 309MB	translation
+time: 0.000; rss: 309MB	assert dep graph
+time: 0.000; rss: 309MB	serialize dep graph
+  time: 0.101; rss: 183MB	llvm function passes [0]
+  time: 0.048; rss: 186MB	llvm module passes [0]
+  time: 1.834; rss: 190MB	codegen passes [0]
+  time: 0.001; rss: 190MB	codegen passes [0]
+time: 2.148; rss: 190MB	LLVM passes
+time: 0.000; rss: 190MB	serialize work products
+time: 0.154; rss: 122MB	linking
+done

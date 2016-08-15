@@ -1,0 +1,63 @@
+commit f65d96fe3fa3cfae2cfc88be40f7416a22c88bf2
+Merge: b72fa8c 67f19e5
+Author: bors <bors@rust-lang.org>
+Date:   Mon Aug 15 08:35:18 2016 -0700
+
+    Auto merge of #35340 - michaelwoerister:incr-comp-cli-args, r=nikomatsakis
+    
+    Take commandline arguments into account for incr. comp.
+    
+    Implements the conservative strategy described in https://github.com/rust-lang/rust/issues/33727.
+    
+    From now one, every time a new commandline option is added, one has to specify if it influences the incremental compilation cache. I've tried to implement this as automatic as possible: One just has to added either the `[TRACKED]` or the `[UNTRACKED]` marker next to the field. The `Options`, `CodegenOptions`, and `DebuggingOptions` definitions in `session::config` show plenty of examples.
+    
+    The PR removes some cruft from `session::config::Options`, mostly unnecessary copies of flags also present in `DebuggingOptions` or `CodeGenOptions` in the same struct.
+    
+    One notable removal is the `cfg` field that contained the values passed via `--cfg` commandline arguments. I chose to remove it because (1) its content is only a subset of what later is stored in `hir::Crate::config` and it's pretty likely that reading the cfgs from `Options` would not be what you wanted, and (2) we could not incorporate it into the dep-tracking hash of the `Options` struct because of how the test framework works, leaving us with a piece of untracked but vital data.
+    
+    It is now recommended (just as before) to access the crate config via the `krate()` method in the HIR map.
+    
+    Because the `cfg` field is not present in the `Options` struct any more, some methods in the `CompilerCalls` trait now take the crate config as an explicit parameter -- which might constitute a breaking change for plugin authors.
+rustc: ./regex-macros.0.1.30
+cd regex_macros && cargo rustc -- -Ztime-passes -Zinput-stats
+    Updating registry `https://github.com/rust-lang/crates.io-index`
+   Compiling regex v0.1.30 (file:///root/benchmarks/regex-macros.0.1.30/regex_macros)
+   Compiling regex_macros v0.1.17 (file:///root/benchmarks/regex-macros.0.1.30/regex_macros)
+time: 0.002; rss: 44MB	parsing
+Lines of code:             639
+Pre-expansion node count:  2088
+time: 0.000; rss: 44MB	configuration
+time: 0.000; rss: 44MB	recursion limit
+time: 0.000; rss: 44MB	crate injection
+time: 0.000; rss: 44MB	plugin loading
+time: 0.000; rss: 44MB	plugin registration
+time: 0.031; rss: 86MB	expansion
+time: 0.000; rss: 86MB	maybe building test harness
+time: 0.003; rss: 86MB	assigning node ids
+Post-expansion node count: 69587
+time: 0.000; rss: 86MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 86MB	complete gated feature checking
+time: 0.000; rss: 86MB	collecting defs
+time: 0.086; rss: 175MB	external crate/lib resolution
+time: 0.002; rss: 175MB	early lint checks
+time: 0.000; rss: 175MB	AST validation
+time: 0.021; rss: 183MB	name resolution
+time: 0.004; rss: 187MB	lowering ast -> hir
+time: 0.001; rss: 186MB	indexing hir
+time: 0.000; rss: 186MB	attribute checking
+time: 0.001; rss: 180MB	language item collection
+time: 0.000; rss: 180MB	lifetime resolution
+time: 0.000; rss: 180MB	looking for entry point
+time: 0.000; rss: 180MB	looking for plugin registrar
+time: 0.003; rss: 182MB	region resolution
+time: 0.000; rss: 182MB	loop checking
+time: 0.000; rss: 182MB	static item recursion checking
+time: 0.000; rss: 182MB	load_dep_graph
+time: 0.012; rss: 185MB	type collecting
+time: 0.000; rss: 185MB	variance inference
+time: 0.011; rss: 186MB	coherence checking
+time: 0.008; rss: 187MB	wf checking
+time: 0.001; rss: 187MB	item-types checking
+time: 0.782; rss: 205MB	item-bodies checking
+makefile:2: recipe for target 'all' failed
+done
