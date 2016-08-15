@@ -1,0 +1,83 @@
+commit 1d5b758bab979b1db723bcc97ecd8398127bd8bc
+Merge: 92ae4ce 1bb1444
+Author: bors <bors@rust-lang.org>
+Date:   Sun Aug 14 12:28:48 2016 -0700
+
+    Auto merge of #35409 - eddyb:mir-storage-stmts, r=nikomatsakis
+    
+    [MIR] Add Storage{Live,Dead} statements to emit llvm.lifetime.{start,end}.
+    
+    Storage live ranges are tracked for all MIR variables and temporaries with a drop scope.
+    `StorageLive` is lowered to `llvm.lifetime.start` and `StorageDead` to `llvm.lifetime.end`.
+    
+    There are some improvements possible here, such as:
+    * pack multiple storage liveness statements by using the index of first local + `u64` bitset
+    * enforce that locals are not directly accessed outside their storage live range
+    * shrink storage live ranges for never-borrowed locals to initialization -> last use
+    * emit storage liveness statements for *all* temporaries
+     * however, the remaining ones are *always* SSA immediates, so they'd be noop in MIR trans
+     * could have a flag on the temporary that its storage is irrelevant (a la C's old `register`)
+       * would also deny borrows if necessary
+        * this seems like an overcompliation and with packing & optimizations it may be pointless
+    
+    Even in the current state, it helps stage2 `rustc` compile `boiler` without overflowing (see #35408).
+    
+    A later addition fixes #26764 and closes #27372 by emitting `.section` directives for dylib metadata to avoid them being allocated into memory or read as `.note`. For this PR, those bugs were tripping valgrind.
+rustc: ./rust-encoding.0.2.32
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling encoding v0.2.32 (file:///root/benchmarks/rust-encoding.0.2.32)
+time: 0.020; rss: 48MB	parsing
+Lines of code:             6441
+Pre-expansion node count:  30069
+time: 0.002; rss: 48MB	configuration
+time: 0.000; rss: 48MB	recursion limit
+time: 0.000; rss: 48MB	crate injection
+time: 0.000; rss: 48MB	plugin loading
+time: 0.000; rss: 48MB	plugin registration
+time: 0.039; rss: 87MB	expansion
+time: 0.000; rss: 87MB	maybe building test harness
+time: 0.002; rss: 87MB	assigning node ids
+Post-expansion node count: 40757
+time: 0.000; rss: 87MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 87MB	complete gated feature checking
+time: 0.001; rss: 87MB	collecting defs
+time: 0.001; rss: 89MB	external crate/lib resolution
+time: 0.001; rss: 89MB	early lint checks
+time: 0.000; rss: 89MB	AST validation
+time: 0.005; rss: 89MB	name resolution
+time: 0.004; rss: 91MB	lowering ast -> hir
+time: 0.001; rss: 92MB	indexing hir
+time: 0.000; rss: 92MB	attribute checking
+time: 0.000; rss: 91MB	language item collection
+time: 0.001; rss: 91MB	lifetime resolution
+time: 0.000; rss: 91MB	looking for entry point
+time: 0.000; rss: 91MB	looking for plugin registrar
+time: 0.002; rss: 93MB	region resolution
+time: 0.000; rss: 93MB	loop checking
+time: 0.000; rss: 93MB	static item recursion checking
+time: 0.000; rss: 93MB	load_dep_graph
+time: 0.008; rss: 94MB	type collecting
+time: 0.000; rss: 94MB	variance inference
+time: 0.022; rss: 96MB	coherence checking
+time: 0.019; rss: 98MB	wf checking
+time: 0.014; rss: 98MB	item-types checking
+time: 0.205; rss: 108MB	item-bodies checking
+time: 0.000; rss: 108MB	drop-impl checking
+time: 0.013; rss: 108MB	const checking
+time: 0.002; rss: 108MB	privacy checking
+time: 0.000; rss: 108MB	stability index
+time: 0.002; rss: 108MB	intrinsic checking
+time: 0.000; rss: 108MB	effect checking
+time: 0.007; rss: 108MB	match checking
+time: 0.001; rss: 108MB	liveness checking
+time: 0.008; rss: 108MB	rvalue checking
+time: 0.021; rss: 118MB	MIR dump
+time: 0.015; rss: 118MB	MIR passes
+time: 0.023; rss: 118MB	borrow checking
+time: 0.000; rss: 118MB	reachability checking
+time: 0.002; rss: 118MB	death checking
+time: 0.002; rss: 118MB	stability checking
+time: 0.000; rss: 118MB	unused lib feature checking
+time: 0.024; rss: 120MB	lint checking
+makefile:2: recipe for target 'all' failed
+done

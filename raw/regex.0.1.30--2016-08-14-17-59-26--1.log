@@ -1,0 +1,98 @@
+commit 1d5b758bab979b1db723bcc97ecd8398127bd8bc
+Merge: 92ae4ce 1bb1444
+Author: bors <bors@rust-lang.org>
+Date:   Sun Aug 14 12:28:48 2016 -0700
+
+    Auto merge of #35409 - eddyb:mir-storage-stmts, r=nikomatsakis
+    
+    [MIR] Add Storage{Live,Dead} statements to emit llvm.lifetime.{start,end}.
+    
+    Storage live ranges are tracked for all MIR variables and temporaries with a drop scope.
+    `StorageLive` is lowered to `llvm.lifetime.start` and `StorageDead` to `llvm.lifetime.end`.
+    
+    There are some improvements possible here, such as:
+    * pack multiple storage liveness statements by using the index of first local + `u64` bitset
+    * enforce that locals are not directly accessed outside their storage live range
+    * shrink storage live ranges for never-borrowed locals to initialization -> last use
+    * emit storage liveness statements for *all* temporaries
+     * however, the remaining ones are *always* SSA immediates, so they'd be noop in MIR trans
+     * could have a flag on the temporary that its storage is irrelevant (a la C's old `register`)
+       * would also deny borrows if necessary
+        * this seems like an overcompliation and with packing & optimizations it may be pointless
+    
+    Even in the current state, it helps stage2 `rustc` compile `boiler` without overflowing (see #35408).
+    
+    A later addition fixes #26764 and closes #27372 by emitting `.section` directives for dylib metadata to avoid them being allocated into memory or read as `.note`. For this PR, those bugs were tripping valgrind.
+rustc: ./regex.0.1.30
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling regex v0.1.30 (file:///root/benchmarks/regex.0.1.30)
+time: 0.052; rss: 57MB	parsing
+Lines of code:             8558
+Pre-expansion node count:  58076
+time: 0.005; rss: 57MB	configuration
+time: 0.000; rss: 57MB	recursion limit
+time: 0.000; rss: 57MB	crate injection
+time: 0.000; rss: 57MB	plugin loading
+time: 0.000; rss: 57MB	plugin registration
+time: 0.030; rss: 94MB	expansion
+time: 0.000; rss: 94MB	maybe building test harness
+time: 0.004; rss: 94MB	assigning node ids
+Post-expansion node count: 68148
+time: 0.000; rss: 94MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 94MB	complete gated feature checking
+time: 0.001; rss: 95MB	collecting defs
+time: 0.001; rss: 95MB	external crate/lib resolution
+time: 0.003; rss: 95MB	early lint checks
+time: 0.001; rss: 95MB	AST validation
+time: 0.007; rss: 96MB	name resolution
+time: 0.008; rss: 105MB	lowering ast -> hir
+time: 0.002; rss: 107MB	indexing hir
+time: 0.001; rss: 107MB	attribute checking
+time: 0.001; rss: 97MB	language item collection
+time: 0.001; rss: 97MB	lifetime resolution
+time: 0.000; rss: 97MB	looking for entry point
+time: 0.000; rss: 97MB	looking for plugin registrar
+time: 0.007; rss: 102MB	region resolution
+time: 0.001; rss: 102MB	loop checking
+time: 0.001; rss: 102MB	static item recursion checking
+time: 0.000; rss: 102MB	load_dep_graph
+time: 0.008; rss: 103MB	type collecting
+time: 0.000; rss: 103MB	variance inference
+time: 0.025; rss: 107MB	coherence checking
+time: 0.011; rss: 107MB	wf checking
+time: 0.304; rss: 116MB	item-types checking
+time: 0.190; rss: 121MB	item-bodies checking
+time: 0.000; rss: 121MB	drop-impl checking
+time: 0.027; rss: 123MB	const checking
+time: 0.004; rss: 123MB	privacy checking
+time: 0.001; rss: 123MB	stability index
+time: 0.002; rss: 123MB	intrinsic checking
+time: 0.001; rss: 123MB	effect checking
+time: 0.004; rss: 123MB	match checking
+time: 0.002; rss: 123MB	liveness checking
+time: 0.008; rss: 123MB	rvalue checking
+time: 0.043; rss: 139MB	MIR dump
+time: 0.022; rss: 139MB	MIR passes
+time: 0.021; rss: 139MB	borrow checking
+time: 0.000; rss: 139MB	reachability checking
+time: 0.002; rss: 139MB	death checking
+time: 0.003; rss: 139MB	stability checking
+time: 0.000; rss: 139MB	unused lib feature checking
+time: 0.028; rss: 139MB	lint checking
+time: 0.000; rss: 139MB	resolving dependency formats
+time: 0.019; rss: 141MB	Prepare MIR codegen passes
+  time: 0.170; rss: 150MB	write metadata
+  time: 0.057; rss: 153MB	translation item collection
+  time: 0.008; rss: 153MB	codegen unit partitioning
+  time: 0.015; rss: 201MB	internalize symbols
+time: 0.775; rss: 199MB	translation
+time: 0.000; rss: 199MB	assert dep graph
+time: 0.000; rss: 199MB	serialize dep graph
+  time: 0.036; rss: 128MB	llvm function passes [0]
+  time: 0.019; rss: 130MB	llvm module passes [0]
+  time: 0.675; rss: 134MB	codegen passes [0]
+  time: 0.001; rss: 134MB	codegen passes [0]
+time: 0.791; rss: 134MB	LLVM passes
+time: 0.000; rss: 134MB	serialize work products
+time: 0.066; rss: 105MB	linking
+done
