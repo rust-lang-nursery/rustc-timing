@@ -1,0 +1,124 @@
+commit 43c090ed69a624928c03ad61a29a59badf80ff7b
+Merge: 9d6520f 864b3ef
+Author: bors <bors@rust-lang.org>
+Date:   Thu Aug 18 05:39:11 2016 -0700
+
+    Auto merge of #35732 - jonathandturner:region_error_labels, r=nikomatsakis
+    
+    Move 'doesn't live long enough' errors to labels
+    
+    This patch moves the "doesn't live long enough" region-style errors to instead use labels.
+    
+    An example follows.
+    
+    Before:
+    
+    ```
+    error: `x` does not live long enough
+      --> src/test/compile-fail/send-is-not-static-ensures-scoping.rs:26:18
+       |
+    26 |         let y = &x;
+       |                  ^
+       |
+    note: reference must be valid for the block at 23:10...
+      --> src/test/compile-fail/send-is-not-static-ensures-scoping.rs:23:11
+       |
+    23 | fn main() {
+       |           ^
+    note: ...but borrowed value is only valid for the block suffix following statement 0 at 25:18
+      --> src/test/compile-fail/send-is-not-static-ensures-scoping.rs:25:19
+       |
+    25 |         let x = 1;
+       |                   ^
+    ```
+    
+    After:
+    
+    ```
+    error: `x` does not live long enough
+      --> src/test/compile-fail/send-is-not-static-ensures-scoping.rs:26:18
+       |
+    26 |         let y = &x;
+       |                  ^ does not live long enough
+    ...
+    32 |     };
+       |     - borrowed value only valid until here
+    ...
+    35 | }
+       | - borrowed value must be valid until here
+    ```
+    
+    r? @nikomatsakis
+rustc: ./inflate-0.1.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling inflate v0.1.0 (file:///root/benchmarks/inflate-0.1.0)
+time: 0.004; rss: 44MB	parsing
+Lines of code:             956
+Pre-expansion node count:  4740
+time: 0.001; rss: 44MB	configuration
+time: 0.000; rss: 44MB	recursion limit
+time: 0.000; rss: 44MB	crate injection
+time: 0.000; rss: 44MB	plugin loading
+time: 0.000; rss: 44MB	plugin registration
+time: 0.076; rss: 85MB	expansion
+time: 0.000; rss: 85MB	maybe building test harness
+time: 0.003; rss: 85MB	assigning node ids
+Post-expansion node count: 55770
+time: 0.000; rss: 85MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 85MB	complete gated feature checking
+time: 0.005; rss: 85MB	collecting defs
+time: 0.001; rss: 85MB	external crate/lib resolution
+time: 0.002; rss: 85MB	early lint checks
+time: 0.000; rss: 85MB	AST validation
+time: 0.010; rss: 87MB	name resolution
+time: 0.005; rss: 91MB	lowering ast -> hir
+time: 0.001; rss: 93MB	indexing hir
+time: 0.000; rss: 93MB	attribute checking
+time: 0.001; rss: 91MB	language item collection
+time: 0.001; rss: 91MB	lifetime resolution
+time: 0.000; rss: 91MB	looking for entry point
+time: 0.000; rss: 91MB	looking for plugin registrar
+time: 0.004; rss: 91MB	region resolution
+time: 0.000; rss: 91MB	loop checking
+time: 0.000; rss: 91MB	static item recursion checking
+time: 0.000; rss: 91MB	load_dep_graph
+time: 0.002; rss: 91MB	type collecting
+time: 0.000; rss: 91MB	variance inference
+time: 0.009; rss: 94MB	coherence checking
+time: 0.002; rss: 94MB	wf checking
+time: 0.002; rss: 94MB	item-types checking
+time: 2.627; rss: 107MB	item-bodies checking
+time: 0.000; rss: 107MB	drop-impl checking
+time: 0.016; rss: 104MB	const checking
+time: 0.001; rss: 104MB	privacy checking
+time: 0.000; rss: 104MB	stability index
+time: 0.001; rss: 104MB	intrinsic checking
+time: 0.001; rss: 104MB	effect checking
+time: 0.004; rss: 104MB	match checking
+time: 0.063; rss: 104MB	liveness checking
+time: 0.011; rss: 104MB	rvalue checking
+time: 0.038; rss: 127MB	MIR dump
+time: 0.024; rss: 126MB	MIR passes
+time: 0.198; rss: 127MB	borrow checking
+time: 0.000; rss: 127MB	reachability checking
+time: 0.003; rss: 127MB	death checking
+time: 0.002; rss: 127MB	stability checking
+time: 0.000; rss: 127MB	unused lib feature checking
+time: 0.019; rss: 127MB	lint checking
+time: 0.000; rss: 127MB	resolving dependency formats
+time: 0.182; rss: 127MB	Prepare MIR codegen passes
+  time: 0.003; rss: 128MB	write metadata
+  time: 0.010; rss: 129MB	translation item collection
+  time: 0.001; rss: 129MB	codegen unit partitioning
+  time: 0.002; rss: 150MB	internalize symbols
+time: 0.218; rss: 135MB	translation
+time: 0.000; rss: 135MB	assert dep graph
+time: 0.000; rss: 135MB	serialize dep graph
+  time: 0.029; rss: 105MB	llvm function passes [0]
+  time: 0.005; rss: 105MB	llvm module passes [0]
+  time: 0.648; rss: 112MB	codegen passes [0]
+  time: 0.000; rss: 112MB	codegen passes [0]
+time: 0.717; rss: 112MB	LLVM passes
+time: 0.000; rss: 112MB	serialize work products
+time: 0.047; rss: 98MB	linking
+done

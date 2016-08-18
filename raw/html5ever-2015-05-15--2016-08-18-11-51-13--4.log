@@ -1,0 +1,56 @@
+commit 43c090ed69a624928c03ad61a29a59badf80ff7b
+Merge: 9d6520f 864b3ef
+Author: bors <bors@rust-lang.org>
+Date:   Thu Aug 18 05:39:11 2016 -0700
+
+    Auto merge of #35732 - jonathandturner:region_error_labels, r=nikomatsakis
+    
+    Move 'doesn't live long enough' errors to labels
+    
+    This patch moves the "doesn't live long enough" region-style errors to instead use labels.
+    
+    An example follows.
+    
+    Before:
+    
+    ```
+    error: `x` does not live long enough
+      --> src/test/compile-fail/send-is-not-static-ensures-scoping.rs:26:18
+       |
+    26 |         let y = &x;
+       |                  ^
+       |
+    note: reference must be valid for the block at 23:10...
+      --> src/test/compile-fail/send-is-not-static-ensures-scoping.rs:23:11
+       |
+    23 | fn main() {
+       |           ^
+    note: ...but borrowed value is only valid for the block suffix following statement 0 at 25:18
+      --> src/test/compile-fail/send-is-not-static-ensures-scoping.rs:25:19
+       |
+    25 |         let x = 1;
+       |                   ^
+    ```
+    
+    After:
+    
+    ```
+    error: `x` does not live long enough
+      --> src/test/compile-fail/send-is-not-static-ensures-scoping.rs:26:18
+       |
+    26 |         let y = &x;
+       |                  ^ does not live long enough
+    ...
+    32 |     };
+       |     - borrowed value only valid until here
+    ...
+    35 | }
+       | - borrowed value must be valid until here
+    ```
+    
+    r? @nikomatsakis
+rustc: ./html5ever-2015-05-15
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling html5ever_macros v0.0.0 (file:///root/benchmarks/html5ever-2015-05-15)
+makefile:2: recipe for target 'all' failed
+done
