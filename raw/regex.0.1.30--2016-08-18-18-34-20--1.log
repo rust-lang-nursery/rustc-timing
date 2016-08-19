@@ -1,0 +1,93 @@
+commit 499484f56d336f4628a6fa016626beb3ef21ba81
+Merge: 43c090e 37d974f
+Author: bors <bors@rust-lang.org>
+Date:   Thu Aug 18 08:54:10 2016 -0700
+
+    Auto merge of #35684 - nikomatsakis:incr-comp-metadata-audit-35111, r=mw
+    
+    Restructure metadata encoder to track deps precisely
+    
+    This issue restructures meta-data encoding to track dependencies very precisely. It uses a cute technique I hope to spread elsewhere, where we can guard the data flowing into a new dep-graph task and ensure that it is not "leaking" information from the outside, which would result in missing edges. There are no tests because we don't know of any bugs in the old system, but it's clear that there was leaked data.
+    
+    The commit series is standalone, but the refactorings are kind of "windy". It's a good idea to read the comment in `src/librustc_metadata/index_builder.rs` to get a feeling for the overall strategy I was aiming at.
+    
+    In several cases, I wound up adding some extra hashtable lookups, I think primarily for looking up `AdtDef` instances. We could remove these by implementing `DepGraphRead` for an `AdtDef` and then having it register a read to the adt-defs table, I guess, but I doubt it is really noticeable.
+    
+    Eventually I think I'd like to extend this pattern to the dep-graph more generally, since it effectively guarantees that data cannot leak.
+    
+    Fixes #35111.
+    
+    r? @michaelwoerister
+rustc: ./regex.0.1.30
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling regex v0.1.30 (file:///root/benchmarks/regex.0.1.30)
+time: 0.052; rss: 57MB	parsing
+Lines of code:             8558
+Pre-expansion node count:  58076
+time: 0.005; rss: 57MB	configuration
+time: 0.000; rss: 57MB	recursion limit
+time: 0.000; rss: 57MB	crate injection
+time: 0.000; rss: 57MB	plugin loading
+time: 0.000; rss: 57MB	plugin registration
+time: 0.030; rss: 93MB	expansion
+time: 0.000; rss: 93MB	maybe building test harness
+time: 0.004; rss: 93MB	assigning node ids
+Post-expansion node count: 68148
+time: 0.000; rss: 93MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 93MB	complete gated feature checking
+time: 0.001; rss: 94MB	collecting defs
+time: 0.001; rss: 94MB	external crate/lib resolution
+time: 0.003; rss: 94MB	early lint checks
+time: 0.001; rss: 94MB	AST validation
+time: 0.007; rss: 95MB	name resolution
+time: 0.008; rss: 104MB	lowering ast -> hir
+time: 0.002; rss: 107MB	indexing hir
+time: 0.001; rss: 107MB	attribute checking
+time: 0.001; rss: 97MB	language item collection
+time: 0.001; rss: 97MB	lifetime resolution
+time: 0.000; rss: 97MB	looking for entry point
+time: 0.000; rss: 97MB	looking for plugin registrar
+time: 0.007; rss: 101MB	region resolution
+time: 0.001; rss: 101MB	loop checking
+time: 0.001; rss: 101MB	static item recursion checking
+time: 0.000; rss: 101MB	load_dep_graph
+time: 0.008; rss: 102MB	type collecting
+time: 0.000; rss: 102MB	variance inference
+time: 0.020; rss: 105MB	coherence checking
+time: 0.010; rss: 106MB	wf checking
+time: 0.278; rss: 113MB	item-types checking
+time: 0.164; rss: 115MB	item-bodies checking
+time: 0.000; rss: 115MB	drop-impl checking
+time: 0.028; rss: 117MB	const checking
+time: 0.004; rss: 117MB	privacy checking
+time: 0.001; rss: 117MB	stability index
+time: 0.002; rss: 117MB	intrinsic checking
+time: 0.001; rss: 117MB	effect checking
+time: 0.004; rss: 117MB	match checking
+time: 0.002; rss: 117MB	liveness checking
+time: 0.008; rss: 117MB	rvalue checking
+time: 0.045; rss: 134MB	MIR dump
+time: 0.022; rss: 134MB	MIR passes
+time: 0.021; rss: 134MB	borrow checking
+time: 0.000; rss: 134MB	reachability checking
+time: 0.003; rss: 134MB	death checking
+time: 0.002; rss: 134MB	stability checking
+time: 0.000; rss: 134MB	unused lib feature checking
+time: 0.027; rss: 134MB	lint checking
+time: 0.000; rss: 134MB	resolving dependency formats
+time: 0.019; rss: 136MB	Prepare MIR codegen passes
+  time: 0.171; rss: 146MB	write metadata
+  time: 0.049; rss: 148MB	translation item collection
+  time: 0.008; rss: 148MB	codegen unit partitioning
+  time: 0.015; rss: 197MB	internalize symbols
+time: 0.744; rss: 194MB	translation
+time: 0.000; rss: 194MB	assert dep graph
+time: 0.000; rss: 194MB	serialize dep graph
+  time: 0.036; rss: 129MB	llvm function passes [0]
+  time: 0.019; rss: 131MB	llvm module passes [0]
+  time: 0.670; rss: 133MB	codegen passes [0]
+  time: 0.001; rss: 133MB	codegen passes [0]
+time: 0.787; rss: 133MB	LLVM passes
+time: 0.000; rss: 133MB	serialize work products
+time: 0.066; rss: 106MB	linking
+done
