@@ -1,0 +1,90 @@
+commit 528c6f3ed6a23a374dc5a40582d1bea2f2cfda65
+Merge: 17a2be8 0a70944
+Author: bors <bors@rust-lang.org>
+Date:   Thu Aug 25 08:32:19 2016 -0700
+
+    Auto merge of #35884 - habnabit:freebsd-arc4rand, r=alexcrichton
+    
+    Use arc4rand(9) on FreeBSD
+    
+    From rust-lang-nursery/rand#112:
+    
+    >After reading through #30691 it seems that there's general agreement that using OS-provided facilities for seeding rust userland processes is fine as long as it doesn't use too much from libc. FreeBSD's `arc4random_buf(3)` is not only a whole lot of libc code, but also not even currently exposed in the libc crate. Fortunately, the mechanism `arc4random_buf(3)` et al. use for getting entropy from the kernel ([`arc4rand(9)`](https://www.freebsd.org/cgi/man.cgi?query=arc4random&apropos=0&sektion=9&manpath=FreeBSD+10.3-RELEASE&arch=default&format=html)) is exposed via `sysctl(3)` with constants that are already in the libc crate.
+    
+    >I haven't found too much documentation on `KERN_ARND`—it's missing or only briefly described in most of the places that cover sysctl mibs. But, from digging through the kernel source, it appears that the sysctl used in this PR is very close to just calling `arc4rand(9)` directly (with `reseed` set to 0 and no way to change it).
+    
+    I expected [rand](/rust-lang-nursery/rand) to reply quicker, so I tried submitting it there first. It's been a few weeks with no comment, so I don't know the state of it, but maybe someone will see it here and have an opinion. This is basically the same patch. It pains me to duplicate the code but I guess it hasn't been factored out into just one place yet.
+rustc: ./regex.0.1.30
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling regex v0.1.30 (file:///root/benchmarks/regex.0.1.30)
+time: 0.052; rss: 57MB	parsing
+Lines of code:             8558
+Pre-expansion node count:  58076
+time: 0.005; rss: 57MB	configuration
+time: 0.000; rss: 57MB	recursion limit
+time: 0.000; rss: 57MB	crate injection
+time: 0.000; rss: 57MB	plugin loading
+time: 0.000; rss: 57MB	plugin registration
+time: 0.029; rss: 78MB	expansion
+time: 0.000; rss: 78MB	maybe building test harness
+time: 0.003; rss: 78MB	assigning node ids
+Post-expansion node count: 68148
+time: 0.000; rss: 78MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 78MB	complete gated feature checking
+time: 0.001; rss: 78MB	collecting defs
+time: 0.001; rss: 78MB	external crate/lib resolution
+time: 0.004; rss: 78MB	early lint checks
+time: 0.001; rss: 78MB	AST validation
+time: 0.007; rss: 79MB	name resolution
+time: 0.008; rss: 89MB	lowering ast -> hir
+time: 0.002; rss: 91MB	indexing hir
+time: 0.001; rss: 91MB	attribute checking
+time: 0.001; rss: 83MB	language item collection
+time: 0.001; rss: 83MB	lifetime resolution
+time: 0.000; rss: 83MB	looking for entry point
+time: 0.000; rss: 83MB	looking for plugin registrar
+time: 0.007; rss: 85MB	region resolution
+time: 0.001; rss: 85MB	loop checking
+time: 0.001; rss: 85MB	static item recursion checking
+time: 0.008; rss: 86MB	compute_incremental_hashes_map
+time: 0.000; rss: 86MB	load_dep_graph
+time: 0.008; rss: 87MB	type collecting
+time: 0.000; rss: 87MB	variance inference
+time: 0.020; rss: 90MB	coherence checking
+time: 0.010; rss: 90MB	wf checking
+time: 0.258; rss: 97MB	item-types checking
+time: 0.157; rss: 101MB	item-bodies checking
+time: 0.000; rss: 101MB	drop-impl checking
+time: 0.027; rss: 103MB	const checking
+time: 0.004; rss: 103MB	privacy checking
+time: 0.001; rss: 103MB	stability index
+time: 0.002; rss: 103MB	intrinsic checking
+time: 0.001; rss: 103MB	effect checking
+time: 0.004; rss: 103MB	match checking
+time: 0.002; rss: 103MB	liveness checking
+time: 0.007; rss: 103MB	rvalue checking
+time: 0.044; rss: 117MB	MIR dump
+time: 0.021; rss: 117MB	MIR passes
+time: 0.021; rss: 117MB	borrow checking
+time: 0.000; rss: 117MB	reachability checking
+time: 0.002; rss: 117MB	death checking
+time: 0.002; rss: 117MB	stability checking
+time: 0.000; rss: 117MB	unused lib feature checking
+time: 0.024; rss: 117MB	lint checking
+time: 0.000; rss: 117MB	resolving dependency formats
+time: 0.018; rss: 119MB	Prepare MIR codegen passes
+  time: 0.160; rss: 131MB	write metadata
+  time: 0.048; rss: 133MB	translation item collection
+  time: 0.007; rss: 133MB	codegen unit partitioning
+  time: 0.014; rss: 156MB	internalize symbols
+time: 0.652; rss: 149MB	translation
+time: 0.000; rss: 149MB	assert dep graph
+time: 0.000; rss: 149MB	serialize dep graph
+  time: 0.036; rss: 109MB	llvm function passes [0]
+  time: 0.019; rss: 111MB	llvm module passes [0]
+  time: 0.669; rss: 115MB	codegen passes [0]
+  time: 0.001; rss: 115MB	codegen passes [0]
+time: 0.782; rss: 115MB	LLVM passes
+time: 0.000; rss: 115MB	serialize work products
+time: 0.065; rss: 88MB	linking
+done
