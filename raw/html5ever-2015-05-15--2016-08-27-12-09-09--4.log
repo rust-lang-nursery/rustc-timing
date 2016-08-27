@@ -1,0 +1,42 @@
+commit 11946956a6352f49c6aadc1c13c39757a046e0c2
+Merge: 099b9fd 8295c50
+Author: bors <bors@rust-lang.org>
+Date:   Sat Aug 27 07:52:20 2016 -0700
+
+    Auto merge of #35969 - bluss:memrchr-alignment, r=nagisa
+    
+    memrchr: Correct aligned offset computation
+    
+    The memrchr fallback did not compute the offset correctly. It was
+    intentioned to land on usize-aligned addresses but did not.
+    This was suspected to have resulted in a crash on ARMv7!
+    
+    This bug affected non-linux platforms.
+    
+    I think like this, if we have a slice with pointer `ptr` and length
+    `len`, we want to find the last usize-aligned offset in the slice.
+    The correct computation should be:
+    
+    For example if ptr = 1 and len = 6, and `size_of::<usize>()` is 4:
+    
+    ```
+    [ x x x x x x ]
+      1 2 3 4 5 6
+            ^-- last aligned address at offset 3 from the start.
+    ```
+    
+    The last aligned address is ptr + len - (ptr + len) % usize_size.
+    
+    Compute offset from the start as:
+    
+    offset = len - (ptr + len) % usize_size = 6 - (1 + 6) % 4 = 6 - 3 = 3.
+    
+    I believe the function's return value was always correct previously, if
+    the platform supported unaligned addresses.
+    
+    Fixes #35967
+rustc: ./html5ever-2015-05-15
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling html5ever_macros v0.0.0 (file:///root/benchmarks/html5ever-2015-05-15)
+makefile:2: recipe for target 'all' failed
+done

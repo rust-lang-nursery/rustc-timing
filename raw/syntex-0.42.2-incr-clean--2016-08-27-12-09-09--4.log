@@ -1,0 +1,125 @@
+commit 11946956a6352f49c6aadc1c13c39757a046e0c2
+Merge: 099b9fd 8295c50
+Author: bors <bors@rust-lang.org>
+Date:   Sat Aug 27 07:52:20 2016 -0700
+
+    Auto merge of #35969 - bluss:memrchr-alignment, r=nagisa
+    
+    memrchr: Correct aligned offset computation
+    
+    The memrchr fallback did not compute the offset correctly. It was
+    intentioned to land on usize-aligned addresses but did not.
+    This was suspected to have resulted in a crash on ARMv7!
+    
+    This bug affected non-linux platforms.
+    
+    I think like this, if we have a slice with pointer `ptr` and length
+    `len`, we want to find the last usize-aligned offset in the slice.
+    The correct computation should be:
+    
+    For example if ptr = 1 and len = 6, and `size_of::<usize>()` is 4:
+    
+    ```
+    [ x x x x x x ]
+      1 2 3 4 5 6
+            ^-- last aligned address at offset 3 from the start.
+    ```
+    
+    The last aligned address is ptr + len - (ptr + len) % usize_size.
+    
+    Compute offset from the start as:
+    
+    offset = len - (ptr + len) % usize_size = 6 - (1 + 6) % 4 = 6 - 3 = 3.
+    
+    I believe the function's return value was always correct previously, if
+    the platform supported unaligned addresses.
+    
+    Fixes #35967
+rustc: ./syntex-0.42.2-incr-clean
+RUSTFLAGS="-Z incremental=incr -Z incremental-info" cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling winapi-build v0.1.1
+   Compiling rustc-serialize v0.3.19
+   Compiling log v0.3.6
+   Compiling winapi v0.2.8
+   Compiling libc v0.2.15
+   Compiling unicode-xid v0.0.3
+   Compiling bitflags v0.5.0
+   Compiling kernel32-sys v0.2.2
+   Compiling term v0.4.4
+   Compiling syntex_pos v0.42.0
+   Compiling syntex_errors v0.42.0
+   Compiling syntex_syntax v0.42.0
+   Compiling syntex v0.42.2
+   Compiling incremental-syntex v0.1.0 (file:///root/benchmarks/syntex-0.42.2-incr-clean)
+time: 0.000; rss: 42MB	parsing
+Lines of code:             3
+Pre-expansion node count:  8
+time: 0.000; rss: 42MB	configuration
+time: 0.000; rss: 42MB	recursion limit
+time: 0.000; rss: 42MB	crate injection
+time: 0.000; rss: 42MB	plugin loading
+time: 0.000; rss: 42MB	plugin registration
+time: 0.017; rss: 62MB	expansion
+time: 0.000; rss: 62MB	maybe building test harness
+time: 0.000; rss: 62MB	assigning node ids
+Post-expansion node count: 68
+time: 0.000; rss: 62MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 62MB	complete gated feature checking
+time: 0.000; rss: 62MB	collecting defs
+time: 0.002; rss: 62MB	external crate/lib resolution
+time: 0.000; rss: 62MB	early lint checks
+time: 0.000; rss: 62MB	AST validation
+time: 0.000; rss: 62MB	name resolution
+time: 0.000; rss: 62MB	lowering ast -> hir
+time: 0.000; rss: 62MB	indexing hir
+time: 0.000; rss: 62MB	attribute checking
+time: 0.000; rss: 62MB	language item collection
+time: 0.000; rss: 62MB	lifetime resolution
+time: 0.000; rss: 62MB	looking for entry point
+time: 0.000; rss: 62MB	looking for plugin registrar
+time: 0.000; rss: 62MB	region resolution
+time: 0.000; rss: 62MB	loop checking
+time: 0.000; rss: 62MB	static item recursion checking
+time: 0.000; rss: 62MB	compute_incremental_hashes_map
+time: 0.000; rss: 62MB	load_dep_graph
+time: 0.000; rss: 62MB	type collecting
+time: 0.000; rss: 66MB	variance inference
+time: 0.004; rss: 66MB	coherence checking
+time: 0.000; rss: 66MB	wf checking
+time: 0.000; rss: 66MB	item-types checking
+time: 0.000; rss: 66MB	item-bodies checking
+time: 0.000; rss: 66MB	drop-impl checking
+time: 0.000; rss: 66MB	const checking
+time: 0.000; rss: 66MB	privacy checking
+time: 0.000; rss: 66MB	stability index
+time: 0.000; rss: 66MB	intrinsic checking
+time: 0.000; rss: 66MB	effect checking
+time: 0.000; rss: 66MB	match checking
+time: 0.000; rss: 66MB	liveness checking
+time: 0.000; rss: 66MB	rvalue checking
+time: 0.000; rss: 66MB	MIR dump
+time: 0.000; rss: 66MB	MIR passes
+time: 0.000; rss: 66MB	borrow checking
+time: 0.000; rss: 66MB	reachability checking
+time: 0.000; rss: 66MB	death checking
+time: 0.000; rss: 66MB	stability checking
+time: 0.000; rss: 66MB	unused lib feature checking
+time: 0.000; rss: 66MB	lint checking
+time: 0.001; rss: 71MB	resolving dependency formats
+time: 0.000; rss: 71MB	Prepare MIR codegen passes
+  time: 0.000; rss: 71MB	write metadata
+  time: 0.001; rss: 71MB	translation item collection
+  time: 0.000; rss: 71MB	codegen unit partitioning
+  time: 0.000; rss: 71MB	internalize symbols
+time: 0.008; rss: 71MB	translation
+time: 0.000; rss: 71MB	assert dep graph
+time: 0.000; rss: 71MB	serialize dep graph
+  time: 0.000; rss: 71MB	llvm function passes [0]
+  time: 0.000; rss: 71MB	llvm module passes [0]
+  time: 0.002; rss: 75MB	codegen passes [0]
+  time: 0.000; rss: 75MB	codegen passes [0]
+time: 0.003; rss: 75MB	LLVM passes
+time: 0.000; rss: 75MB	serialize work products
+  time: 0.114; rss: 75MB	running linker
+time: 0.114; rss: 75MB	linking
+done

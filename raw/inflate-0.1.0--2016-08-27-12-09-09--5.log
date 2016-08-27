@@ -1,0 +1,111 @@
+commit 11946956a6352f49c6aadc1c13c39757a046e0c2
+Merge: 099b9fd 8295c50
+Author: bors <bors@rust-lang.org>
+Date:   Sat Aug 27 07:52:20 2016 -0700
+
+    Auto merge of #35969 - bluss:memrchr-alignment, r=nagisa
+    
+    memrchr: Correct aligned offset computation
+    
+    The memrchr fallback did not compute the offset correctly. It was
+    intentioned to land on usize-aligned addresses but did not.
+    This was suspected to have resulted in a crash on ARMv7!
+    
+    This bug affected non-linux platforms.
+    
+    I think like this, if we have a slice with pointer `ptr` and length
+    `len`, we want to find the last usize-aligned offset in the slice.
+    The correct computation should be:
+    
+    For example if ptr = 1 and len = 6, and `size_of::<usize>()` is 4:
+    
+    ```
+    [ x x x x x x ]
+      1 2 3 4 5 6
+            ^-- last aligned address at offset 3 from the start.
+    ```
+    
+    The last aligned address is ptr + len - (ptr + len) % usize_size.
+    
+    Compute offset from the start as:
+    
+    offset = len - (ptr + len) % usize_size = 6 - (1 + 6) % 4 = 6 - 3 = 3.
+    
+    I believe the function's return value was always correct previously, if
+    the platform supported unaligned addresses.
+    
+    Fixes #35967
+rustc: ./inflate-0.1.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling inflate v0.1.0 (file:///root/benchmarks/inflate-0.1.0)
+time: 0.004; rss: 44MB	parsing
+Lines of code:             956
+Pre-expansion node count:  4740
+time: 0.000; rss: 44MB	configuration
+time: 0.000; rss: 44MB	recursion limit
+time: 0.000; rss: 44MB	crate injection
+time: 0.000; rss: 44MB	plugin loading
+time: 0.000; rss: 44MB	plugin registration
+time: 0.072; rss: 69MB	expansion
+time: 0.000; rss: 69MB	maybe building test harness
+time: 0.003; rss: 69MB	assigning node ids
+Post-expansion node count: 55770
+time: 0.000; rss: 69MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 69MB	complete gated feature checking
+time: 0.005; rss: 69MB	collecting defs
+time: 0.001; rss: 69MB	external crate/lib resolution
+time: 0.002; rss: 69MB	early lint checks
+time: 0.000; rss: 69MB	AST validation
+time: 0.010; rss: 71MB	name resolution
+time: 0.006; rss: 76MB	lowering ast -> hir
+time: 0.001; rss: 78MB	indexing hir
+time: 0.001; rss: 78MB	attribute checking
+time: 0.001; rss: 75MB	language item collection
+time: 0.001; rss: 75MB	lifetime resolution
+time: 0.000; rss: 75MB	looking for entry point
+time: 0.000; rss: 75MB	looking for plugin registrar
+time: 0.003; rss: 75MB	region resolution
+time: 0.000; rss: 75MB	loop checking
+time: 0.000; rss: 75MB	static item recursion checking
+time: 0.005; rss: 75MB	compute_incremental_hashes_map
+time: 0.000; rss: 75MB	load_dep_graph
+time: 0.001; rss: 75MB	type collecting
+time: 0.000; rss: 75MB	variance inference
+time: 0.008; rss: 78MB	coherence checking
+time: 0.002; rss: 78MB	wf checking
+time: 0.002; rss: 78MB	item-types checking
+time: 2.393; rss: 92MB	item-bodies checking
+time: 0.000; rss: 92MB	drop-impl checking
+time: 0.016; rss: 92MB	const checking
+time: 0.001; rss: 92MB	privacy checking
+time: 0.000; rss: 92MB	stability index
+time: 0.001; rss: 92MB	intrinsic checking
+time: 0.001; rss: 92MB	effect checking
+time: 0.004; rss: 92MB	match checking
+time: 0.062; rss: 90MB	liveness checking
+time: 0.011; rss: 90MB	rvalue checking
+time: 0.036; rss: 114MB	MIR dump
+time: 0.022; rss: 112MB	MIR passes
+time: 0.201; rss: 112MB	borrow checking
+time: 0.000; rss: 112MB	reachability checking
+time: 0.003; rss: 112MB	death checking
+time: 0.002; rss: 112MB	stability checking
+time: 0.000; rss: 112MB	unused lib feature checking
+time: 0.019; rss: 113MB	lint checking
+time: 0.000; rss: 113MB	resolving dependency formats
+time: 0.179; rss: 112MB	Prepare MIR codegen passes
+  time: 0.003; rss: 113MB	write metadata
+  time: 0.009; rss: 114MB	translation item collection
+  time: 0.001; rss: 114MB	codegen unit partitioning
+  time: 0.002; rss: 128MB	internalize symbols
+time: 0.187; rss: 115MB	translation
+time: 0.000; rss: 115MB	assert dep graph
+time: 0.000; rss: 115MB	serialize dep graph
+  time: 0.027; rss: 89MB	llvm function passes [0]
+  time: 0.005; rss: 89MB	llvm module passes [0]
+  time: 0.632; rss: 93MB	codegen passes [0]
+  time: 0.000; rss: 93MB	codegen passes [0]
+time: 0.698; rss: 93MB	LLVM passes
+time: 0.000; rss: 93MB	serialize work products
+time: 0.047; rss: 81MB	linking
+done
