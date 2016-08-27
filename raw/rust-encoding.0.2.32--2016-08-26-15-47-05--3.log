@@ -1,0 +1,99 @@
+commit d00c2454157713e77729989c715b96ee31c6b278
+Merge: eaf71f8 a65b201
+Author: bors <bors@rust-lang.org>
+Date:   Fri Aug 26 03:29:45 2016 -0700
+
+    Auto merge of #35975 - jonathandturner:error_buffering, r=alexcrichton
+    
+    Buffer unix and lock windows to prevent message interleaving
+    
+    When cargo does a build on multiple processes, multiple crates may error at the same time.  If this happens, currently you'll see interleaving of the error messages, which makes for an unreadable message.
+    
+    Example:
+    
+    ```
+        --> --> src/bin/multithread-unix.rs:16:35src/bin/singlethread.rs:16:24
+    
+          ||
+    
+    1616  | |     Server::new(&addr).workers(8).    Server::new(&addr).serveserve(|r: Request| {(|r: Request| {
+    
+          | |                                                          ^^^^^^^^^^ expected struct `std::io::Error`, found () expected struct `std::io::Error`, found ()
+    
+          ||
+    
+          = = notenote: expected type `std::io::Error`: expected type `std::io::Error`
+    
+          = = notenote:    found type `()`:    found type `()`
+    
+          = = notenote: required because of the requirements on the impl of `futures_minihttp::Service<futures_minihttp::Request, futures_minihttp::Response>` for `[closure@src/bin/multithread-unix.rs:16:41: 22:6]`: required because of the requirements on the impl of `futures_minihttp::Service<futures_minihttp::Request, futures_minihttp::Response>` for `[closure@src/bin/singlethread.rs:16:30: 22:6]`
+    
+    error: aborting due to previous error
+    
+    error: aborting due to previous error
+    ```
+    
+    This patch uses two techniques to prevent this interleaving.  On Unix systems, since they use the text-based ANSI protocol for coloring, we can safely buffer up whole messages before we emit.  This PR does this buffering, and emits the whole message at once.
+    
+    On Windows, term must use the Windows terminal API to color the output.  This disallows us from using the same buffering technique.  Instead, here we grab a Windows mutex (thanks to @alexcrichton for the lock code).  This lock only works in Windows and will hold a mutex for the duration of a message output.
+    
+    r? @nikomatsakis
+rustc: ./rust-encoding.0.2.32
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling encoding v0.2.32 (file:///root/benchmarks/rust-encoding.0.2.32)
+time: 0.021; rss: 48MB	parsing
+Lines of code:             6441
+Pre-expansion node count:  30069
+time: 0.002; rss: 48MB	configuration
+time: 0.000; rss: 48MB	recursion limit
+time: 0.000; rss: 48MB	crate injection
+time: 0.000; rss: 48MB	plugin loading
+time: 0.000; rss: 48MB	plugin registration
+time: 0.038; rss: 71MB	expansion
+time: 0.000; rss: 71MB	maybe building test harness
+time: 0.002; rss: 71MB	assigning node ids
+Post-expansion node count: 40757
+time: 0.000; rss: 71MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 71MB	complete gated feature checking
+time: 0.001; rss: 71MB	collecting defs
+time: 0.001; rss: 71MB	external crate/lib resolution
+time: 0.001; rss: 71MB	early lint checks
+time: 0.000; rss: 71MB	AST validation
+time: 0.005; rss: 73MB	name resolution
+time: 0.004; rss: 75MB	lowering ast -> hir
+time: 0.001; rss: 75MB	indexing hir
+time: 0.000; rss: 75MB	attribute checking
+time: 0.000; rss: 74MB	language item collection
+time: 0.001; rss: 74MB	lifetime resolution
+time: 0.000; rss: 74MB	looking for entry point
+time: 0.000; rss: 74MB	looking for plugin registrar
+time: 0.002; rss: 76MB	region resolution
+time: 0.000; rss: 76MB	loop checking
+time: 0.000; rss: 76MB	static item recursion checking
+time: 0.005; rss: 77MB	compute_incremental_hashes_map
+time: 0.000; rss: 77MB	load_dep_graph
+time: 0.008; rss: 78MB	type collecting
+time: 0.000; rss: 78MB	variance inference
+time: 0.016; rss: 79MB	coherence checking
+time: 0.017; rss: 79MB	wf checking
+time: 0.012; rss: 82MB	item-types checking
+time: 0.170; rss: 87MB	item-bodies checking
+time: 0.000; rss: 87MB	drop-impl checking
+time: 0.012; rss: 87MB	const checking
+time: 0.002; rss: 87MB	privacy checking
+time: 0.000; rss: 87MB	stability index
+time: 0.002; rss: 87MB	intrinsic checking
+time: 0.000; rss: 87MB	effect checking
+time: 0.007; rss: 87MB	match checking
+time: 0.001; rss: 87MB	liveness checking
+time: 0.007; rss: 87MB	rvalue checking
+time: 0.021; rss: 98MB	MIR dump
+time: 0.015; rss: 98MB	MIR passes
+time: 0.022; rss: 98MB	borrow checking
+time: 0.000; rss: 98MB	reachability checking
+time: 0.002; rss: 98MB	death checking
+time: 0.002; rss: 98MB	stability checking
+time: 0.000; rss: 98MB	unused lib feature checking
+time: 0.021; rss: 98MB	lint checking
+makefile:2: recipe for target 'all' failed
+done
