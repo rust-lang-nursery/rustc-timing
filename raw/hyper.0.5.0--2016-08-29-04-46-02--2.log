@@ -1,0 +1,98 @@
+commit 86dde9bbda92c02c61282b5df5d38338a798ef3b
+Merge: acd3f79 4b5007a
+Author: bors <bors@rust-lang.org>
+Date:   Sun Aug 28 21:57:51 2016 -0700
+
+    Auto merge of #36062 - japaric:smarter-submodules, r=alexcrichton
+    
+    rustbuild: smarter `git submodule`-ing
+    
+    With this commit, if one bootstraps rust against system llvm then the
+    src/llvm submodule is not updated/checked-out. This saves considerable
+    network bandwith when starting from a fresh clone of rust-lang/rust as
+    the llvm submodule is never cloned.
+    
+    cc #30107
+    
+    r? @alexcrichton
+    cc @petevine
+    
+    ~~We could also avoid updating the jemalloc submodule if --disable-jemalloc is used. It just hasn't been implemented.~~ Done
+    
+    This probably doesn't handle "recursive" submodules correctly but I think we don't have any of those right now.
+    
+    I'm still testing a bootstrap but already confirmed that the llvm submodule doesn't get updated when `--llvm-root` is passed to `configure`.
+rustc: ./hyper.0.5.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling hyper v0.5.0 (file:///root/benchmarks/hyper.0.5.0)
+time: 0.027; rss: 50MB	parsing
+Lines of code:             9154
+Pre-expansion node count:  44838
+time: 0.003; rss: 50MB	configuration
+time: 0.000; rss: 50MB	recursion limit
+time: 0.000; rss: 50MB	crate injection
+time: 0.000; rss: 50MB	plugin loading
+time: 0.000; rss: 50MB	plugin registration
+time: 0.092; rss: 77MB	expansion
+time: 0.000; rss: 77MB	maybe building test harness
+time: 0.005; rss: 77MB	assigning node ids
+Post-expansion node count: 101581
+time: 0.000; rss: 77MB	checking for inline asm in case the target doesn't support it
+time: 0.002; rss: 77MB	complete gated feature checking
+time: 0.003; rss: 77MB	collecting defs
+time: 0.010; rss: 85MB	external crate/lib resolution
+time: 0.004; rss: 85MB	early lint checks
+time: 0.001; rss: 85MB	AST validation
+time: 0.015; rss: 91MB	name resolution
+time: 0.007; rss: 97MB	lowering ast -> hir
+time: 0.002; rss: 99MB	indexing hir
+time: 0.001; rss: 99MB	attribute checking
+time: 0.001; rss: 92MB	language item collection
+time: 0.002; rss: 92MB	lifetime resolution
+time: 0.000; rss: 92MB	looking for entry point
+time: 0.000; rss: 92MB	looking for plugin registrar
+time: 0.006; rss: 96MB	region resolution
+time: 0.001; rss: 96MB	loop checking
+time: 0.000; rss: 96MB	static item recursion checking
+time: 0.012; rss: 96MB	compute_incremental_hashes_map
+time: 0.000; rss: 96MB	load_dep_graph
+time: 0.023; rss: 97MB	type collecting
+time: 0.000; rss: 97MB	variance inference
+time: 0.035; rss: 103MB	coherence checking
+time: 0.057; rss: 104MB	wf checking
+time: 0.027; rss: 104MB	item-types checking
+time: 0.360; rss: 116MB	item-bodies checking
+time: 0.000; rss: 116MB	drop-impl checking
+time: 0.037; rss: 118MB	const checking
+time: 0.006; rss: 118MB	privacy checking
+time: 0.001; rss: 118MB	stability index
+time: 0.005; rss: 118MB	intrinsic checking
+time: 0.002; rss: 118MB	effect checking
+time: 0.013; rss: 118MB	match checking
+time: 0.005; rss: 119MB	liveness checking
+time: 0.027; rss: 119MB	rvalue checking
+time: 0.053; rss: 134MB	MIR dump
+time: 0.041; rss: 134MB	MIR passes
+time: 0.062; rss: 134MB	borrow checking
+time: 0.003; rss: 134MB	reachability checking
+time: 0.005; rss: 137MB	death checking
+time: 0.005; rss: 137MB	stability checking
+time: 0.000; rss: 137MB	unused lib feature checking
+time: 0.041; rss: 137MB	lint checking
+time: 0.000; rss: 137MB	resolving dependency formats
+time: 0.078; rss: 139MB	Prepare MIR codegen passes
+  time: 0.053; rss: 143MB	write metadata
+  time: 0.132; rss: 147MB	translation item collection
+  time: 0.019; rss: 149MB	codegen unit partitioning
+  time: 0.034; rss: 216MB	internalize symbols
+time: 1.434; rss: 206MB	translation
+time: 0.000; rss: 206MB	assert dep graph
+time: 0.000; rss: 206MB	serialize dep graph
+  time: 0.099; rss: 156MB	llvm function passes [0]
+  time: 0.048; rss: 157MB	llvm module passes [0]
+  time: 1.835; rss: 160MB	codegen passes [0]
+  time: 0.001; rss: 160MB	codegen passes [0]
+time: 2.150; rss: 160MB	LLVM passes
+time: 0.000; rss: 160MB	serialize work products
+time: 0.160; rss: 96MB	linking
+done
