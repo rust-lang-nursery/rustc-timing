@@ -1,0 +1,97 @@
+commit 8aeb15acc73311ea4308e74a166ba3c0b261c810
+Merge: 497d67d 90ce504
+Author: bors <bors@rust-lang.org>
+Date:   Thu Sep 1 19:03:27 2016 -0700
+
+    Auto merge of #35894 - jseyfried:new_import_semantics, r=nrc
+    
+    Implement RFC 1560 behind `#![feature(item_like_imports)]`
+    
+    This implements https://github.com/rust-lang/rfcs/pull/1560 (cc #35120) behind the `item_like_imports` feature gate.
+    
+    The [RFC text](https://github.com/rust-lang/rfcs/blob/master/text/1560-name-resolution.md#changes-to-name-resolution-rules) describes the changes to name resolution enabled by `#![feature(item_like_imports)` in detail. To summarize,
+     - Items and named imports shadow glob imports.
+     - Multiple globs can import the same name if the name is unused or the imports are shadowed.
+     - Multiple globs can import the same name if the imports are of the same item (following re-exports).
+      - The visibility of such a name is the maximum visibility of the imports.
+      - Equivalently, adding a glob import will never reduce the visibility of a name, nor will removing one increase it.
+     - Non-prelude private imports can be used wherever we currently allow private items to be used.
+      - Prelude-imported names are unaffected, i.e. they continue to be usable only in lexical scopes.
+     - Globs import all visible names, not just public names.
+      - Equivalently, glob importing from an ancestor module imports all of the ancestor's names, and glob importing from other modules is unchanged.
+    
+    r? @nrc
+rustc: ./hyper.0.5.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling hyper v0.5.0 (file:///root/benchmarks/hyper.0.5.0)
+time: 0.028; rss: 50MB	parsing
+Lines of code:             9154
+Pre-expansion node count:  44873
+time: 0.003; rss: 50MB	configuration
+time: 0.000; rss: 50MB	recursion limit
+time: 0.000; rss: 50MB	crate injection
+time: 0.000; rss: 50MB	plugin loading
+time: 0.000; rss: 50MB	plugin registration
+time: 0.093; rss: 79MB	expansion
+time: 0.000; rss: 79MB	maybe building test harness
+time: 0.005; rss: 79MB	assigning node ids
+Post-expansion node count: 101610
+time: 0.000; rss: 79MB	checking for inline asm in case the target doesn't support it
+time: 0.002; rss: 79MB	complete gated feature checking
+time: 0.003; rss: 81MB	collecting defs
+time: 0.009; rss: 87MB	external crate/lib resolution
+time: 0.003; rss: 87MB	early lint checks
+time: 0.001; rss: 87MB	AST validation
+time: 0.015; rss: 95MB	name resolution
+time: 0.008; rss: 99MB	lowering ast -> hir
+time: 0.002; rss: 101MB	indexing hir
+time: 0.001; rss: 101MB	attribute checking
+time: 0.001; rss: 94MB	language item collection
+time: 0.002; rss: 94MB	lifetime resolution
+time: 0.000; rss: 94MB	looking for entry point
+time: 0.000; rss: 94MB	looking for plugin registrar
+time: 0.006; rss: 98MB	region resolution
+time: 0.001; rss: 98MB	loop checking
+time: 0.001; rss: 98MB	static item recursion checking
+time: 0.013; rss: 98MB	compute_incremental_hashes_map
+time: 0.000; rss: 98MB	load_dep_graph
+time: 0.022; rss: 100MB	type collecting
+time: 0.000; rss: 100MB	variance inference
+time: 0.035; rss: 104MB	coherence checking
+time: 0.056; rss: 107MB	wf checking
+time: 0.030; rss: 107MB	item-types checking
+time: 0.364; rss: 118MB	item-bodies checking
+time: 0.000; rss: 118MB	drop-impl checking
+time: 0.038; rss: 120MB	const checking
+time: 0.006; rss: 120MB	privacy checking
+time: 0.001; rss: 120MB	stability index
+time: 0.005; rss: 120MB	intrinsic checking
+time: 0.002; rss: 120MB	effect checking
+time: 0.013; rss: 120MB	match checking
+time: 0.005; rss: 120MB	liveness checking
+time: 0.027; rss: 120MB	rvalue checking
+time: 0.053; rss: 136MB	MIR dump
+time: 0.041; rss: 136MB	MIR passes
+time: 0.062; rss: 136MB	borrow checking
+time: 0.003; rss: 136MB	reachability checking
+time: 0.005; rss: 136MB	death checking
+time: 0.005; rss: 138MB	stability checking
+time: 0.000; rss: 138MB	unused lib feature checking
+time: 0.041; rss: 138MB	lint checking
+time: 0.000; rss: 138MB	resolving dependency formats
+time: 0.078; rss: 140MB	Prepare MIR codegen passes
+  time: 0.055; rss: 146MB	write metadata
+  time: 0.115; rss: 150MB	translation item collection
+  time: 0.018; rss: 152MB	codegen unit partitioning
+  time: 0.033; rss: 217MB	internalize symbols
+time: 1.330; rss: 208MB	translation
+time: 0.000; rss: 208MB	assert dep graph
+time: 0.000; rss: 208MB	serialize dep graph
+  time: 0.102; rss: 156MB	llvm function passes [0]
+  time: 0.049; rss: 159MB	llvm module passes [0]
+  time: 1.841; rss: 162MB	codegen passes [0]
+  time: 0.001; rss: 162MB	codegen passes [0]
+time: 2.154; rss: 162MB	LLVM passes
+time: 0.000; rss: 162MB	serialize work products
+time: 0.155; rss: 98MB	linking
+done

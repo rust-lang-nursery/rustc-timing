@@ -1,0 +1,111 @@
+commit 8aeb15acc73311ea4308e74a166ba3c0b261c810
+Merge: 497d67d 90ce504
+Author: bors <bors@rust-lang.org>
+Date:   Thu Sep 1 19:03:27 2016 -0700
+
+    Auto merge of #35894 - jseyfried:new_import_semantics, r=nrc
+    
+    Implement RFC 1560 behind `#![feature(item_like_imports)]`
+    
+    This implements https://github.com/rust-lang/rfcs/pull/1560 (cc #35120) behind the `item_like_imports` feature gate.
+    
+    The [RFC text](https://github.com/rust-lang/rfcs/blob/master/text/1560-name-resolution.md#changes-to-name-resolution-rules) describes the changes to name resolution enabled by `#![feature(item_like_imports)` in detail. To summarize,
+     - Items and named imports shadow glob imports.
+     - Multiple globs can import the same name if the name is unused or the imports are shadowed.
+     - Multiple globs can import the same name if the imports are of the same item (following re-exports).
+      - The visibility of such a name is the maximum visibility of the imports.
+      - Equivalently, adding a glob import will never reduce the visibility of a name, nor will removing one increase it.
+     - Non-prelude private imports can be used wherever we currently allow private items to be used.
+      - Prelude-imported names are unaffected, i.e. they continue to be usable only in lexical scopes.
+     - Globs import all visible names, not just public names.
+      - Equivalently, glob importing from an ancestor module imports all of the ancestor's names, and glob importing from other modules is unchanged.
+    
+    r? @nrc
+rustc: ./syntex-0.42.2-incr-clean
+RUSTFLAGS="-Z incremental=incr -Z incremental-info" cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling unicode-xid v0.0.3
+   Compiling libc v0.2.15
+   Compiling log v0.3.6
+   Compiling winapi v0.2.8
+   Compiling rustc-serialize v0.3.19
+   Compiling bitflags v0.5.0
+   Compiling winapi-build v0.1.1
+   Compiling kernel32-sys v0.2.2
+   Compiling term v0.4.4
+   Compiling syntex_pos v0.42.0
+   Compiling syntex_errors v0.42.0
+   Compiling syntex_syntax v0.42.0
+   Compiling syntex v0.42.2
+   Compiling incremental-syntex v0.1.0 (file:///root/benchmarks/syntex-0.42.2-incr-clean)
+time: 0.000; rss: 42MB	parsing
+Lines of code:             3
+Pre-expansion node count:  8
+time: 0.000; rss: 42MB	configuration
+time: 0.000; rss: 42MB	recursion limit
+time: 0.000; rss: 42MB	crate injection
+time: 0.000; rss: 42MB	plugin loading
+time: 0.000; rss: 42MB	plugin registration
+time: 0.017; rss: 64MB	expansion
+time: 0.000; rss: 64MB	maybe building test harness
+time: 0.000; rss: 64MB	assigning node ids
+Post-expansion node count: 68
+time: 0.000; rss: 64MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 64MB	complete gated feature checking
+time: 0.000; rss: 64MB	collecting defs
+time: 0.002; rss: 64MB	external crate/lib resolution
+time: 0.000; rss: 64MB	early lint checks
+time: 0.000; rss: 64MB	AST validation
+time: 0.000; rss: 64MB	name resolution
+time: 0.000; rss: 64MB	lowering ast -> hir
+time: 0.000; rss: 64MB	indexing hir
+time: 0.000; rss: 64MB	attribute checking
+time: 0.000; rss: 64MB	language item collection
+time: 0.000; rss: 64MB	lifetime resolution
+time: 0.000; rss: 64MB	looking for entry point
+time: 0.000; rss: 64MB	looking for plugin registrar
+time: 0.000; rss: 64MB	region resolution
+time: 0.000; rss: 64MB	loop checking
+time: 0.000; rss: 64MB	static item recursion checking
+time: 0.000; rss: 64MB	compute_incremental_hashes_map
+time: 0.000; rss: 64MB	load_dep_graph
+time: 0.000; rss: 69MB	type collecting
+time: 0.000; rss: 69MB	variance inference
+time: 0.004; rss: 69MB	coherence checking
+time: 0.000; rss: 69MB	wf checking
+time: 0.000; rss: 69MB	item-types checking
+time: 0.000; rss: 69MB	item-bodies checking
+time: 0.000; rss: 69MB	drop-impl checking
+time: 0.000; rss: 69MB	const checking
+time: 0.000; rss: 69MB	privacy checking
+time: 0.000; rss: 69MB	stability index
+time: 0.000; rss: 69MB	intrinsic checking
+time: 0.000; rss: 69MB	effect checking
+time: 0.000; rss: 69MB	match checking
+time: 0.000; rss: 69MB	liveness checking
+time: 0.000; rss: 69MB	rvalue checking
+time: 0.000; rss: 69MB	MIR dump
+time: 0.000; rss: 69MB	MIR passes
+time: 0.000; rss: 69MB	borrow checking
+time: 0.000; rss: 69MB	reachability checking
+time: 0.000; rss: 69MB	death checking
+time: 0.000; rss: 69MB	stability checking
+time: 0.000; rss: 69MB	unused lib feature checking
+time: 0.000; rss: 69MB	lint checking
+time: 0.001; rss: 69MB	resolving dependency formats
+time: 0.000; rss: 69MB	Prepare MIR codegen passes
+  time: 0.000; rss: 69MB	write metadata
+  time: 0.001; rss: 74MB	translation item collection
+  time: 0.000; rss: 74MB	codegen unit partitioning
+  time: 0.000; rss: 74MB	internalize symbols
+time: 0.008; rss: 74MB	translation
+time: 0.000; rss: 74MB	assert dep graph
+time: 0.000; rss: 74MB	serialize dep graph
+  time: 0.000; rss: 74MB	llvm function passes [0]
+  time: 0.000; rss: 74MB	llvm module passes [0]
+  time: 0.002; rss: 74MB	codegen passes [0]
+  time: 0.000; rss: 74MB	codegen passes [0]
+time: 0.003; rss: 74MB	LLVM passes
+time: 0.000; rss: 74MB	serialize work products
+  time: 0.117; rss: 78MB	running linker
+time: 0.118; rss: 78MB	linking
+done
