@@ -1,0 +1,115 @@
+commit 689c6c48ecd3d89d120c6aecf8b69222920e4520
+Merge: 022cb6d bbf2c3c
+Author: bors <bors@rust-lang.org>
+Date:   Fri Sep 2 03:01:48 2016 -0700
+
+    Auto merge of #36024 - japaric:mips64, r=alexcrichton
+    
+    add mips64-gnu and mips64el-gnu targets
+    
+    With this commit one can build no_core (and probably no_std as well)
+    Rust programs for these targets. It's not yet possible to cross compile
+    std for these targets because rust-lang/libc doesn't know about the
+    mips64 architecture.
+    
+    These targets have been tested by cross compiling the "smallest hello"
+    program (see code below) and then running it under QEMU.
+    
+    ``` rust
+    
+    extern {
+        fn puts(_: *const u8);
+    }
+    
+    fn start(_: isize, _: *const *const u8) -> isize {
+        unsafe {
+            let msg = b"Hello, world!\0";
+            puts(msg as *const _ as *const u8);
+        }
+        0
+    }
+    
+    trait Copy {}
+    
+    trait Sized {}
+    ```
+    
+    cc #36015
+    r? @alexcrichton
+    cc @brson
+    
+    The cabi stuff is likely wrong. I just copied cabi_mips source and changed some `4`s to `8`s and `32`s to `64`s. It was enough to get libc's `puts` to work but I'd like someone familiar with this module to check it.
+rustc: ./regex.0.1.30
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling regex v0.1.30 (file:///root/benchmarks/regex.0.1.30)
+time: 0.053; rss: 56MB	parsing
+Lines of code:             8558
+Pre-expansion node count:  58080
+time: 0.005; rss: 56MB	configuration
+time: 0.000; rss: 56MB	recursion limit
+time: 0.000; rss: 56MB	crate injection
+time: 0.000; rss: 56MB	plugin loading
+time: 0.000; rss: 56MB	plugin registration
+time: 0.030; rss: 78MB	expansion
+time: 0.000; rss: 78MB	maybe building test harness
+time: 0.003; rss: 78MB	assigning node ids
+Post-expansion node count: 68152
+time: 0.000; rss: 78MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 78MB	complete gated feature checking
+time: 0.001; rss: 79MB	collecting defs
+time: 0.001; rss: 79MB	external crate/lib resolution
+time: 0.004; rss: 79MB	early lint checks
+time: 0.001; rss: 79MB	AST validation
+time: 0.006; rss: 81MB	name resolution
+time: 0.008; rss: 91MB	lowering ast -> hir
+time: 0.002; rss: 93MB	indexing hir
+time: 0.001; rss: 93MB	attribute checking
+time: 0.001; rss: 85MB	language item collection
+time: 0.001; rss: 85MB	lifetime resolution
+time: 0.000; rss: 85MB	looking for entry point
+time: 0.000; rss: 85MB	looking for plugin registrar
+time: 0.006; rss: 88MB	region resolution
+time: 0.001; rss: 88MB	loop checking
+time: 0.001; rss: 88MB	static item recursion checking
+time: 0.008; rss: 89MB	compute_incremental_hashes_map
+time: 0.000; rss: 89MB	load_dep_graph
+time: 0.008; rss: 89MB	type collecting
+time: 0.000; rss: 89MB	variance inference
+time: 0.019; rss: 92MB	coherence checking
+time: 0.009; rss: 92MB	wf checking
+time: 0.256; rss: 103MB	item-types checking
+time: 0.146; rss: 108MB	item-bodies checking
+time: 0.000; rss: 108MB	drop-impl checking
+time: 0.027; rss: 108MB	const checking
+time: 0.004; rss: 108MB	privacy checking
+time: 0.001; rss: 108MB	stability index
+time: 0.002; rss: 108MB	intrinsic checking
+time: 0.001; rss: 108MB	effect checking
+time: 0.003; rss: 108MB	match checking
+time: 0.002; rss: 108MB	liveness checking
+time: 0.008; rss: 108MB	rvalue checking
+time: 0.042; rss: 125MB	MIR dump
+time: 0.020; rss: 125MB	MIR passes
+time: 0.021; rss: 125MB	borrow checking
+time: 0.000; rss: 125MB	reachability checking
+time: 0.002; rss: 125MB	death checking
+time: 0.002; rss: 125MB	stability checking
+time: 0.000; rss: 125MB	unused lib feature checking
+time: 0.024; rss: 125MB	lint checking
+time: 0.000; rss: 125MB	resolving dependency formats
+time: 0.018; rss: 127MB	Prepare MIR codegen passes
+  time: 0.163; rss: 135MB	write metadata
+  time: 0.042; rss: 136MB	translation item collection
+  time: 0.007; rss: 138MB	codegen unit partitioning
+  time: 0.014; rss: 162MB	internalize symbols
+time: 0.623; rss: 155MB	translation
+time: 0.000; rss: 155MB	assert dep graph
+time: 0.000; rss: 155MB	serialize dep graph
+  time: 0.037; rss: 111MB	llvm function passes [0]
+  time: 0.020; rss: 113MB	llvm module passes [0]
+  time: 0.679; rss: 117MB	codegen passes [0]
+  time: 0.001; rss: 117MB	codegen passes [0]
+time: 0.794; rss: 117MB	LLVM passes
+time: 0.000; rss: 117MB	serialize work products
+time: 0.065; rss: 89MB	linking
+done
