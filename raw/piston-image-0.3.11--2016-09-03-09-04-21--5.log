@@ -1,0 +1,46 @@
+commit 01b35d82e51458870f61cf850b73479f253fcb54
+Merge: a029ea3 175d434
+Author: bors <bors@rust-lang.org>
+Date:   Sat Sep 3 04:40:38 2016 -0700
+
+    Auto merge of #36072 - arthurprs:binary_heap_opt, r=Aatch
+    
+    Optimize BinaryHeap bounds checking
+    
+    I was experimenting with d-ary binary heaps during the weekend (dead end) and I found that we could get some good improvements by removing bounds checking. Specially due to the panic-safe additional code, llvm can't really optimize them out.
+    
+    ```
+     name                         d_ary_heap:: ns/iter  std___heap:: ns/iter  diff ns/iter  diff %
+     bench_build_insert           148,610               236,960                     88,350  59.45%
+     bench_from_vec               243,846               299,719                     55,873  22.91%
+     bench_insert_2000_empty      4,512                 7,517                        3,005  66.60%
+     bench_insert_2000_prefilled  28,665                32,605                       3,940  13.74%
+     bench_pop_2000               111,515               128,005                     16,490  14.79%
+     bench_pop_all                2,759,945             3,317,626                  557,681  20.21%
+     peek_mut                     23,186                23,635                         449   1.94%
+     pop_modify_push              41,573                43,822                       2,249   5.41%
+    
+    test d_ary_heap::bench_build_insert          ... bench:     148,610 ns/iter (+/- 10,687)
+    test d_ary_heap::bench_from_vec              ... bench:     243,846 ns/iter (+/- 16,500)
+    test d_ary_heap::bench_insert_2000_empty     ... bench:       4,512 ns/iter (+/- 136)
+    test d_ary_heap::bench_insert_2000_prefilled ... bench:      28,665 ns/iter (+/- 1,347)
+    test d_ary_heap::bench_pop_2000              ... bench:     111,515 ns/iter (+/- 104,677)
+    test d_ary_heap::bench_pop_all               ... bench:   2,759,945 ns/iter (+/- 173,838)
+    test d_ary_heap::peek_mut                    ... bench:      23,186 ns/iter (+/- 106,254)
+    test d_ary_heap::pop_modify_push             ... bench:      41,573 ns/iter (+/- 3,313)
+    test std___heap::bench_build_insert          ... bench:     236,960 ns/iter (+/- 16,955)
+    test std___heap::bench_from_vec              ... bench:     299,719 ns/iter (+/- 6,354)
+    test std___heap::bench_insert_2000_empty     ... bench:       7,517 ns/iter (+/- 372)
+    test std___heap::bench_insert_2000_prefilled ... bench:      32,605 ns/iter (+/- 2,433)
+    test std___heap::bench_pop_2000              ... bench:     128,005 ns/iter (+/- 11,787)
+    test std___heap::bench_pop_all               ... bench:   3,317,626 ns/iter (+/- 238,968)
+    test std___heap::peek_mut                    ... bench:      23,635 ns/iter (+/- 1,420)
+    test std___heap::pop_modify_push             ... bench:      43,822 ns/iter (+/- 3,788)
+    ```
+    
+    Test code: https://github.com/arthurprs/heap-experiments
+rustc: ./piston-image-0.3.11
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling png v0.3.1
+makefile:2: recipe for target 'all' failed
+done
