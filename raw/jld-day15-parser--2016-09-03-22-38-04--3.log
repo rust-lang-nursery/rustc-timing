@@ -1,0 +1,90 @@
+commit 1ca1de6b26ec4740e3f0e8bead7002589024bd14
+Merge: 70598e0 f5c7752
+Author: bors <bors@rust-lang.org>
+Date:   Sat Sep 3 17:41:08 2016 -0700
+
+    Auto merge of #36124 - eddyb:fast-array-init, r=alexcrichton
+    
+    Fix optimization regressions for operations on [x; n]-initialized arrays.
+    
+    Fixes #35662 by using `!=` instead of `<` as the stop condition for `[x; n]` initialization loops.
+    Also included is https://github.com/eddyb/llvm/commit/cc2009f02d3b9a3c05be939978212e832310b3d6, a hack to run the GVN pass twice, another time after InstCombine.
+    This hack results in removal of redundant `memset` and `memcpy` calls (from loops over arrays).
+    
+    cc @nrc Can we get performance numbers on this? Not sure if it regresses anything else.
+rustc: ./jld-day15-parser
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling day15 v0.1.0 (file:///root/benchmarks/jld-day15-parser)
+time: 0.001; rss: 42MB	parsing
+Lines of code:             72
+Pre-expansion node count:  654
+time: 0.000; rss: 42MB	configuration
+time: 0.000; rss: 42MB	recursion limit
+time: 0.000; rss: 42MB	crate injection
+time: 0.000; rss: 42MB	plugin loading
+time: 0.000; rss: 42MB	plugin registration
+time: 0.017; rss: 67MB	expansion
+time: 0.000; rss: 67MB	maybe building test harness
+time: 0.000; rss: 67MB	maybe creating a macro crate
+time: 0.000; rss: 67MB	assigning node ids
+Post-expansion node count: 1155
+time: 0.000; rss: 67MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 67MB	complete gated feature checking
+time: 0.000; rss: 67MB	collecting defs
+time: 0.003; rss: 67MB	external crate/lib resolution
+time: 0.000; rss: 67MB	early lint checks
+time: 0.000; rss: 67MB	AST validation
+time: 0.001; rss: 67MB	name resolution
+time: 0.000; rss: 67MB	lowering ast -> hir
+time: 0.000; rss: 67MB	indexing hir
+time: 0.000; rss: 67MB	attribute checking
+time: 0.000; rss: 67MB	language item collection
+time: 0.000; rss: 67MB	lifetime resolution
+time: 0.000; rss: 67MB	looking for entry point
+time: 0.000; rss: 67MB	looking for plugin registrar
+time: 0.000; rss: 67MB	region resolution
+time: 0.000; rss: 67MB	loop checking
+time: 0.000; rss: 67MB	static item recursion checking
+time: 0.000; rss: 71MB	compute_incremental_hashes_map
+time: 0.000; rss: 71MB	load_dep_graph
+time: 0.001; rss: 71MB	type collecting
+time: 0.000; rss: 71MB	variance inference
+time: 0.004; rss: 71MB	coherence checking
+time: 0.005; rss: 71MB	wf checking
+time: 0.000; rss: 71MB	item-types checking
+time: 0.032; rss: 77MB	item-bodies checking
+time: 0.000; rss: 77MB	drop-impl checking
+time: 0.001; rss: 77MB	const checking
+time: 0.000; rss: 77MB	privacy checking
+time: 0.000; rss: 77MB	stability index
+time: 0.000; rss: 77MB	intrinsic checking
+time: 0.000; rss: 77MB	effect checking
+time: 0.000; rss: 77MB	match checking
+time: 0.000; rss: 77MB	liveness checking
+time: 0.000; rss: 77MB	rvalue checking
+time: 0.001; rss: 77MB	MIR dump
+time: 0.001; rss: 77MB	MIR passes
+time: 0.001; rss: 77MB	borrow checking
+time: 0.000; rss: 77MB	reachability checking
+time: 0.000; rss: 77MB	death checking
+time: 0.000; rss: 77MB	stability checking
+time: 0.000; rss: 77MB	unused lib feature checking
+time: 0.003; rss: 77MB	lint checking
+time: 0.001; rss: 77MB	resolving dependency formats
+time: 0.005; rss: 81MB	Prepare MIR codegen passes
+  time: 0.000; rss: 81MB	write metadata
+  time: 0.197; rss: 87MB	translation item collection
+  time: 0.003; rss: 87MB	codegen unit partitioning
+  time: 0.006; rss: 98MB	internalize symbols
+time: 0.762; rss: 98MB	translation
+time: 0.000; rss: 98MB	assert dep graph
+time: 0.000; rss: 98MB	serialize dep graph
+  time: 0.018; rss: 89MB	llvm function passes [0]
+  time: 0.001; rss: 89MB	llvm module passes [0]
+  time: 0.350; rss: 97MB	codegen passes [0]
+  time: 0.000; rss: 96MB	codegen passes [0]
+time: 0.371; rss: 96MB	LLVM passes
+time: 0.000; rss: 96MB	serialize work products
+  time: 0.124; rss: 86MB	running linker
+time: 0.125; rss: 85MB	linking
+done

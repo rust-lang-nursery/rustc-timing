@@ -1,0 +1,89 @@
+commit 1ca1de6b26ec4740e3f0e8bead7002589024bd14
+Merge: 70598e0 f5c7752
+Author: bors <bors@rust-lang.org>
+Date:   Sat Sep 3 17:41:08 2016 -0700
+
+    Auto merge of #36124 - eddyb:fast-array-init, r=alexcrichton
+    
+    Fix optimization regressions for operations on [x; n]-initialized arrays.
+    
+    Fixes #35662 by using `!=` instead of `<` as the stop condition for `[x; n]` initialization loops.
+    Also included is https://github.com/eddyb/llvm/commit/cc2009f02d3b9a3c05be939978212e832310b3d6, a hack to run the GVN pass twice, another time after InstCombine.
+    This hack results in removal of redundant `memset` and `memcpy` calls (from loops over arrays).
+    
+    cc @nrc Can we get performance numbers on this? Not sure if it regresses anything else.
+rustc: ./issue-32278-big-array-of-strings
+/root/rust/x86_64-unknown-linux-gnu/stage2/bin/rustc big-array-of-strings.rs -Ztime-passes -Zinput-stats
+time: 0.144; rss: 63MB	parsing
+Lines of code:             65577
+Pre-expansion node count:  65552
+time: 0.005; rss: 63MB	configuration
+time: 0.000; rss: 63MB	recursion limit
+time: 0.000; rss: 63MB	crate injection
+time: 0.000; rss: 63MB	plugin loading
+time: 0.000; rss: 63MB	plugin registration
+time: 0.023; rss: 88MB	expansion
+time: 0.000; rss: 88MB	maybe building test harness
+time: 0.001; rss: 88MB	maybe creating a macro crate
+time: 0.003; rss: 88MB	assigning node ids
+Post-expansion node count: 65565
+time: 0.000; rss: 88MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 88MB	complete gated feature checking
+time: 0.000; rss: 88MB	collecting defs
+time: 0.003; rss: 88MB	external crate/lib resolution
+time: 0.004; rss: 88MB	early lint checks
+time: 0.000; rss: 88MB	AST validation
+time: 0.002; rss: 88MB	name resolution
+time: 0.007; rss: 104MB	lowering ast -> hir
+time: 0.002; rss: 108MB	indexing hir
+time: 0.001; rss: 108MB	attribute checking
+time: 0.001; rss: 99MB	language item collection
+time: 0.001; rss: 99MB	lifetime resolution
+time: 0.000; rss: 99MB	looking for entry point
+time: 0.000; rss: 99MB	looking for plugin registrar
+time: 0.009; rss: 104MB	region resolution
+time: 0.001; rss: 104MB	loop checking
+time: 0.002; rss: 104MB	static item recursion checking
+time: 0.007; rss: 104MB	compute_incremental_hashes_map
+time: 0.000; rss: 104MB	load_dep_graph
+time: 0.000; rss: 104MB	type collecting
+time: 0.000; rss: 104MB	variance inference
+time: 0.005; rss: 107MB	coherence checking
+time: 0.001; rss: 107MB	wf checking
+time: 0.690; rss: 113MB	item-types checking
+time: 0.000; rss: 113MB	item-bodies checking
+time: 0.000; rss: 113MB	drop-impl checking
+time: 0.023; rss: 117MB	const checking
+time: 0.002; rss: 117MB	privacy checking
+time: 0.001; rss: 117MB	stability index
+time: 0.001; rss: 117MB	intrinsic checking
+time: 0.000; rss: 117MB	effect checking
+time: 0.000; rss: 117MB	match checking
+time: 0.001; rss: 117MB	liveness checking
+time: 0.000; rss: 117MB	rvalue checking
+time: 0.045; rss: 126MB	MIR dump
+time: 0.002; rss: 126MB	MIR passes
+time: 0.001; rss: 126MB	borrow checking
+time: 0.000; rss: 126MB	reachability checking
+time: 0.001; rss: 126MB	death checking
+time: 0.001; rss: 126MB	stability checking
+time: 0.000; rss: 126MB	unused lib feature checking
+time: 0.029; rss: 127MB	lint checking
+time: 0.001; rss: 127MB	resolving dependency formats
+time: 0.001; rss: 127MB	Prepare MIR codegen passes
+  time: 0.000; rss: 127MB	write metadata
+  time: 0.001; rss: 127MB	translation item collection
+  time: 0.000; rss: 127MB	codegen unit partitioning
+  time: 0.001; rss: 135MB	internalize symbols
+time: 0.067; rss: 134MB	translation
+time: 0.000; rss: 134MB	assert dep graph
+time: 0.000; rss: 134MB	serialize dep graph
+  time: 0.008; rss: 90MB	llvm function passes [0]
+  time: 0.000; rss: 90MB	llvm module passes [0]
+  time: 0.175; rss: 89MB	codegen passes [0]
+  time: 0.000; rss: 89MB	codegen passes [0]
+time: 0.184; rss: 89MB	LLVM passes
+time: 0.000; rss: 89MB	serialize work products
+  time: 0.197; rss: 79MB	running linker
+time: 0.198; rss: 79MB	linking
+done
