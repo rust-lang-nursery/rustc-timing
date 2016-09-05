@@ -1,0 +1,99 @@
+commit 3f50b6342db87f4a8fb76e70f6ada07331e062a2
+Merge: 58dc448 b9a8c1a
+Author: bors <bors@rust-lang.org>
+Date:   Mon Sep 5 08:13:32 2016 -0700
+
+    Auto merge of #36200 - mattico:fix-llvm-linkage, r=arielb1
+    
+    Fix incorrect LLVM Linkage enum
+    
+    Followup of #33994 to actually work.
+    
+    The `Linkage` enum in librustc_llvm got out of sync with the version in LLVM and it caused two variants of the `#[linkage=""]` attribute to break.
+    
+    This adds the functions `LLVMRustGetLinkage` and `LLVMRustSetLinkage` which convert between the Rust Linkage enum and the LLVM one, which should stop this from breaking every time LLVM changes it.
+    
+    Possible remaining concerns:
+    
+    1. There could be a codegen test to make sure that the attributes are applied correctly (I don't know how to do this).
+    2. ~~The test does not exercise the `appending` linkage. I can't figure out how to make a global static raw pointer to an array. This might not even be possible? If not we should probably remove appending linkage as its unusable in rust.~~ Appending linkage is not 'emittable' anyway.
+    3. The test only runs on Linux.
+    
+    Fixes #33992
+    
+    r? @alexcrichton
+rustc: ./piston-image-0.10.3
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling image v0.10.3 (file:///root/benchmarks/piston-image-0.10.3)
+time: 0.046; rss: 58MB	parsing
+Lines of code:             12000
+Pre-expansion node count:  90272
+time: 0.006; rss: 59MB	configuration
+time: 0.000; rss: 59MB	recursion limit
+time: 0.000; rss: 59MB	crate injection
+time: 0.000; rss: 59MB	plugin loading
+time: 0.000; rss: 59MB	plugin registration
+time: 0.063; rss: 86MB	expansion
+time: 0.000; rss: 86MB	maybe building test harness
+time: 0.002; rss: 86MB	maybe creating a macro crate
+time: 0.007; rss: 86MB	assigning node ids
+Post-expansion node count: 149551
+time: 0.000; rss: 86MB	checking for inline asm in case the target doesn't support it
+time: 0.002; rss: 86MB	complete gated feature checking
+time: 0.004; rss: 88MB	collecting defs
+time: 0.011; rss: 93MB	external crate/lib resolution
+time: 0.006; rss: 93MB	early lint checks
+time: 0.002; rss: 93MB	AST validation
+time: 0.022; rss: 101MB	name resolution
+time: 0.013; rss: 112MB	lowering ast -> hir
+time: 0.003; rss: 116MB	indexing hir
+time: 0.002; rss: 116MB	attribute checking
+time: 0.002; rss: 104MB	language item collection
+time: 0.003; rss: 104MB	lifetime resolution
+time: 0.000; rss: 104MB	looking for entry point
+time: 0.000; rss: 104MB	looking for plugin registrar
+time: 0.011; rss: 110MB	region resolution
+time: 0.002; rss: 110MB	loop checking
+time: 0.001; rss: 110MB	static item recursion checking
+time: 0.021; rss: 111MB	compute_incremental_hashes_map
+time: 0.000; rss: 111MB	load_dep_graph
+time: 0.025; rss: 109MB	type collecting
+time: 0.000; rss: 109MB	variance inference
+time: 0.032; rss: 114MB	coherence checking
+time: 0.098; rss: 116MB	wf checking
+time: 0.218; rss: 125MB	item-types checking
+time: 0.947; rss: 137MB	item-bodies checking
+time: 0.000; rss: 137MB	drop-impl checking
+time: 0.070; rss: 137MB	const checking
+time: 0.011; rss: 137MB	privacy checking
+time: 0.001; rss: 137MB	stability index
+time: 0.010; rss: 137MB	intrinsic checking
+time: 0.003; rss: 137MB	effect checking
+time: 0.024; rss: 137MB	match checking
+time: 0.011; rss: 138MB	liveness checking
+time: 0.068; rss: 138MB	rvalue checking
+time: 0.112; rss: 180MB	MIR dump
+time: 0.073; rss: 180MB	MIR passes
+time: 0.143; rss: 180MB	borrow checking
+time: 0.004; rss: 180MB	reachability checking
+time: 0.008; rss: 180MB	death checking
+time: 0.010; rss: 180MB	stability checking
+time: 0.000; rss: 180MB	unused lib feature checking
+time: 0.074; rss: 180MB	lint checking
+time: 0.000; rss: 180MB	resolving dependency formats
+time: 0.164; rss: 187MB	Prepare MIR codegen passes
+  time: 0.082; rss: 188MB	write metadata
+  time: 0.537; rss: 199MB	translation item collection
+  time: 0.028; rss: 203MB	codegen unit partitioning
+  time: 0.050; rss: 325MB	internalize symbols
+time: 3.438; rss: 299MB	translation
+time: 0.000; rss: 299MB	assert dep graph
+time: 0.000; rss: 299MB	serialize dep graph
+  time: 0.199; rss: 228MB	llvm function passes [0]
+  time: 0.082; rss: 232MB	llvm module passes [0]
+  time: 3.969; rss: 232MB	codegen passes [0]
+  time: 0.001; rss: 232MB	codegen passes [0]
+time: 4.544; rss: 232MB	LLVM passes
+time: 0.000; rss: 232MB	serialize work products
+time: 0.253; rss: 105MB	linking
+done
