@@ -1,0 +1,160 @@
+commit 4812cf392f1fa2258033356dd872fbee58a5406e
+Merge: 1fca1ab 19b8408
+Author: bors <bors@rust-lang.org>
+Date:   Sun Sep 11 10:53:24 2016 -0700
+
+    Auto merge of #36369 - uweigand:s390x, r=alexcrichton
+    
+    Add s390x support
+    
+    This adds support for building the Rust compiler and standard
+    library for s390x-linux, allowing a full cross-bootstrap sequence
+    to complete.  This includes:
+    
+    - Makefile/configure changes to allow native s390x builds
+    - Full Rust compiler support for the s390x C ABI
+      (only the non-vector ABI is supported at this point)
+    - Port of the standard library to s390x
+    - Update the liblibc submodule to a version including s390x support
+    - Testsuite fixes to allow clean "make check" on s390x
+    
+    Caveats:
+    
+    - Resets base cpu to "z10" to bring support in sync with the default
+      behaviour of other compilers on the platforms.  (Usually, upstream
+      supports all older processors; a distribution build may then chose
+      to require a more recent base version.)  (Also, using zEC12 causes
+      failures in the valgrind tests since valgrind doesn't fully support
+      this CPU yet.)
+    
+    - z13 vector ABI is not yet supported.  To ensure compatible code
+      generation, the -vector feature is passed to LLVM.  Note that this
+      means that even when compiling for z13, no vector instructions
+      will be used.  In the future, support for the vector ABI should be
+      added (this will require common code support for different ABIs
+      that need different data_layout strings on the same platform).
+    
+    - Two test cases are (temporarily) ignored on s390x to allow passing
+      the test suite.  The underlying issues still need to be fixed:
+      * debuginfo/simd.rs fails because of incorrect debug information.
+        This seems to be a LLVM bug (also seen with C code).
+      * run-pass/union/union-basic.rs simply seems to be incorrect for
+        all big-endian platforms.
+    
+    Signed-off-by: Ulrich Weigand <ulrich.weigand@de.ibm.com>
+rustc: ./piston-image-0.10.3
+cargo rustc -- -Ztime-passes -Zinput-stats
+    Updating registry `https://github.com/rust-lang/crates.io-index`
+   Compiling glob v0.2.11
+   Compiling scoped_threadpool v0.1.7
+   Compiling byteorder v0.5.3
+   Compiling gcc v0.3.35
+   Compiling num-traits v0.1.35
+   Compiling color_quant v1.0.0
+   Compiling inflate v0.1.1
+   Compiling rustc-serialize v0.3.19
+   Compiling bitflags v0.7.0
+   Compiling libc v0.2.16
+   Compiling lzw v0.10.0
+   Compiling num_cpus v0.2.13
+   Compiling rand v0.3.14
+   Compiling miniz-sys v0.1.7
+   Compiling gif v0.9.0
+   Compiling num-integer v0.1.32
+   Compiling flate2 v0.2.14
+   Compiling num-iter v0.1.32
+   Compiling num v0.1.35
+   Compiling enum_primitive v0.1.0
+   Compiling deque v0.3.1
+   Compiling rayon v0.4.0
+   Compiling jpeg-decoder v0.1.6
+   Compiling png v0.5.2
+   Compiling num-bigint v0.1.35
+   Compiling num-rational v0.1.35
+   Compiling image v0.10.3 (file:///root/benchmarks/piston-image-0.10.3)
+time: 0.046; rss: 58MB	parsing
+Lines of code:             12000
+Pre-expansion node count:  90272
+time: 0.000; rss: 58MB	recursion limit
+time: 0.000; rss: 58MB	crate injection
+time: 0.000; rss: 58MB	plugin loading
+time: 0.000; rss: 58MB	plugin registration
+time: 0.067; rss: 88MB	expansion
+time: 0.000; rss: 88MB	maybe building test harness
+time: 0.002; rss: 88MB	maybe creating a macro crate
+time: 0.007; rss: 88MB	assigning node ids
+Post-expansion node count: 149551
+time: 0.000; rss: 88MB	checking for inline asm in case the target doesn't support it
+time: 0.002; rss: 88MB	complete gated feature checking
+time: 0.004; rss: 88MB	collecting defs
+time: 0.011; rss: 92MB	external crate/lib resolution
+time: 0.006; rss: 92MB	early lint checks
+time: 0.002; rss: 96MB	AST validation
+time: 0.022; rss: 101MB	name resolution
+time: 0.013; rss: 111MB	lowering ast -> hir
+time: 0.003; rss: 116MB	indexing hir
+time: 0.002; rss: 116MB	attribute checking
+time: 0.002; rss: 105MB	language item collection
+time: 0.003; rss: 106MB	lifetime resolution
+time: 0.000; rss: 106MB	looking for entry point
+time: 0.000; rss: 106MB	looking for plugin registrar
+time: 0.011; rss: 111MB	region resolution
+time: 0.002; rss: 111MB	loop checking
+time: 0.001; rss: 111MB	static item recursion checking
+time: 0.057; rss: 112MB	compute_incremental_hashes_map
+time: 0.000; rss: 112MB	load_dep_graph
+time: 0.025; rss: 112MB	type collecting
+time: 0.000; rss: 112MB	variance inference
+time: 0.032; rss: 116MB	coherence checking
+time: 0.099; rss: 117MB	wf checking
+time: 0.218; rss: 125MB	item-types checking
+time: 0.935; rss: 137MB	item-bodies checking
+time: 0.000; rss: 137MB	drop-impl checking
+time: 0.071; rss: 137MB	const checking
+time: 0.011; rss: 137MB	privacy checking
+time: 0.001; rss: 137MB	stability index
+time: 0.010; rss: 137MB	intrinsic checking
+time: 0.003; rss: 137MB	effect checking
+time: 0.024; rss: 137MB	match checking
+time: 0.011; rss: 138MB	liveness checking
+time: 0.067; rss: 138MB	rvalue checking
+time: 0.110; rss: 182MB	MIR dump
+  time: 0.011; rss: 182MB	SimplifyCfg
+  time: 0.025; rss: 182MB	QualifyAndPromoteConstants
+  time: 0.028; rss: 182MB	TypeckMir
+  time: 0.001; rss: 182MB	SimplifyBranches
+  time: 0.007; rss: 182MB	SimplifyCfg
+time: 0.072; rss: 182MB	MIR passes
+time: 0.144; rss: 182MB	borrow checking
+time: 0.004; rss: 182MB	reachability checking
+time: 0.008; rss: 182MB	death checking
+time: 0.010; rss: 182MB	stability checking
+time: 0.000; rss: 182MB	unused lib feature checking
+time: 0.075; rss: 182MB	lint checking
+time: 0.000; rss: 182MB	resolving dependency formats
+  time: 0.001; rss: 182MB	NoLandingPads
+  time: 0.005; rss: 182MB	SimplifyCfg
+  time: 0.012; rss: 184MB	EraseRegions
+  time: 0.002; rss: 184MB	AddCallGuards
+  time: 0.133; rss: 189MB	ElaborateDrops
+  time: 0.001; rss: 189MB	NoLandingPads
+  time: 0.009; rss: 189MB	SimplifyCfg
+  time: 0.002; rss: 189MB	Deaggregator
+  time: 0.001; rss: 189MB	AddCallGuards
+  time: 0.000; rss: 189MB	PreTrans
+time: 0.166; rss: 189MB	Prepare MIR codegen passes
+  time: 0.082; rss: 190MB	write metadata
+  time: 0.535; rss: 201MB	translation item collection
+  time: 0.029; rss: 205MB	codegen unit partitioning
+  time: 0.052; rss: 327MB	internalize symbols
+time: 3.445; rss: 301MB	translation
+time: 0.000; rss: 301MB	assert dep graph
+time: 0.000; rss: 301MB	serialize dep graph
+  time: 0.196; rss: 227MB	llvm function passes [0]
+  time: 0.082; rss: 230MB	llvm module passes [0]
+  time: 3.989; rss: 233MB	codegen passes [0]
+  time: 0.001; rss: 234MB	codegen passes [0]
+time: 4.567; rss: 234MB	LLVM passes
+time: 0.000; rss: 234MB	serialize work products
+time: 0.255; rss: 105MB	linking
+done
