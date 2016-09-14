@@ -1,0 +1,44 @@
+commit b1363a73ede57ae595f3a1be2bb75d308ba4f7f6
+Merge: 2fd0608 848cfe2
+Author: bors <bors@rust-lang.org>
+Date:   Tue Sep 13 15:08:12 2016 -0700
+
+    Auto merge of #35021 - japaric:rustc-builtins, r=alexcrichton
+    
+    crate-ify compiler-rt into compiler-builtins
+    
+    libcompiler-rt.a is dead, long live libcompiler-builtins.rlib
+    
+    This commit moves the logic that used to build libcompiler-rt.a into a
+    compiler-builtins crate on top of the core crate and below the std crate.
+    This new crate still compiles the compiler-rt instrinsics using gcc-rs
+    but produces an .rlib instead of a static library.
+    
+    Also, with this commit rustc no longer passes -lcompiler-rt to the
+    linker. This effectively makes the "no-compiler-rt" field of target
+    specifications a no-op. Users of `no_std` will have to explicitly add
+    the compiler-builtins crate to their crate dependency graph *if* they
+    need the compiler-rt intrinsics - this is a [breaking-change]. Users
+    of the `std` have to do nothing extra as the std crate depends
+    on compiler-builtins.
+    
+    Finally, this a step towards lazy compilation of std with Cargo as the
+    compiler-rt intrinsics can now be built by Cargo instead of having to
+    be supplied by the user by some other method.
+    
+    closes #34400
+    
+    ---
+    
+    r? @alexcrichton
+cfg: version 1.13.0-dev (b1363a73e 2016-09-13)
+cfg: build triple x86_64-unknown-linux-gnu
+cfg: host triples x86_64-unknown-linux-gnu
+cfg: target triples x86_64-unknown-linux-gnu
+cfg: host for x86_64-unknown-linux-gnu is x86_64
+cfg: os for x86_64-unknown-linux-gnu is unknown-linux-gnu
+cfg: have good valgrind for x86_64-unknown-linux-gnu
+cfg: using CC=gcc (CFG_CC)
+cfg: disabling valgrind run-pass tests
+rustc: x86_64-unknown-linux-gnu/stage0/lib/rustlib/x86_64-unknown-linux-gnu/lib/libstd
+/root/rust/mk/target.mk:212: recipe for target 'x86_64-unknown-linux-gnu/stage0/lib/rustlib/x86_64-unknown-linux-gnu/lib/stamp.std' failed
