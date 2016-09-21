@@ -1,0 +1,106 @@
+commit 5cc6c6b1b76960441c39ef29e951f22de45da15b
+Merge: c772948 cf976fe
+Author: bors <bors@rust-lang.org>
+Date:   Wed Sep 21 01:33:37 2016 -0700
+
+    Auto merge of #36524 - michaelwoerister:trans-inline-only-on-demand, r=nikomatsakis
+    
+    trans: Only instantiate #[inline] functions in codegen units referencing them
+    
+    This PR changes how `#[inline]` functions are translated. Before, there was one "master instance" of the function with `external` linkage and a number of on-demand instances with `available_externally` linkage in each codegen unit that referenced the function. This had two downsides:
+    
+    * Public functions marked with `#[inline]` would be present in machine code of libraries unnecessarily (see #36280 for an example)
+    * LLVM would crash on `i686-pc-windows-msvc` due to what I suspect to be a bug in LLVM's Win32 exception handling code, because it doesn't like `available_externally` there (#36309).
+    
+    This PR changes the behavior, so that there is no master instance and only on-demand instances with `internal` linkage. The downside of this is potential code-bloat if LLVM does not completely inline away the `internal` instances because then there'd be N instances of the function instead of 1. However, this can only become a problem when using more than one codegen unit per crate.
+    
+    cc @rust-lang/compiler
+rustc: ./regex.0.1.30
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling regex v0.1.30 (file:///root/benchmarks/regex.0.1.30)
+time: 0.052; rss: 57MB	parsing
+Lines of code:             8558
+Pre-expansion node count:  58080
+time: 0.000; rss: 57MB	recursion limit
+time: 0.000; rss: 57MB	crate injection
+time: 0.000; rss: 57MB	plugin loading
+time: 0.000; rss: 57MB	plugin registration
+time: 0.032; rss: 80MB	expansion
+time: 0.000; rss: 80MB	maybe building test harness
+time: 0.001; rss: 80MB	maybe creating a macro crate
+time: 0.003; rss: 80MB	assigning node ids
+Post-expansion node count: 68154
+time: 0.000; rss: 80MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 80MB	complete gated feature checking
+time: 0.001; rss: 80MB	collecting defs
+time: 0.001; rss: 80MB	external crate/lib resolution
+time: 0.003; rss: 80MB	early lint checks
+time: 0.000; rss: 80MB	AST validation
+time: 0.006; rss: 82MB	name resolution
+time: 0.008; rss: 92MB	lowering ast -> hir
+time: 0.002; rss: 94MB	indexing hir
+time: 0.001; rss: 94MB	attribute checking
+time: 0.001; rss: 84MB	language item collection
+time: 0.001; rss: 84MB	lifetime resolution
+time: 0.000; rss: 84MB	looking for entry point
+time: 0.000; rss: 84MB	looking for plugin registrar
+time: 0.007; rss: 89MB	region resolution
+time: 0.001; rss: 89MB	loop checking
+time: 0.002; rss: 89MB	static item recursion checking
+time: 0.022; rss: 90MB	compute_incremental_hashes_map
+time: 0.000; rss: 90MB	load_dep_graph
+time: 0.008; rss: 90MB	type collecting
+time: 0.000; rss: 90MB	variance inference
+time: 0.019; rss: 93MB	coherence checking
+time: 0.008; rss: 94MB	wf checking
+time: 0.251; rss: 105MB	item-types checking
+time: 0.145; rss: 111MB	item-bodies checking
+time: 0.000; rss: 111MB	drop-impl checking
+time: 0.027; rss: 111MB	const checking
+time: 0.003; rss: 111MB	privacy checking
+time: 0.001; rss: 111MB	stability index
+time: 0.002; rss: 111MB	intrinsic checking
+time: 0.001; rss: 111MB	effect checking
+time: 0.003; rss: 112MB	match checking
+time: 0.002; rss: 112MB	liveness checking
+time: 0.008; rss: 112MB	rvalue checking
+time: 0.044; rss: 125MB	MIR dump
+  time: 0.003; rss: 125MB	SimplifyCfg
+  time: 0.005; rss: 125MB	QualifyAndPromoteConstants
+  time: 0.010; rss: 125MB	TypeckMir
+  time: 0.000; rss: 125MB	SimplifyBranches
+  time: 0.002; rss: 125MB	SimplifyCfg
+time: 0.020; rss: 125MB	MIR passes
+time: 0.021; rss: 125MB	borrow checking
+time: 0.000; rss: 125MB	reachability checking
+time: 0.002; rss: 125MB	death checking
+time: 0.002; rss: 125MB	stability checking
+time: 0.000; rss: 125MB	unused lib feature checking
+time: 0.026; rss: 125MB	lint checking
+time: 0.000; rss: 125MB	resolving dependency formats
+  time: 0.000; rss: 125MB	NoLandingPads
+  time: 0.001; rss: 125MB	SimplifyCfg
+  time: 0.004; rss: 125MB	EraseRegions
+  time: 0.001; rss: 125MB	AddCallGuards
+  time: 0.010; rss: 125MB	ElaborateDrops
+  time: 0.000; rss: 125MB	NoLandingPads
+  time: 0.002; rss: 125MB	SimplifyCfg
+  time: 0.000; rss: 125MB	Deaggregator
+  time: 0.000; rss: 125MB	AddCallGuards
+  time: 0.000; rss: 125MB	PreTrans
+time: 0.020; rss: 125MB	Prepare MIR codegen passes
+  time: 0.162; rss: 136MB	write metadata
+  time: 0.041; rss: 137MB	translation item collection
+  time: 0.007; rss: 139MB	codegen unit partitioning
+  time: 0.014; rss: 165MB	internalize symbols
+time: 0.647; rss: 159MB	translation
+time: 0.000; rss: 159MB	assert dep graph
+time: 0.000; rss: 159MB	serialize dep graph
+  time: 0.036; rss: 113MB	llvm function passes [0]
+  time: 0.019; rss: 115MB	llvm module passes [0]
+  time: 0.679; rss: 118MB	codegen passes [0]
+  time: 0.001; rss: 118MB	codegen passes [0]
+time: 0.796; rss: 118MB	LLVM passes
+time: 0.000; rss: 118MB	serialize work products
+time: 0.066; rss: 90MB	linking
+done
