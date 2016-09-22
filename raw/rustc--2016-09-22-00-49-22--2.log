@@ -1,0 +1,28 @@
+commit 1cf592fa40ca4104b59b867817881ca056f408ad
+Merge: 4f9812a 4ac3001
+Author: bors <bors@rust-lang.org>
+Date:   Wed Sep 21 19:17:24 2016 -0700
+
+    Auto merge of #36551 - eddyb:meta-games, r=nikomatsakis
+    
+    Refactor away RBML from rustc_metadata.
+    
+    RBML and `ty{en,de}code` have had their long-overdue purge. Summary of changes:
+    * Metadata is now a tree encoded in post-order and with relative backward references pointing to children nodes. With auto-deriving and type safety, this makes maintenance and adding new information to metadata painless and bug-free by default. It's also more compact and cache-friendly (cache misses should be proportional to the depth of the node being accessed, not the number of siblings as in EBML/RBML).
+    * Metadata sizes have been reduced, for `libcore` it went down 16% (`8.38MB` -> `7.05MB`) and for `libstd` 14% (`3.53MB` -> `3.03MB`), while encoding more or less the same information
+    * Specialization is used in the bundled `libserialize` (crates.io `rustc_serialize` remains unaffected) to customize the encoding (and more importantly, decoding) of various types, most notably those interned in the `TyCtxt`. Some of this abuses a soundness hole pending a fix (cc @aturon), but when that fix arrives, we'll move to macros 1.1 `#[derive]` and custom `TyCtxt`-aware serialization traits.
+    * Enumerating children of modules from other crates is now orthogonal to describing those items via `Def` - this is a step towards bridging crate-local HIR and cross-crate metadata
+    * `CrateNum` has been moved to `rustc` and both it and `NodeId` are now newtypes instead of `u32` aliases, for specializing their decoding. This is `[syntax-breaking]` (cc @Manishearth ).
+    
+    cc @rust-lang/compiler
+cfg: version 1.13.0-dev (1cf592fa4 2016-09-21)
+cfg: build triple x86_64-unknown-linux-gnu
+cfg: host triples x86_64-unknown-linux-gnu
+cfg: target triples x86_64-unknown-linux-gnu
+cfg: host for x86_64-unknown-linux-gnu is x86_64
+cfg: os for x86_64-unknown-linux-gnu is unknown-linux-gnu
+cfg: have good valgrind for x86_64-unknown-linux-gnu
+cfg: using CC=gcc (CFG_CC)
+cfg: disabling valgrind run-pass tests
+rustc: x86_64-unknown-linux-gnu/stage0/lib/rustlib/x86_64-unknown-linux-gnu/lib/libstd
+/root/rust/mk/target.mk:212: recipe for target 'x86_64-unknown-linux-gnu/stage0/lib/rustlib/x86_64-unknown-linux-gnu/lib/stamp.std' failed

@@ -1,0 +1,131 @@
+commit 1cf592fa40ca4104b59b867817881ca056f408ad
+Merge: 4f9812a 4ac3001
+Author: bors <bors@rust-lang.org>
+Date:   Wed Sep 21 19:17:24 2016 -0700
+
+    Auto merge of #36551 - eddyb:meta-games, r=nikomatsakis
+    
+    Refactor away RBML from rustc_metadata.
+    
+    RBML and `ty{en,de}code` have had their long-overdue purge. Summary of changes:
+    * Metadata is now a tree encoded in post-order and with relative backward references pointing to children nodes. With auto-deriving and type safety, this makes maintenance and adding new information to metadata painless and bug-free by default. It's also more compact and cache-friendly (cache misses should be proportional to the depth of the node being accessed, not the number of siblings as in EBML/RBML).
+    * Metadata sizes have been reduced, for `libcore` it went down 16% (`8.38MB` -> `7.05MB`) and for `libstd` 14% (`3.53MB` -> `3.03MB`), while encoding more or less the same information
+    * Specialization is used in the bundled `libserialize` (crates.io `rustc_serialize` remains unaffected) to customize the encoding (and more importantly, decoding) of various types, most notably those interned in the `TyCtxt`. Some of this abuses a soundness hole pending a fix (cc @aturon), but when that fix arrives, we'll move to macros 1.1 `#[derive]` and custom `TyCtxt`-aware serialization traits.
+    * Enumerating children of modules from other crates is now orthogonal to describing those items via `Def` - this is a step towards bridging crate-local HIR and cross-crate metadata
+    * `CrateNum` has been moved to `rustc` and both it and `NodeId` are now newtypes instead of `u32` aliases, for specializing their decoding. This is `[syntax-breaking]` (cc @Manishearth ).
+    
+    cc @rust-lang/compiler
+rustc: ./hyper.0.5.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling log v0.3.6
+   Compiling libc v0.2.16
+   Compiling unicase v0.1.0
+   Compiling gcc v0.3.35
+   Compiling winapi v0.2.8
+   Compiling rustc-serialize v0.3.19
+   Compiling bitflags v0.3.3
+   Compiling traitobject v0.0.1
+   Compiling winapi-build v0.1.1
+   Compiling pkg-config v0.3.8
+   Compiling matches v0.1.2
+   Compiling httparse v0.1.6
+   Compiling kernel32-sys v0.2.2
+   Compiling typeable v0.1.2
+   Compiling lazy_static v0.1.16
+   Compiling libc v0.1.12
+   Compiling mime v0.0.11
+   Compiling time v0.1.35
+   Compiling rand v0.3.14
+   Compiling num_cpus v0.2.13
+   Compiling openssl-sys v0.6.7
+   Compiling openssl v0.6.7
+   Compiling uuid v0.1.18
+   Compiling url v0.2.38
+   Compiling cookie v0.1.21
+   Compiling hyper v0.5.0 (file:///root/benchmarks/hyper.0.5.0)
+time: 0.028; rss: 51MB	parsing
+Lines of code:             9154
+Pre-expansion node count:  44873
+time: 0.000; rss: 51MB	recursion limit
+time: 0.000; rss: 51MB	crate injection
+time: 0.000; rss: 51MB	plugin loading
+time: 0.000; rss: 51MB	plugin registration
+time: 0.095; rss: 79MB	expansion
+time: 0.000; rss: 79MB	maybe building test harness
+time: 0.001; rss: 79MB	maybe creating a macro crate
+time: 0.005; rss: 79MB	assigning node ids
+Post-expansion node count: 101537
+time: 0.000; rss: 79MB	checking for inline asm in case the target doesn't support it
+time: 0.002; rss: 79MB	complete gated feature checking
+time: 0.003; rss: 82MB	collecting defs
+time: 0.010; rss: 88MB	external crate/lib resolution
+time: 0.004; rss: 88MB	early lint checks
+time: 0.001; rss: 88MB	AST validation
+time: 0.016; rss: 96MB	name resolution
+time: 0.008; rss: 100MB	lowering ast -> hir
+time: 0.002; rss: 102MB	indexing hir
+time: 0.001; rss: 102MB	attribute checking
+time: 0.001; rss: 96MB	language item collection
+time: 0.002; rss: 96MB	lifetime resolution
+time: 0.000; rss: 96MB	looking for entry point
+time: 0.000; rss: 96MB	looking for plugin registrar
+time: 0.006; rss: 101MB	region resolution
+time: 0.001; rss: 101MB	loop checking
+time: 0.001; rss: 101MB	static item recursion checking
+time: 0.041; rss: 101MB	compute_incremental_hashes_map
+time: 0.000; rss: 101MB	load_dep_graph
+time: 0.024; rss: 102MB	type collecting
+time: 0.000; rss: 102MB	variance inference
+time: 0.036; rss: 105MB	coherence checking
+time: 0.057; rss: 108MB	wf checking
+time: 0.029; rss: 108MB	item-types checking
+time: 0.364; rss: 119MB	item-bodies checking
+time: 0.000; rss: 119MB	drop-impl checking
+time: 0.039; rss: 121MB	const checking
+time: 0.007; rss: 121MB	privacy checking
+time: 0.001; rss: 121MB	stability index
+time: 0.005; rss: 121MB	intrinsic checking
+time: 0.002; rss: 121MB	effect checking
+time: 0.013; rss: 121MB	match checking
+time: 0.005; rss: 121MB	liveness checking
+time: 0.028; rss: 121MB	rvalue checking
+time: 0.056; rss: 140MB	MIR dump
+  time: 0.007; rss: 140MB	SimplifyCfg
+  time: 0.014; rss: 140MB	QualifyAndPromoteConstants
+  time: 0.017; rss: 140MB	TypeckMir
+  time: 0.001; rss: 140MB	SimplifyBranches
+  time: 0.004; rss: 140MB	SimplifyCfg
+time: 0.042; rss: 140MB	MIR passes
+time: 0.061; rss: 140MB	borrow checking
+time: 0.003; rss: 140MB	reachability checking
+time: 0.005; rss: 140MB	death checking
+time: 0.005; rss: 140MB	stability checking
+time: 0.000; rss: 140MB	unused lib feature checking
+time: 0.041; rss: 140MB	lint checking
+time: 0.000; rss: 140MB	resolving dependency formats
+  time: 0.001; rss: 140MB	NoLandingPads
+  time: 0.003; rss: 140MB	SimplifyCfg
+  time: 0.008; rss: 140MB	EraseRegions
+  time: 0.001; rss: 140MB	AddCallGuards
+  time: 0.054; rss: 142MB	ElaborateDrops
+  time: 0.001; rss: 142MB	NoLandingPads
+  time: 0.005; rss: 142MB	SimplifyCfg
+  time: 0.003; rss: 142MB	Deaggregator
+  time: 0.001; rss: 142MB	AddCallGuards
+  time: 0.000; rss: 142MB	PreTrans
+time: 0.076; rss: 142MB	Prepare MIR codegen passes
+  time: 0.054; rss: 146MB	write metadata
+  time: 0.113; rss: 152MB	translation item collection
+  time: 0.020; rss: 154MB	codegen unit partitioning
+  time: 0.032; rss: 219MB	internalize symbols
+time: 1.376; rss: 209MB	translation
+time: 0.000; rss: 209MB	assert dep graph
+time: 0.000; rss: 209MB	serialize dep graph
+  time: 0.101; rss: 163MB	llvm function passes [0]
+  time: 0.048; rss: 161MB	llvm module passes [0]
+  time: 1.834; rss: 165MB	codegen passes [0]
+  time: 0.001; rss: 165MB	codegen passes [0]
+time: 2.147; rss: 165MB	LLVM passes
+time: 0.000; rss: 165MB	serialize work products
+time: 0.491; rss: 99MB	linking
+done

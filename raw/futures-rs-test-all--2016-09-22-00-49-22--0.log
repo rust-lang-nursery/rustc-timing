@@ -1,0 +1,112 @@
+commit 1cf592fa40ca4104b59b867817881ca056f408ad
+Merge: 4f9812a 4ac3001
+Author: bors <bors@rust-lang.org>
+Date:   Wed Sep 21 19:17:24 2016 -0700
+
+    Auto merge of #36551 - eddyb:meta-games, r=nikomatsakis
+    
+    Refactor away RBML from rustc_metadata.
+    
+    RBML and `ty{en,de}code` have had their long-overdue purge. Summary of changes:
+    * Metadata is now a tree encoded in post-order and with relative backward references pointing to children nodes. With auto-deriving and type safety, this makes maintenance and adding new information to metadata painless and bug-free by default. It's also more compact and cache-friendly (cache misses should be proportional to the depth of the node being accessed, not the number of siblings as in EBML/RBML).
+    * Metadata sizes have been reduced, for `libcore` it went down 16% (`8.38MB` -> `7.05MB`) and for `libstd` 14% (`3.53MB` -> `3.03MB`), while encoding more or less the same information
+    * Specialization is used in the bundled `libserialize` (crates.io `rustc_serialize` remains unaffected) to customize the encoding (and more importantly, decoding) of various types, most notably those interned in the `TyCtxt`. Some of this abuses a soundness hole pending a fix (cc @aturon), but when that fix arrives, we'll move to macros 1.1 `#[derive]` and custom `TyCtxt`-aware serialization traits.
+    * Enumerating children of modules from other crates is now orthogonal to describing those items via `Def` - this is a step towards bridging crate-local HIR and cross-crate metadata
+    * `CrateNum` has been moved to `rustc` and both it and `NodeId` are now newtypes instead of `u32` aliases, for specializing their decoding. This is `[syntax-breaking]` (cc @Manishearth ).
+    
+    cc @rust-lang/compiler
+rustc: ./futures-rs-test-all
+cargo rustc --test all --verbose -- -Ztime-passes -Zinput-stats
+    Updating registry `https://github.com/rust-lang/crates.io-index`
+   Compiling log v0.3.6
+     Running `/root/rust/x86_64-unknown-linux-gnu/stage2/bin/rustc /root/.cargo/registry/src/github.com-88ac128001ac3a9a/log-0.3.6/src/lib.rs --crate-name log --crate-type lib -g --cfg feature=\"use_std\" --cfg feature=\"default\" -C metadata=30a8a27ec161f1be -C extra-filename=-30a8a27ec161f1be --out-dir /root/benchmarks/futures-rs-test-all/target/debug/deps --emit=dep-info,link -L dependency=/root/benchmarks/futures-rs-test-all/target/debug/deps -L dependency=/root/benchmarks/futures-rs-test-all/target/debug/deps --cap-lints allow`
+   Compiling futures v0.1.0 (file:///root/benchmarks/futures-rs-test-all)
+     Running `/root/rust/x86_64-unknown-linux-gnu/stage2/bin/rustc src/lib.rs --crate-name futures --crate-type lib -g --out-dir /root/benchmarks/futures-rs-test-all/target/debug --emit=dep-info,link -L dependency=/root/benchmarks/futures-rs-test-all/target/debug -L dependency=/root/benchmarks/futures-rs-test-all/target/debug/deps --extern log=/root/benchmarks/futures-rs-test-all/target/debug/deps/liblog-30a8a27ec161f1be.rlib`
+     Running `/root/rust/x86_64-unknown-linux-gnu/stage2/bin/rustc tests/all.rs --crate-name all --crate-type bin -g -Ztime-passes -Zinput-stats --test -C metadata=449e6fc7d003a0bc -C extra-filename=-449e6fc7d003a0bc --out-dir /root/benchmarks/futures-rs-test-all/target/debug --emit=dep-info,link -L dependency=/root/benchmarks/futures-rs-test-all/target/debug -L dependency=/root/benchmarks/futures-rs-test-all/target/debug/deps --extern log=/root/benchmarks/futures-rs-test-all/target/debug/deps/liblog-30a8a27ec161f1be.rlib --extern futures=/root/benchmarks/futures-rs-test-all/target/debug/libfutures.rlib`
+time: 0.003; rss: 44MB	parsing
+Lines of code:             412
+Pre-expansion node count:  5522
+time: 0.000; rss: 44MB	recursion limit
+time: 0.000; rss: 44MB	crate injection
+time: 0.000; rss: 44MB	plugin loading
+time: 0.000; rss: 44MB	plugin registration
+time: 0.024; rss: 63MB	expansion
+time: 0.000; rss: 63MB	maybe building test harness
+time: 0.000; rss: 63MB	maybe creating a macro crate
+time: 0.000; rss: 68MB	assigning node ids
+Post-expansion node count: 10613
+time: 0.000; rss: 68MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 68MB	complete gated feature checking
+time: 0.000; rss: 68MB	collecting defs
+time: 0.005; rss: 69MB	external crate/lib resolution
+time: 0.000; rss: 69MB	early lint checks
+time: 0.000; rss: 69MB	AST validation
+time: 0.002; rss: 69MB	name resolution
+time: 0.001; rss: 73MB	lowering ast -> hir
+time: 0.000; rss: 73MB	indexing hir
+time: 0.000; rss: 73MB	attribute checking
+time: 0.000; rss: 73MB	language item collection
+time: 0.000; rss: 73MB	lifetime resolution
+time: 0.000; rss: 73MB	looking for entry point
+time: 0.000; rss: 73MB	looking for plugin registrar
+time: 0.001; rss: 73MB	region resolution
+time: 0.000; rss: 73MB	loop checking
+time: 0.000; rss: 73MB	static item recursion checking
+time: 0.003; rss: 73MB	compute_incremental_hashes_map
+time: 0.000; rss: 73MB	load_dep_graph
+time: 0.005; rss: 73MB	type collecting
+time: 0.000; rss: 73MB	variance inference
+time: 0.004; rss: 73MB	coherence checking
+time: 0.014; rss: 75MB	wf checking
+time: 0.003; rss: 75MB	item-types checking
+time: 0.152; rss: 84MB	item-bodies checking
+time: 0.000; rss: 84MB	drop-impl checking
+time: 0.005; rss: 83MB	const checking
+time: 0.000; rss: 83MB	privacy checking
+time: 0.000; rss: 83MB	stability index
+time: 0.000; rss: 83MB	intrinsic checking
+time: 0.000; rss: 83MB	effect checking
+time: 0.001; rss: 83MB	match checking
+time: 0.001; rss: 84MB	liveness checking
+time: 0.004; rss: 84MB	rvalue checking
+time: 0.008; rss: 85MB	MIR dump
+  time: 0.001; rss: 85MB	SimplifyCfg
+  time: 0.002; rss: 85MB	QualifyAndPromoteConstants
+  time: 0.002; rss: 85MB	TypeckMir
+  time: 0.000; rss: 85MB	SimplifyBranches
+  time: 0.000; rss: 85MB	SimplifyCfg
+time: 0.006; rss: 85MB	MIR passes
+time: 0.008; rss: 85MB	borrow checking
+time: 0.000; rss: 85MB	reachability checking
+time: 0.000; rss: 85MB	death checking
+time: 0.000; rss: 85MB	stability checking
+time: 0.000; rss: 85MB	unused lib feature checking
+time: 0.003; rss: 85MB	lint checking
+time: 0.002; rss: 85MB	resolving dependency formats
+  time: 0.000; rss: 85MB	NoLandingPads
+  time: 0.000; rss: 85MB	SimplifyCfg
+  time: 0.001; rss: 85MB	EraseRegions
+  time: 0.000; rss: 85MB	AddCallGuards
+  time: 0.013; rss: 87MB	ElaborateDrops
+  time: 0.000; rss: 87MB	NoLandingPads
+  time: 0.001; rss: 87MB	SimplifyCfg
+  time: 0.000; rss: 87MB	Deaggregator
+  time: 0.000; rss: 87MB	AddCallGuards
+  time: 0.000; rss: 87MB	PreTrans
+time: 0.017; rss: 87MB	Prepare MIR codegen passes
+  time: 0.000; rss: 87MB	write metadata
+  time: 0.194; rss: 96MB	translation item collection
+  time: 0.023; rss: 96MB	codegen unit partitioning
+  time: 0.046; rss: 150MB	internalize symbols
+time: 1.500; rss: 150MB	translation
+time: 0.000; rss: 150MB	assert dep graph
+time: 0.000; rss: 150MB	serialize dep graph
+  time: 0.081; rss: 134MB	llvm function passes [0]
+  time: 0.026; rss: 136MB	llvm module passes [0]
+  time: 1.760; rss: 139MB	codegen passes [0]
+  time: 0.000; rss: 139MB	codegen passes [0]
+time: 1.869; rss: 139MB	LLVM passes
+time: 0.000; rss: 139MB	serialize work products
+  time: 0.192; rss: 87MB	running linker
+time: 0.194; rss: 87MB	linking
+done
