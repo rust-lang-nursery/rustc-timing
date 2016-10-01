@@ -1,0 +1,126 @@
+commit 8b00355119ba0473eae420049f96f5be91be1bab
+Merge: bba3fca afa72b5
+Author: bors <bors@rust-lang.org>
+Date:   Fri Sep 30 19:00:36 2016 -0700
+
+    Auto merge of #36339 - brson:emscripten-new, r=alexcrichton
+    
+    Working asmjs and wasm targets
+    
+    This patch set results in a working standard library for the asmjs-unknown-emscripten and wasm32-unknown-emscripten targets. It is based on the work of @badboy and @rschulman.
+    
+    It does a few things:
+    
+    - Updates LLVM with the emscripten [fastcomp](https://github.com/rust-lang/llvm/pull/50) patches, which include the pnacl IR legalizer and the asm.js backend. This patch is thought not to have any significant effect on existing targets.
+    - Teaches rustbuild to correctly link C code with emscripten
+    - Updates gcc-rs to work correctly with emscripten
+    - Teaches rustbuild to run crate tests for emscripten with node
+    - Modifies Thread::new to return an error on emscripten, to facilitate debugging a common failure mode
+    - Modifies libtest to run in single-threaded mode for emscripten
+    - Ignores a host of tests that don't work yet, mostly dealing with threads and I/O
+    - Updates libc with wasm32 definitions (presently the same as asmjs)
+    - Adds a wasm32-unknown-emscripten target that feeds the output of LLVM's asmjs backend through emcc to generate wasm
+    
+    Notes and caveats:
+    
+    - This is only known to work with `--enable-rustbuild`.
+    - The wasm32 target can't be tested correctly yet because of issues in compiletest and limitations in node https://github.com/kripken/emscripten/issues/4542, but hello.rs does seem to work when run on node via the binaryen interpreter
+    - This requires an up to date installation of the emscripten sdk from its incoming branch
+    - Unwinding is very broken
+    - When enabling the emscripten targets jemalloc is disabled for all targets, which results in test failures for the host
+    
+    Next steps are to fix the jemalloc issue, start building the two emscripten targets on the auto builders, then start producing nightlies.
+    
+    https://github.com/rust-lang/rust/issues/36317 tracks work on this.
+    
+    Fixes https://github.com/rust-lang/rust/issues/36515
+    Fixes https://github.com/rust-lang/rust/issues/36515
+    Fixes https://github.com/rust-lang/rust/issues/36356
+rustc: ./syntex-0.42.2
+cargo rustc -p syntex_syntax -- -Ztime-passes -Zinput-stats
+   Compiling syntex_syntax v0.42.0
+time: 0.107; rss: 76MB	parsing
+Lines of code:             33687
+Pre-expansion node count:  224033
+time: 0.000; rss: 76MB	recursion limit
+time: 0.000; rss: 76MB	crate injection
+time: 0.000; rss: 76MB	plugin loading
+time: 0.000; rss: 76MB	plugin registration
+time: 0.271; rss: 148MB	expansion
+time: 0.000; rss: 148MB	maybe building test harness
+time: 0.006; rss: 148MB	maybe creating a macro crate
+Post-expansion node count: 641571
+time: 0.000; rss: 148MB	checking for inline asm in case the target doesn't support it
+time: 0.013; rss: 148MB	complete gated feature checking
+time: 0.023; rss: 148MB	early lint checks
+time: 0.007; rss: 148MB	AST validation
+time: 0.084; rss: 162MB	name resolution
+time: 0.050; rss: 203MB	lowering ast -> hir
+time: 0.009; rss: 212MB	indexing hir
+time: 0.006; rss: 212MB	attribute checking
+time: 0.006; rss: 162MB	language item collection
+time: 0.012; rss: 162MB	lifetime resolution
+time: 0.000; rss: 162MB	looking for entry point
+time: 0.000; rss: 162MB	looking for plugin registrar
+time: 0.044; rss: 173MB	region resolution
+time: 0.006; rss: 173MB	loop checking
+time: 0.006; rss: 173MB	static item recursion checking
+time: 0.296; rss: 174MB	compute_incremental_hashes_map
+time: 0.000; rss: 174MB	load_dep_graph
+time: 0.084; rss: 174MB	type collecting
+time: 0.001; rss: 174MB	variance inference
+time: 0.040; rss: 178MB	coherence checking
+time: 0.102; rss: 181MB	wf checking
+time: 0.200; rss: 188MB	item-types checking
+time: 4.007; rss: 242MB	item-bodies checking
+time: 0.000; rss: 242MB	drop-impl checking
+time: 0.320; rss: 243MB	const checking
+time: 0.055; rss: 243MB	privacy checking
+time: 0.008; rss: 243MB	stability index
+time: 0.022; rss: 243MB	intrinsic checking
+time: 0.019; rss: 243MB	effect checking
+time: 0.057; rss: 243MB	match checking
+time: 0.056; rss: 238MB	liveness checking
+time: 0.292; rss: 238MB	rvalue checking
+time: 0.432; rss: 426MB	MIR dump
+  time: 0.058; rss: 430MB	SimplifyCfg
+  time: 0.085; rss: 430MB	QualifyAndPromoteConstants
+  time: 0.112; rss: 430MB	TypeckMir
+  time: 0.005; rss: 430MB	SimplifyBranches
+  time: 0.037; rss: 430MB	SimplifyCfg
+time: 0.296; rss: 430MB	MIR passes
+time: 0.707; rss: 431MB	borrow checking
+time: 0.018; rss: 431MB	reachability checking
+time: 0.045; rss: 431MB	death checking
+time: 0.042; rss: 431MB	stability checking
+time: 0.000; rss: 431MB	unused lib feature checking
+time: 0.216; rss: 431MB	lint checking
+time: 0.000; rss: 431MB	resolving dependency formats
+  time: 0.003; rss: 431MB	NoLandingPads
+  time: 0.027; rss: 431MB	SimplifyCfg
+  time: 0.072; rss: 443MB	EraseRegions
+  time: 0.011; rss: 443MB	AddCallGuards
+  time: 1.101; rss: 458MB	ElaborateDrops
+  time: 0.003; rss: 458MB	NoLandingPads
+  time: 0.052; rss: 458MB	SimplifyCfg
+  time: 0.030; rss: 458MB	InstCombine
+  time: 0.013; rss: 458MB	Deaggregator
+  time: 0.003; rss: 458MB	CopyPropagation
+  time: 0.009; rss: 458MB	AddCallGuards
+  time: 0.003; rss: 458MB	PreTrans
+time: 1.329; rss: 458MB	Prepare MIR codegen passes
+  time: 0.263; rss: 467MB	write metadata
+  time: 0.487; rss: 474MB	translation item collection
+  time: 0.069; rss: 483MB	codegen unit partitioning
+  time: 0.058; rss: 731MB	internalize symbols
+time: 5.253; rss: 609MB	translation
+time: 0.000; rss: 609MB	assert dep graph
+time: 0.000; rss: 609MB	serialize dep graph
+  time: 0.508; rss: 415MB	llvm function passes [0]
+  time: 0.245; rss: 423MB	llvm module passes [0]
+  time: 10.091; rss: 416MB	codegen passes [0]
+  time: 0.001; rss: 417MB	codegen passes [0]
+time: 11.594; rss: 417MB	LLVM passes
+time: 0.000; rss: 417MB	serialize work products
+time: 0.671; rss: 107MB	linking
+done
