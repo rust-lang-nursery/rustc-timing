@@ -1,0 +1,112 @@
+commit 75df685d28947ea7d2422a24f14aa1254da1aeb4
+Merge: f374565 607d297
+Author: bors <bors@rust-lang.org>
+Date:   Mon Oct 3 04:25:58 2016 -0700
+
+    Auto merge of #36766 - nnethercote:hash-span-capacity, r=bluss
+    
+    Clarify HashMap's capacity handling.
+    
+    HashMap has two notions of "capacity":
+    
+    - "Usable capacity": the number of elements a hash map can hold without
+      resizing. This is the meaning of "capacity" used in HashMap's API,
+      e.g. the `with_capacity()` function.
+    
+    - "Internal capacity": the number of allocated slots. Except for the
+      zero case, it is always larger than the usable capacity (because some
+      slots must be left empty) and is always a power of two.
+    
+    HashMap's code is confusing because it does a poor job of
+    distinguishing these two meanings. I propose using two different terms
+    for these two concepts. Because "capacity" is already used in HashMap's
+    API to mean "usable capacity", I will use a different word for "internal
+    capacity". I propose "span", though I'm happy to consider other names.
+rustc: ./regex.0.1.30
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling regex v0.1.30 (file:///root/benchmarks/regex.0.1.30)
+time: 0.082; rss: 54MB	parsing
+Lines of code:             8558
+Pre-expansion node count:  58080
+time: 0.000; rss: 54MB	recursion limit
+time: 0.000; rss: 54MB	crate injection
+time: 0.000; rss: 54MB	plugin loading
+time: 0.000; rss: 54MB	plugin registration
+time: 0.033; rss: 77MB	expansion
+time: 0.000; rss: 77MB	maybe building test harness
+time: 0.001; rss: 77MB	maybe creating a macro crate
+Post-expansion node count: 68134
+time: 0.000; rss: 77MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 77MB	complete gated feature checking
+time: 0.004; rss: 77MB	early lint checks
+time: 0.001; rss: 77MB	AST validation
+time: 0.006; rss: 78MB	name resolution
+time: 0.015; rss: 87MB	lowering ast -> hir
+time: 0.005; rss: 89MB	indexing hir
+time: 0.001; rss: 89MB	attribute checking
+time: 0.001; rss: 80MB	language item collection
+time: 0.001; rss: 80MB	lifetime resolution
+time: 0.000; rss: 80MB	looking for entry point
+time: 0.000; rss: 80MB	looking for plugin registrar
+time: 0.007; rss: 83MB	region resolution
+time: 0.001; rss: 83MB	loop checking
+time: 0.001; rss: 83MB	static item recursion checking
+time: 0.021; rss: 84MB	compute_incremental_hashes_map
+time: 0.000; rss: 84MB	load_dep_graph
+time: 0.008; rss: 85MB	type collecting
+time: 0.000; rss: 85MB	variance inference
+time: 0.019; rss: 87MB	coherence checking
+time: 0.007; rss: 87MB	wf checking
+time: 0.200; rss: 96MB	item-types checking
+time: 0.140; rss: 100MB	item-bodies checking
+time: 0.000; rss: 100MB	drop-impl checking
+time: 0.027; rss: 100MB	const checking
+time: 0.003; rss: 100MB	privacy checking
+time: 0.001; rss: 100MB	stability index
+time: 0.001; rss: 100MB	intrinsic checking
+time: 0.001; rss: 100MB	effect checking
+time: 0.003; rss: 100MB	match checking
+time: 0.002; rss: 100MB	liveness checking
+time: 0.008; rss: 100MB	rvalue checking
+time: 0.071; rss: 113MB	MIR dump
+  time: 0.003; rss: 114MB	SimplifyCfg
+  time: 0.005; rss: 114MB	QualifyAndPromoteConstants
+  time: 0.010; rss: 114MB	TypeckMir
+  time: 0.000; rss: 114MB	SimplifyBranches
+  time: 0.002; rss: 114MB	SimplifyCfg
+time: 0.020; rss: 114MB	MIR passes
+time: 0.023; rss: 114MB	borrow checking
+time: 0.000; rss: 114MB	reachability checking
+time: 0.003; rss: 114MB	death checking
+time: 0.003; rss: 114MB	stability checking
+time: 0.000; rss: 114MB	unused lib feature checking
+time: 0.025; rss: 114MB	lint checking
+time: 0.000; rss: 114MB	resolving dependency formats
+  time: 0.000; rss: 114MB	NoLandingPads
+  time: 0.001; rss: 114MB	SimplifyCfg
+  time: 0.004; rss: 114MB	EraseRegions
+  time: 0.000; rss: 114MB	AddCallGuards
+  time: 0.011; rss: 116MB	ElaborateDrops
+  time: 0.000; rss: 116MB	NoLandingPads
+  time: 0.002; rss: 116MB	SimplifyCfg
+  time: 0.002; rss: 116MB	InstCombine
+  time: 0.000; rss: 116MB	Deaggregator
+  time: 0.000; rss: 116MB	CopyPropagation
+  time: 0.000; rss: 116MB	AddCallGuards
+  time: 0.000; rss: 116MB	PreTrans
+time: 0.022; rss: 116MB	Prepare MIR codegen passes
+  time: 0.129; rss: 123MB	write metadata
+  time: 0.059; rss: 124MB	translation item collection
+  time: 0.008; rss: 125MB	codegen unit partitioning
+  time: 0.007; rss: 149MB	internalize symbols
+time: 0.623; rss: 142MB	translation
+time: 0.000; rss: 142MB	assert dep graph
+time: 0.000; rss: 142MB	serialize dep graph
+  time: 0.037; rss: 104MB	llvm function passes [0]
+  time: 0.019; rss: 105MB	llvm module passes [0]
+  time: 0.684; rss: 110MB	codegen passes [0]
+  time: 0.001; rss: 111MB	codegen passes [0]
+time: 0.805; rss: 110MB	LLVM passes
+time: 0.000; rss: 110MB	serialize work products
+time: 0.065; rss: 83MB	linking
+done
