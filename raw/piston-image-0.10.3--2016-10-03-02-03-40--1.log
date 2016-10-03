@@ -1,0 +1,130 @@
+commit 144af3e97aa30feba3d36a98ac04c0f1b2bc0bea
+Merge: 1cdc0fb 4d76ac8
+Author: bors <bors@rust-lang.org>
+Date:   Sun Oct 2 17:33:34 2016 -0700
+
+    Auto merge of #36807 - brson:pal, r=brson
+    
+    Restrict where in the tree platform-specific cfgs may be mentioned
+    
+    With the ports of Rust never ending, it's important that we keep things tidy. The main thing this PR does is introduce  a new "pal" (platform abstraction layer) tidy check that limits where platform-specific CFGs may appear.
+    
+    This is intended to maintain existing standards of code organization
+    in hopes that the standard library will continue to be refactored to
+    isolate platform-specific bits, making porting easier; where "standard
+    library" roughly means "all the dependencies of the std and test
+    crates".
+    
+    This generally means placing restrictions on where `cfg(unix)`,
+    `cfg(windows)`, `cfg(target_os)` and `cfg(target_env)` may appear,
+    the basic objective being to isolate platform-specific code to the
+    platform-specific `std::sys` modules, and to the allocation,
+    unwinding, and libc crates.
+    
+    Following are the basic rules, though there are currently
+    exceptions:
+    
+    - core may not have platform-specific code
+    - liballoc_system may have platform-specific code
+    - liballoc_jemalloc may have platform-specific code
+    - libpanic_abort may have platform-specific code
+    - libpanic_unwind may have platform-specific code
+    - other crates in the std facade may not
+    - std may have platform-specific code in the following places
+      - sys/unix/
+      - sys/windows/
+      - os/
+    
+    There are plenty of exceptions today though, noted in the whitelist.
+    
+    The end-state, IMO, is for the standard library to be portable by porting only `std::sys` (possibly extracted to its own crate), an allocator crate, an unwinder crate, and possibly a libc crate (if std depends on it); but that outcome is far off and independent of the utility of enforcing where such code lives today.
+    
+    cc @rust-lang/libs
+rustc: ./piston-image-0.10.3
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling image v0.10.3 (file:///root/benchmarks/piston-image-0.10.3)
+time: 0.067; rss: 53MB	parsing
+Lines of code:             12000
+Pre-expansion node count:  90272
+time: 0.000; rss: 53MB	recursion limit
+time: 0.000; rss: 53MB	crate injection
+time: 0.000; rss: 53MB	plugin loading
+time: 0.000; rss: 53MB	plugin registration
+time: 0.094; rss: 91MB	expansion
+time: 0.000; rss: 91MB	maybe building test harness
+time: 0.001; rss: 91MB	maybe creating a macro crate
+Post-expansion node count: 148999
+time: 0.000; rss: 91MB	checking for inline asm in case the target doesn't support it
+time: 0.003; rss: 91MB	complete gated feature checking
+time: 0.005; rss: 91MB	early lint checks
+time: 0.002; rss: 91MB	AST validation
+time: 0.025; rss: 94MB	name resolution
+time: 0.036; rss: 106MB	lowering ast -> hir
+time: 0.010; rss: 109MB	indexing hir
+time: 0.002; rss: 109MB	attribute checking
+time: 0.002; rss: 97MB	language item collection
+time: 0.003; rss: 97MB	lifetime resolution
+time: 0.000; rss: 97MB	looking for entry point
+time: 0.000; rss: 97MB	looking for plugin registrar
+time: 0.022; rss: 102MB	region resolution
+time: 0.002; rss: 102MB	loop checking
+time: 0.002; rss: 102MB	static item recursion checking
+time: 0.058; rss: 102MB	compute_incremental_hashes_map
+time: 0.000; rss: 102MB	load_dep_graph
+time: 0.025; rss: 102MB	type collecting
+time: 0.000; rss: 102MB	variance inference
+time: 0.030; rss: 106MB	coherence checking
+time: 0.092; rss: 107MB	wf checking
+time: 0.148; rss: 112MB	item-types checking
+time: 0.948; rss: 122MB	item-bodies checking
+time: 0.000; rss: 122MB	drop-impl checking
+time: 0.074; rss: 124MB	const checking
+time: 0.011; rss: 124MB	privacy checking
+time: 0.002; rss: 124MB	stability index
+time: 0.008; rss: 124MB	intrinsic checking
+time: 0.004; rss: 124MB	effect checking
+time: 0.018; rss: 124MB	match checking
+time: 0.012; rss: 124MB	liveness checking
+time: 0.062; rss: 124MB	rvalue checking
+time: 0.173; rss: 164MB	MIR dump
+  time: 0.012; rss: 166MB	SimplifyCfg
+  time: 0.026; rss: 166MB	QualifyAndPromoteConstants
+  time: 0.025; rss: 166MB	TypeckMir
+  time: 0.001; rss: 166MB	SimplifyBranches
+  time: 0.007; rss: 166MB	SimplifyCfg
+time: 0.071; rss: 166MB	MIR passes
+time: 0.150; rss: 166MB	borrow checking
+time: 0.004; rss: 166MB	reachability checking
+time: 0.010; rss: 166MB	death checking
+time: 0.010; rss: 167MB	stability checking
+time: 0.000; rss: 167MB	unused lib feature checking
+time: 0.076; rss: 167MB	lint checking
+time: 0.000; rss: 167MB	resolving dependency formats
+  time: 0.001; rss: 167MB	NoLandingPads
+  time: 0.005; rss: 167MB	SimplifyCfg
+  time: 0.015; rss: 168MB	EraseRegions
+  time: 0.002; rss: 168MB	AddCallGuards
+  time: 0.100; rss: 171MB	ElaborateDrops
+  time: 0.001; rss: 171MB	NoLandingPads
+  time: 0.009; rss: 171MB	SimplifyCfg
+  time: 0.006; rss: 171MB	InstCombine
+  time: 0.002; rss: 171MB	Deaggregator
+  time: 0.001; rss: 171MB	CopyPropagation
+  time: 0.002; rss: 171MB	AddCallGuards
+  time: 0.000; rss: 171MB	PreTrans
+time: 0.144; rss: 171MB	Prepare MIR codegen passes
+  time: 0.077; rss: 175MB	write metadata
+  time: 0.620; rss: 187MB	translation item collection
+  time: 0.032; rss: 190MB	codegen unit partitioning
+  time: 0.027; rss: 309MB	internalize symbols
+time: 3.572; rss: 281MB	translation
+time: 0.000; rss: 281MB	assert dep graph
+time: 0.000; rss: 281MB	serialize dep graph
+  time: 0.207; rss: 216MB	llvm function passes [0]
+  time: 0.083; rss: 221MB	llvm module passes [0]
+  time: 4.122; rss: 224MB	codegen passes [0]
+  time: 0.001; rss: 225MB	codegen passes [0]
+time: 4.804; rss: 225MB	LLVM passes
+time: 0.000; rss: 225MB	serialize work products
+time: 0.254; rss: 97MB	linking
+done

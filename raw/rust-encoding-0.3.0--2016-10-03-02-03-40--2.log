@@ -1,0 +1,137 @@
+commit 144af3e97aa30feba3d36a98ac04c0f1b2bc0bea
+Merge: 1cdc0fb 4d76ac8
+Author: bors <bors@rust-lang.org>
+Date:   Sun Oct 2 17:33:34 2016 -0700
+
+    Auto merge of #36807 - brson:pal, r=brson
+    
+    Restrict where in the tree platform-specific cfgs may be mentioned
+    
+    With the ports of Rust never ending, it's important that we keep things tidy. The main thing this PR does is introduce  a new "pal" (platform abstraction layer) tidy check that limits where platform-specific CFGs may appear.
+    
+    This is intended to maintain existing standards of code organization
+    in hopes that the standard library will continue to be refactored to
+    isolate platform-specific bits, making porting easier; where "standard
+    library" roughly means "all the dependencies of the std and test
+    crates".
+    
+    This generally means placing restrictions on where `cfg(unix)`,
+    `cfg(windows)`, `cfg(target_os)` and `cfg(target_env)` may appear,
+    the basic objective being to isolate platform-specific code to the
+    platform-specific `std::sys` modules, and to the allocation,
+    unwinding, and libc crates.
+    
+    Following are the basic rules, though there are currently
+    exceptions:
+    
+    - core may not have platform-specific code
+    - liballoc_system may have platform-specific code
+    - liballoc_jemalloc may have platform-specific code
+    - libpanic_abort may have platform-specific code
+    - libpanic_unwind may have platform-specific code
+    - other crates in the std facade may not
+    - std may have platform-specific code in the following places
+      - sys/unix/
+      - sys/windows/
+      - os/
+    
+    There are plenty of exceptions today though, noted in the whitelist.
+    
+    The end-state, IMO, is for the standard library to be portable by porting only `std::sys` (possibly extracted to its own crate), an allocator crate, an unwinder crate, and possibly a libc crate (if std depends on it); but that outcome is far off and independent of the utility of enforcing where such code lives today.
+    
+    cc @rust-lang/libs
+rustc: ./rust-encoding-0.3.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling encoding_index_tests v0.1.5 (file:///root/benchmarks/rust-encoding-0.3.0)
+   Compiling encoding-types v0.2.0 (file:///root/benchmarks/rust-encoding-0.3.0)
+   Compiling encoding-index-japanese v1.20141219.6 (file:///root/benchmarks/rust-encoding-0.3.0)
+   Compiling encoding-index-korean v1.20141219.6 (file:///root/benchmarks/rust-encoding-0.3.0)
+   Compiling encoding-index-singlebyte v1.20160120.0 (file:///root/benchmarks/rust-encoding-0.3.0)
+   Compiling encoding-index-tradchinese v1.20141219.6 (file:///root/benchmarks/rust-encoding-0.3.0)
+   Compiling encoding-index-simpchinese v1.20160120.0 (file:///root/benchmarks/rust-encoding-0.3.0)
+   Compiling encoding v0.3.0-dev (file:///root/benchmarks/rust-encoding-0.3.0)
+time: 0.028; rss: 46MB	parsing
+Lines of code:             5757
+Pre-expansion node count:  26615
+time: 0.000; rss: 46MB	recursion limit
+time: 0.000; rss: 46MB	crate injection
+time: 0.000; rss: 46MB	plugin loading
+time: 0.000; rss: 46MB	plugin registration
+time: 0.043; rss: 69MB	expansion
+time: 0.000; rss: 69MB	maybe building test harness
+time: 0.000; rss: 69MB	maybe creating a macro crate
+Post-expansion node count: 37904
+time: 0.000; rss: 69MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 69MB	complete gated feature checking
+time: 0.001; rss: 69MB	early lint checks
+time: 0.000; rss: 69MB	AST validation
+time: 0.005; rss: 71MB	name resolution
+time: 0.006; rss: 72MB	lowering ast -> hir
+time: 0.000; rss: 73MB	indexing hir
+time: 0.000; rss: 73MB	attribute checking
+time: 0.000; rss: 72MB	language item collection
+time: 0.001; rss: 72MB	lifetime resolution
+time: 0.000; rss: 72MB	looking for entry point
+time: 0.000; rss: 72MB	looking for plugin registrar
+time: 0.006; rss: 73MB	region resolution
+time: 0.000; rss: 73MB	loop checking
+time: 0.000; rss: 73MB	static item recursion checking
+time: 0.014; rss: 74MB	compute_incremental_hashes_map
+time: 0.000; rss: 74MB	load_dep_graph
+time: 0.010; rss: 75MB	type collecting
+time: 0.000; rss: 75MB	variance inference
+time: 0.017; rss: 76MB	coherence checking
+time: 0.014; rss: 77MB	wf checking
+time: 0.009; rss: 78MB	item-types checking
+time: 0.145; rss: 83MB	item-bodies checking
+time: 0.000; rss: 83MB	drop-impl checking
+time: 0.009; rss: 83MB	const checking
+time: 0.002; rss: 83MB	privacy checking
+time: 0.000; rss: 83MB	stability index
+time: 0.001; rss: 83MB	intrinsic checking
+time: 0.000; rss: 83MB	effect checking
+time: 0.006; rss: 83MB	match checking
+time: 0.001; rss: 83MB	liveness checking
+time: 0.006; rss: 83MB	rvalue checking
+time: 0.032; rss: 91MB	MIR dump
+  time: 0.002; rss: 91MB	SimplifyCfg
+  time: 0.004; rss: 91MB	QualifyAndPromoteConstants
+  time: 0.004; rss: 91MB	TypeckMir
+  time: 0.000; rss: 91MB	SimplifyBranches
+  time: 0.001; rss: 91MB	SimplifyCfg
+time: 0.012; rss: 91MB	MIR passes
+time: 0.021; rss: 91MB	borrow checking
+time: 0.000; rss: 91MB	reachability checking
+time: 0.001; rss: 91MB	death checking
+time: 0.002; rss: 91MB	stability checking
+time: 0.000; rss: 91MB	unused lib feature checking
+time: 0.016; rss: 92MB	lint checking
+time: 0.000; rss: 92MB	resolving dependency formats
+  time: 0.000; rss: 92MB	NoLandingPads
+  time: 0.001; rss: 92MB	SimplifyCfg
+  time: 0.003; rss: 92MB	EraseRegions
+  time: 0.000; rss: 92MB	AddCallGuards
+  time: 0.017; rss: 93MB	ElaborateDrops
+  time: 0.000; rss: 93MB	NoLandingPads
+  time: 0.001; rss: 93MB	SimplifyCfg
+  time: 0.001; rss: 93MB	InstCombine
+  time: 0.001; rss: 93MB	Deaggregator
+  time: 0.000; rss: 93MB	CopyPropagation
+  time: 0.000; rss: 93MB	AddCallGuards
+  time: 0.000; rss: 93MB	PreTrans
+time: 0.025; rss: 93MB	Prepare MIR codegen passes
+  time: 0.019; rss: 94MB	write metadata
+  time: 0.364; rss: 194MB	translation item collection
+  time: 0.003; rss: 194MB	codegen unit partitioning
+  time: 0.003; rss: 216MB	internalize symbols
+time: 0.721; rss: 207MB	translation
+time: 0.000; rss: 207MB	assert dep graph
+time: 0.000; rss: 207MB	serialize dep graph
+  time: 0.026; rss: 108MB	llvm function passes [0]
+  time: 0.057; rss: 113MB	llvm module passes [0]
+  time: 0.626; rss: 119MB	codegen passes [0]
+  time: 0.000; rss: 119MB	codegen passes [0]
+time: 0.766; rss: 119MB	LLVM passes
+time: 0.000; rss: 119MB	serialize work products
+time: 0.076; rss: 91MB	linking
+done
