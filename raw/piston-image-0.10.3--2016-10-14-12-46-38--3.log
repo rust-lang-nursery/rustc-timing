@@ -1,0 +1,172 @@
+commit 40cd1fdf0a951e2aa1a042c4cba613f5a2d50dcf
+Merge: 17af6b9 c435821
+Author: bors <bors@rust-lang.org>
+Date:   Fri Oct 14 02:23:19 2016 -0700
+
+    Auto merge of #36692 - arthurprs:hashmap-layout, r=alexcrichton
+    
+    Cache conscious hashmap table
+    
+    Right now the internal HashMap representation is 3 unziped arrays hhhkkkvvv, I propose to change it to hhhkvkvkv (in further iterations kvkvkvhhh may allow inplace grow). A previous attempt is at #21973.
+    
+    This layout is generally more cache conscious as it makes the value immediately accessible after a key matches. The separated hash arrays is a _no-brainer_ because of how the RH algorithm works and that's unchanged.
+    
+    **Lookups**: Upon a successful match in the hash array the code can check the key and immediately have access to the value in the same or next cache line (effectively saving a L[1,2,3] miss compared to the current layout).
+    **Inserts/Deletes/Resize**: Moving values in the table (robin hooding it) is faster because it touches consecutive cache lines and uses less instructions.
+    
+    Some backing benchmarks (besides the ones bellow) for the benefits of this layout can be seen here as well http://www.reedbeta.com/blog/2015/01/12/data-oriented-hash-table/
+    
+    The obvious drawbacks is: padding can be wasted between the key and value. Because of that keys(), values() and contains() can consume more cache and be slower.
+    
+    Total wasted padding between items (C being the capacity of the table).
+    * Old layout: C * (K-K padding) + C * (V-V padding)
+    * Proposed: C * (K-V padding) + C * (V-K padding)
+    
+    In practice padding between K-K and V-V *can* be smaller than K-V and V-K. The overhead is capped(ish) at sizeof u64 - 1 so we can actually measure the worst case (u8 at the end of key type and value with aliment of 1, _hardly the average case in practice_).
+    
+    Starting from the worst case the memory overhead is:
+    * `HashMap<u64, u8>` 46% memory overhead. (aka *worst case*)
+    * `HashMap<u64, u16>` 33% memory overhead.
+    * `HashMap<u64, u32>` 20% memory overhead.
+    * `HashMap<T, T>` 0% memory overhead
+    * Worst case based on sizeof K + sizeof V:
+    
+    | x              |  16    |  24    |  32    |  64   |  128  |
+    |----------------|--------|--------|--------|-------|-------|
+    | (8+x+7)/(8+x)  |  1.29  |  1.22  |  1.18  |  1.1  |  1.05 |
+    
+    I've a test repo here to run benchmarks  https://github.com/arthurprs/hashmap2/tree/layout
+    
+    ```
+     ➜  hashmap2 git:(layout) ✗ cargo benchcmp hhkkvv:: hhkvkv:: bench.txt
+     name                            hhkkvv:: ns/iter  hhkvkv:: ns/iter  diff ns/iter   diff %
+     grow_10_000                     922,064           783,933               -138,131  -14.98%
+     grow_big_value_10_000           1,901,909         1,171,862             -730,047  -38.38%
+     grow_fnv_10_000                 443,544           418,674                -24,870   -5.61%
+     insert_100                      2,469             2,342                     -127   -5.14%
+     insert_1000                     23,331            21,536                  -1,795   -7.69%
+     insert_100_000                  4,748,048         3,764,305             -983,743  -20.72%
+     insert_10_000                   321,744           290,126                -31,618   -9.83%
+     insert_int_bigvalue_10_000      749,764           407,547               -342,217  -45.64%
+     insert_str_10_000               337,425           334,009                 -3,416   -1.01%
+     insert_string_10_000            788,667           788,262                   -405   -0.05%
+     iter_keys_100_000               394,484           374,161                -20,323   -5.15%
+     iter_keys_big_value_100_000     402,071           620,810                218,739   54.40%
+     iter_values_100_000             424,794           373,004                -51,790  -12.19%
+     iterate_100_000                 424,297           389,950                -34,347   -8.10%
+     lookup_100_000                  189,997           186,554                 -3,443   -1.81%
+     lookup_100_000_bigvalue         192,509           189,695                 -2,814   -1.46%
+     lookup_10_000                   154,251           145,731                 -8,520   -5.52%
+     lookup_10_000_bigvalue          162,315           146,527                -15,788   -9.73%
+     lookup_10_000_exist             132,769           128,922                 -3,847   -2.90%
+     lookup_10_000_noexist           146,880           144,504                 -2,376   -1.62%
+     lookup_1_000_000                137,167           132,260                 -4,907   -3.58%
+     lookup_1_000_000_bigvalue       141,130           134,371                 -6,759   -4.79%
+     lookup_1_000_000_bigvalue_unif  567,235           481,272                -85,963  -15.15%
+     lookup_1_000_000_unif           589,391           453,576               -135,815  -23.04%
+     merge_shuffle                   1,253,357         1,207,387              -45,970   -3.67%
+     merge_simple                    40,264,690        37,996,903          -2,267,787   -5.63%
+     new                             6                 5                           -1  -16.67%
+     with_capacity_10e5              3,214             3,256                       42    1.31%
+    ```
+    
+    ```
+    ➜  hashmap2 git:(layout) ✗ cargo benchcmp hhkkvv:: hhkvkv:: bench.txt
+     name                           hhkkvv:: ns/iter  hhkvkv:: ns/iter  diff ns/iter   diff %
+     iter_keys_100_000              391,677           382,839                 -8,838   -2.26%
+     iter_keys_1_000_000            10,797,360        10,209,898            -587,462   -5.44%
+     iter_keys_big_value_100_000    414,736           662,255                247,519   59.68%
+     iter_keys_big_value_1_000_000  10,147,837        12,067,938           1,920,101   18.92%
+     iter_values_100_000            440,445           377,080                -63,365  -14.39%
+     iter_values_1_000_000          10,931,844        9,979,173             -952,671   -8.71%
+     iterate_100_000                428,644           388,509                -40,135   -9.36%
+     iterate_1_000_000              11,065,419        10,042,427          -1,022,992   -9.24%
+    ```
+rustc: ./piston-image-0.10.3
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling image v0.10.3 (file:///root/benchmarks/piston-image-0.10.3)
+time: 0.043; rss: 57MB	parsing
+Lines of code:             12000
+Pre-expansion node count:  90272
+time: 0.000; rss: 57MB	recursion limit
+time: 0.000; rss: 57MB	crate injection
+time: 0.000; rss: 57MB	plugin loading
+time: 0.000; rss: 57MB	plugin registration
+time: 0.078; rss: 95MB	expansion
+time: 0.000; rss: 95MB	maybe building test harness
+time: 0.001; rss: 95MB	maybe creating a macro crate
+Post-expansion node count: 148999
+time: 0.000; rss: 95MB	checking for inline asm in case the target doesn't support it
+time: 0.002; rss: 95MB	complete gated feature checking
+time: 0.005; rss: 95MB	early lint checks
+time: 0.001; rss: 95MB	AST validation
+time: 0.021; rss: 97MB	name resolution
+time: 0.013; rss: 109MB	lowering ast -> hir
+time: 0.003; rss: 113MB	indexing hir
+time: 0.002; rss: 113MB	attribute checking
+time: 0.002; rss: 102MB	language item collection
+time: 0.002; rss: 102MB	lifetime resolution
+time: 0.000; rss: 102MB	looking for entry point
+time: 0.000; rss: 102MB	looking for plugin registrar
+time: 0.011; rss: 108MB	region resolution
+time: 0.002; rss: 108MB	loop checking
+time: 0.001; rss: 108MB	static item recursion checking
+time: 0.054; rss: 108MB	compute_incremental_hashes_map
+time: 0.000; rss: 108MB	load_dep_graph
+time: 0.017; rss: 109MB	type collecting
+time: 0.000; rss: 109MB	variance inference
+time: 0.029; rss: 112MB	coherence checking
+time: 0.091; rss: 113MB	wf checking
+time: 0.141; rss: 119MB	item-types checking
+time: 0.890; rss: 132MB	item-bodies checking
+time: 0.000; rss: 132MB	drop-impl checking
+time: 0.066; rss: 133MB	const checking
+time: 0.010; rss: 133MB	privacy checking
+time: 0.001; rss: 133MB	stability index
+time: 0.008; rss: 133MB	intrinsic checking
+time: 0.003; rss: 133MB	effect checking
+time: 0.017; rss: 133MB	match checking
+time: 0.011; rss: 133MB	liveness checking
+time: 0.059; rss: 132MB	rvalue checking
+time: 0.104; rss: 175MB	MIR dump
+  time: 0.011; rss: 175MB	SimplifyCfg
+  time: 0.024; rss: 175MB	QualifyAndPromoteConstants
+  time: 0.024; rss: 175MB	TypeckMir
+  time: 0.001; rss: 175MB	SimplifyBranches
+  time: 0.005; rss: 175MB	SimplifyCfg
+time: 0.065; rss: 175MB	MIR passes
+time: 0.140; rss: 175MB	borrow checking
+time: 0.004; rss: 175MB	reachability checking
+time: 0.009; rss: 175MB	death checking
+time: 0.010; rss: 177MB	stability checking
+time: 0.000; rss: 177MB	unused lib feature checking
+time: 0.073; rss: 177MB	lint checking
+time: 0.000; rss: 177MB	resolving dependency formats
+  time: 0.001; rss: 177MB	NoLandingPads
+  time: 0.005; rss: 177MB	SimplifyCfg
+  time: 0.012; rss: 177MB	EraseRegions
+  time: 0.002; rss: 177MB	AddCallGuards
+  time: 0.090; rss: 182MB	ElaborateDrops
+  time: 0.001; rss: 182MB	NoLandingPads
+  time: 0.009; rss: 182MB	SimplifyCfg
+  time: 0.006; rss: 182MB	InstCombine
+  time: 0.002; rss: 182MB	Deaggregator
+  time: 0.000; rss: 182MB	CopyPropagation
+  time: 0.001; rss: 182MB	AddCallGuards
+  time: 0.000; rss: 182MB	PreTrans
+time: 0.129; rss: 182MB	Prepare MIR codegen passes
+  time: 0.073; rss: 186MB	write metadata
+  time: 0.445; rss: 196MB	translation item collection
+  time: 0.027; rss: 198MB	codegen unit partitioning
+  time: 0.023; rss: 318MB	internalize symbols
+time: 2.790; rss: 291MB	translation
+time: 0.000; rss: 291MB	assert dep graph
+time: 0.000; rss: 291MB	serialize dep graph
+  time: 0.204; rss: 220MB	llvm function passes [0]
+  time: 0.081; rss: 223MB	llvm module passes [0]
+  time: 4.075; rss: 226MB	codegen passes [0]
+  time: 0.001; rss: 227MB	codegen passes [0]
+time: 4.650; rss: 227MB	LLVM passes
+time: 0.000; rss: 227MB	serialize work products
+time: 0.255; rss: 100MB	linking
+done
