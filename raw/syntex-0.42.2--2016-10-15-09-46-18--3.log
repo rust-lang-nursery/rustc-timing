@@ -1,0 +1,104 @@
+commit 8e05e7ee3c19a5594b79d67c8390cef78970be7c
+Merge: 030bc49 48b3dd1
+Author: bors <bors@rust-lang.org>
+Date:   Sat Oct 15 06:08:55 2016 -0700
+
+    Auto merge of #37100 - dikaiosune:master, r=eddyb
+    
+    Change Substs to type alias for Slice<Kind> for interning
+    
+    This changes the definition of `librustc::ty::subst::Substs` to be a type alias to `Slice<Kind>`. `Substs` was already interned, but can now make use of the efficient `PartialEq` and `Hash` impls on `librustc::ty::Slice`.
+    
+    I'm working on collecting some timing data for this, will update when it's done.
+    
+    I chose to leave the impls on `Substs<'tcx>` even though it's now just a type alias to `Slice<Kind<'tcx>>` because it has the smallest footprint on other portions of the compiler which depend on its API. It turns out to be a pretty huge diff if you change where Substs's methods live :smile:. That said, I'm not necessarily sure it's the *best* implementation but it's probably the easiest/smallest to review.
+    
+    Many thanks to @eddyb for both suggesting this as a project for learning more about the compiler, and the tireless ~~handholding~~ mentorship he provided.
+rustc: ./syntex-0.42.2
+cargo rustc -p syntex_syntax -- -Ztime-passes -Zinput-stats
+   Compiling syntex_syntax v0.42.0
+time: 0.108; rss: 75MB	parsing
+Lines of code:             33687
+Pre-expansion node count:  224033
+time: 0.000; rss: 75MB	recursion limit
+time: 0.000; rss: 75MB	crate injection
+time: 0.000; rss: 75MB	plugin loading
+time: 0.000; rss: 75MB	plugin registration
+time: 0.279; rss: 148MB	expansion
+time: 0.000; rss: 148MB	maybe building test harness
+time: 0.007; rss: 148MB	maybe creating a macro crate
+Post-expansion node count: 641571
+time: 0.000; rss: 148MB	checking for inline asm in case the target doesn't support it
+time: 0.015; rss: 148MB	complete gated feature checking
+time: 0.026; rss: 148MB	early lint checks
+time: 0.009; rss: 148MB	AST validation
+time: 0.089; rss: 162MB	name resolution
+time: 0.055; rss: 202MB	lowering ast -> hir
+time: 0.011; rss: 211MB	indexing hir
+time: 0.007; rss: 211MB	attribute checking
+time: 0.007; rss: 161MB	language item collection
+time: 0.013; rss: 161MB	lifetime resolution
+time: 0.000; rss: 161MB	looking for entry point
+time: 0.000; rss: 161MB	looking for plugin registrar
+time: 0.047; rss: 172MB	region resolution
+time: 0.007; rss: 172MB	loop checking
+time: 0.007; rss: 172MB	static item recursion checking
+time: 0.269; rss: 173MB	compute_incremental_hashes_map
+time: 0.000; rss: 173MB	load_dep_graph
+time: 0.044; rss: 178MB	type collecting
+time: 0.001; rss: 178MB	variance inference
+time: 0.038; rss: 181MB	coherence checking
+time: 0.103; rss: 185MB	wf checking
+time: 0.193; rss: 191MB	item-types checking
+time: 3.976; rss: 242MB	item-bodies checking
+time: 0.000; rss: 242MB	drop-impl checking
+time: 0.309; rss: 246MB	const checking
+time: 0.052; rss: 246MB	privacy checking
+time: 0.007; rss: 246MB	stability index
+time: 0.021; rss: 246MB	intrinsic checking
+time: 0.017; rss: 246MB	effect checking
+time: 0.055; rss: 246MB	match checking
+time: 0.052; rss: 238MB	liveness checking
+time: 0.282; rss: 238MB	rvalue checking
+time: 0.420; rss: 428MB	MIR dump
+  time: 0.056; rss: 429MB	SimplifyCfg
+  time: 0.081; rss: 429MB	QualifyAndPromoteConstants
+  time: 0.111; rss: 429MB	TypeckMir
+  time: 0.004; rss: 429MB	SimplifyBranches
+  time: 0.030; rss: 429MB	SimplifyCfg
+time: 0.282; rss: 429MB	MIR passes
+time: 0.675; rss: 430MB	borrow checking
+time: 0.017; rss: 430MB	reachability checking
+time: 0.043; rss: 430MB	death checking
+time: 0.040; rss: 432MB	stability checking
+time: 0.000; rss: 432MB	unused lib feature checking
+time: 0.213; rss: 432MB	lint checking
+time: 0.000; rss: 432MB	resolving dependency formats
+  time: 0.003; rss: 432MB	NoLandingPads
+  time: 0.026; rss: 432MB	SimplifyCfg
+  time: 0.070; rss: 440MB	EraseRegions
+  time: 0.011; rss: 440MB	AddCallGuards
+  time: 1.082; rss: 459MB	ElaborateDrops
+  time: 0.003; rss: 459MB	NoLandingPads
+  time: 0.051; rss: 459MB	SimplifyCfg
+  time: 0.029; rss: 459MB	InstCombine
+  time: 0.011; rss: 459MB	Deaggregator
+  time: 0.003; rss: 459MB	CopyPropagation
+  time: 0.009; rss: 459MB	AddCallGuards
+  time: 0.002; rss: 459MB	PreTrans
+time: 1.300; rss: 459MB	Prepare MIR codegen passes
+  time: 0.262; rss: 466MB	write metadata
+  time: 0.443; rss: 476MB	translation item collection
+  time: 0.060; rss: 485MB	codegen unit partitioning
+  time: 0.050; rss: 730MB	internalize symbols
+time: 5.016; rss: 610MB	translation
+time: 0.000; rss: 610MB	assert dep graph
+time: 0.000; rss: 610MB	serialize dep graph
+  time: 0.510; rss: 411MB	llvm function passes [0]
+  time: 0.240; rss: 418MB	llvm module passes [0]
+  time: 9.965; rss: 414MB	codegen passes [0]
+  time: 0.001; rss: 416MB	codegen passes [0]
+time: 11.444; rss: 416MB	LLVM passes
+time: 0.000; rss: 416MB	serialize work products
+time: 0.685; rss: 107MB	linking
+done
