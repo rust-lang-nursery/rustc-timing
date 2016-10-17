@@ -1,0 +1,111 @@
+commit 6572a463116a31efba8bfddb2e64ed659311b8a1
+Merge: 6dc035e ee338c3
+Author: bors <bors@rust-lang.org>
+Date:   Sun Oct 16 04:22:21 2016 -0700
+
+    Auto merge of #37129 - arielb1:erased-normal, r=eddyb
+    
+    normalize types every time HR regions are erased
+    
+    Associated type normalization is inhibited by higher-ranked regions.
+    Therefore, every time we erase them, we must re-normalize.
+    
+    I was meaning to introduce this change some time ago, but we used
+    to erase regions in generic context, which broke this terribly (because
+    you can't always normalize in a generic context). That seems to be gone
+    now.
+    
+    Ensure this by having a `erase_late_bound_regions_and_normalize`
+    function.
+    
+    Fixes #37109 (the missing call was in mir::block).
+    
+    r? @eddyb
+rustc: ./inflate-0.1.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling inflate v0.1.0 (file:///root/benchmarks/inflate-0.1.0)
+time: 0.004; rss: 43MB	parsing
+Lines of code:             956
+Pre-expansion node count:  4740
+time: 0.000; rss: 43MB	recursion limit
+time: 0.000; rss: 43MB	crate injection
+time: 0.000; rss: 43MB	plugin loading
+time: 0.000; rss: 43MB	plugin registration
+time: 0.077; rss: 71MB	expansion
+time: 0.000; rss: 71MB	maybe building test harness
+time: 0.000; rss: 71MB	maybe creating a macro crate
+Post-expansion node count: 55750
+time: 0.000; rss: 71MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 71MB	complete gated feature checking
+time: 0.002; rss: 71MB	early lint checks
+time: 0.000; rss: 71MB	AST validation
+time: 0.008; rss: 73MB	name resolution
+time: 0.009; rss: 78MB	lowering ast -> hir
+time: 0.002; rss: 79MB	indexing hir
+time: 0.000; rss: 79MB	attribute checking
+time: 0.001; rss: 74MB	language item collection
+time: 0.001; rss: 74MB	lifetime resolution
+time: 0.000; rss: 74MB	looking for entry point
+time: 0.000; rss: 74MB	looking for plugin registrar
+time: 0.004; rss: 75MB	region resolution
+time: 0.000; rss: 75MB	loop checking
+time: 0.000; rss: 75MB	static item recursion checking
+time: 0.022; rss: 75MB	compute_incremental_hashes_map
+time: 0.000; rss: 75MB	load_dep_graph
+time: 0.001; rss: 76MB	type collecting
+time: 0.000; rss: 76MB	variance inference
+time: 0.009; rss: 78MB	coherence checking
+time: 0.002; rss: 78MB	wf checking
+time: 0.002; rss: 78MB	item-types checking
+time: 2.389; rss: 91MB	item-bodies checking
+time: 0.000; rss: 91MB	drop-impl checking
+time: 0.017; rss: 91MB	const checking
+time: 0.001; rss: 91MB	privacy checking
+time: 0.000; rss: 91MB	stability index
+time: 0.000; rss: 91MB	intrinsic checking
+time: 0.001; rss: 91MB	effect checking
+time: 0.003; rss: 91MB	match checking
+time: 0.313; rss: 89MB	liveness checking
+time: 0.013; rss: 89MB	rvalue checking
+time: 0.039; rss: 109MB	MIR dump
+  time: 0.007; rss: 109MB	SimplifyCfg
+  time: 0.006; rss: 109MB	QualifyAndPromoteConstants
+  time: 0.007; rss: 109MB	TypeckMir
+  time: 0.000; rss: 109MB	SimplifyBranches
+  time: 0.002; rss: 109MB	SimplifyCfg
+time: 0.022; rss: 109MB	MIR passes
+time: 0.210; rss: 111MB	borrow checking
+time: 0.000; rss: 111MB	reachability checking
+time: 0.003; rss: 111MB	death checking
+time: 0.002; rss: 111MB	stability checking
+time: 0.000; rss: 111MB	unused lib feature checking
+time: 0.019; rss: 112MB	lint checking
+time: 0.000; rss: 112MB	resolving dependency formats
+  time: 0.000; rss: 112MB	NoLandingPads
+  time: 0.002; rss: 112MB	SimplifyCfg
+  time: 0.003; rss: 112MB	EraseRegions
+  time: 0.001; rss: 112MB	AddCallGuards
+  time: 0.213; rss: 113MB	ElaborateDrops
+  time: 0.000; rss: 113MB	NoLandingPads
+  time: 0.006; rss: 113MB	SimplifyCfg
+  time: 0.003; rss: 113MB	InstCombine
+  time: 0.000; rss: 113MB	Deaggregator
+  time: 0.000; rss: 113MB	CopyPropagation
+  time: 0.001; rss: 113MB	AddCallGuards
+  time: 0.000; rss: 113MB	PreTrans
+time: 0.229; rss: 113MB	Prepare MIR codegen passes
+  time: 0.002; rss: 114MB	write metadata
+  time: 0.010; rss: 114MB	translation item collection
+  time: 0.001; rss: 114MB	codegen unit partitioning
+  time: 0.001; rss: 127MB	internalize symbols
+time: 0.163; rss: 111MB	translation
+time: 0.000; rss: 111MB	assert dep graph
+time: 0.000; rss: 111MB	serialize dep graph
+  time: 0.028; rss: 88MB	llvm function passes [0]
+  time: 0.005; rss: 88MB	llvm module passes [0]
+  time: 0.668; rss: 93MB	codegen passes [0]
+  time: 0.000; rss: 93MB	codegen passes [0]
+time: 0.738; rss: 93MB	LLVM passes
+time: 0.000; rss: 93MB	serialize work products
+time: 0.046; rss: 82MB	linking
+done
