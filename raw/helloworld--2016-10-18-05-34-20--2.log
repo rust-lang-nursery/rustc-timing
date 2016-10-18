@@ -1,0 +1,106 @@
+commit 753ea76336be2def223335c63d7b20188651a8c6
+Merge: 3543a0f 6a4bb35
+Author: bors <bors@rust-lang.org>
+Date:   Tue Oct 18 01:49:13 2016 -0700
+
+    Auto merge of #37083 - nnethercote:uleb128, r=eddyb
+    
+    Inline read_{un,}signed_leb128 and opaque::Decoder functions.
+    
+    `read_unsigned_leb128` is hot within rustc because it's heavily used
+    during the reading of crate metadata. This commit tweaks its signature
+    (and that of `read_signed_leb128`, for consistency) so it can increment
+    the buffer index directly instead of maintaining its own copy, the
+    change in which is then used by the caller to advance the index.
+    
+    This reduces the instruction count (as measured by Cachegrind) for some
+    benchmarks a bit, e.g. hyper-0.5.0 by 0.7%.
+rustc: ./helloworld
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling helloworld v0.1.0 (file:///root/benchmarks/helloworld)
+time: 0.000; rss: 41MB	parsing
+Lines of code:             3
+Pre-expansion node count:  8
+time: 0.000; rss: 41MB	recursion limit
+time: 0.000; rss: 41MB	crate injection
+time: 0.000; rss: 41MB	plugin loading
+time: 0.000; rss: 41MB	plugin registration
+time: 0.013; rss: 61MB	expansion
+time: 0.000; rss: 61MB	maybe building test harness
+time: 0.000; rss: 61MB	maybe creating a macro crate
+Post-expansion node count: 68
+time: 0.000; rss: 61MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 61MB	complete gated feature checking
+time: 0.000; rss: 61MB	early lint checks
+time: 0.000; rss: 61MB	AST validation
+time: 0.002; rss: 61MB	name resolution
+time: 0.000; rss: 61MB	lowering ast -> hir
+time: 0.000; rss: 66MB	indexing hir
+time: 0.000; rss: 66MB	attribute checking
+time: 0.000; rss: 66MB	language item collection
+time: 0.000; rss: 66MB	lifetime resolution
+time: 0.000; rss: 66MB	looking for entry point
+time: 0.000; rss: 66MB	looking for plugin registrar
+time: 0.000; rss: 66MB	region resolution
+time: 0.000; rss: 66MB	loop checking
+time: 0.000; rss: 66MB	static item recursion checking
+time: 0.000; rss: 66MB	compute_incremental_hashes_map
+time: 0.000; rss: 66MB	load_dep_graph
+time: 0.000; rss: 66MB	type collecting
+time: 0.000; rss: 66MB	variance inference
+time: 0.004; rss: 66MB	coherence checking
+time: 0.000; rss: 66MB	wf checking
+time: 0.000; rss: 66MB	item-types checking
+time: 0.000; rss: 66MB	item-bodies checking
+time: 0.000; rss: 66MB	drop-impl checking
+time: 0.000; rss: 66MB	const checking
+time: 0.000; rss: 66MB	privacy checking
+time: 0.000; rss: 66MB	stability index
+time: 0.000; rss: 66MB	intrinsic checking
+time: 0.000; rss: 66MB	effect checking
+time: 0.000; rss: 66MB	match checking
+time: 0.000; rss: 66MB	liveness checking
+time: 0.000; rss: 66MB	rvalue checking
+time: 0.000; rss: 66MB	MIR dump
+  time: 0.000; rss: 66MB	SimplifyCfg
+  time: 0.000; rss: 66MB	QualifyAndPromoteConstants
+  time: 0.000; rss: 66MB	TypeckMir
+  time: 0.000; rss: 66MB	SimplifyBranches
+  time: 0.000; rss: 66MB	SimplifyCfg
+time: 0.000; rss: 66MB	MIR passes
+time: 0.000; rss: 66MB	borrow checking
+time: 0.000; rss: 66MB	reachability checking
+time: 0.000; rss: 66MB	death checking
+time: 0.000; rss: 66MB	stability checking
+time: 0.000; rss: 66MB	unused lib feature checking
+time: 0.000; rss: 66MB	lint checking
+time: 0.001; rss: 66MB	resolving dependency formats
+  time: 0.000; rss: 66MB	NoLandingPads
+  time: 0.000; rss: 66MB	SimplifyCfg
+  time: 0.000; rss: 66MB	EraseRegions
+  time: 0.000; rss: 66MB	AddCallGuards
+  time: 0.000; rss: 66MB	ElaborateDrops
+  time: 0.000; rss: 66MB	NoLandingPads
+  time: 0.000; rss: 66MB	SimplifyCfg
+  time: 0.000; rss: 66MB	InstCombine
+  time: 0.000; rss: 66MB	Deaggregator
+  time: 0.000; rss: 66MB	CopyPropagation
+  time: 0.000; rss: 66MB	AddCallGuards
+  time: 0.000; rss: 66MB	PreTrans
+time: 0.000; rss: 66MB	Prepare MIR codegen passes
+  time: 0.000; rss: 70MB	write metadata
+  time: 0.000; rss: 70MB	translation item collection
+  time: 0.000; rss: 70MB	codegen unit partitioning
+  time: 0.000; rss: 70MB	internalize symbols
+time: 0.005; rss: 70MB	translation
+time: 0.000; rss: 70MB	assert dep graph
+time: 0.000; rss: 70MB	serialize dep graph
+  time: 0.000; rss: 70MB	llvm function passes [0]
+  time: 0.000; rss: 70MB	llvm module passes [0]
+  time: 0.002; rss: 74MB	codegen passes [0]
+  time: 0.000; rss: 74MB	codegen passes [0]
+time: 0.022; rss: 74MB	LLVM passes
+time: 0.000; rss: 74MB	serialize work products
+  time: 0.072; rss: 74MB	running linker
+time: 0.073; rss: 74MB	linking
+done
