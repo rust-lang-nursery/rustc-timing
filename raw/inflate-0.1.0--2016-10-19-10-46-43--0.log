@@ -1,0 +1,114 @@
+commit cfc9b5185bbf5ab04a2736347bfa7fd9ab70c1e7
+Merge: a41505f 8b0c292
+Author: bors <bors@rust-lang.org>
+Date:   Wed Oct 19 06:33:10 2016 -0700
+
+    Auto merge of #37213 - jseyfried:refactor_crate_var, r=nrc
+    
+    macros: improve `$crate`
+    
+    This PR refactors the implementation of `$crate` so that
+     - `$crate` is only allowed at the start of a path (like `super`),
+     - we can make `$crate` work with inter-crate re-exports (groundwork for macro modularization), and
+     - we can support importing macros from an extern crate that is not declared at the crate root (also groundwork for macro modularization).
+    
+    This is a [breaking-change]. For example, the following would break:
+    ```rust
+    fn foo() {}
+    macro_rules! m { () => {
+        $crate foo $crate () $crate $crate;
+        //^ Today, `$crate` is allowed just about anywhere in unexported macros.
+    } }
+    fn main() {
+        m!();
+    }
+    ```
+    r? @nrc
+rustc: ./inflate-0.1.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling inflate v0.1.0 (file:///root/benchmarks/inflate-0.1.0)
+time: 0.004; rss: 43MB	parsing
+Lines of code:             956
+Pre-expansion node count:  4740
+time: 0.000; rss: 43MB	recursion limit
+time: 0.000; rss: 43MB	crate injection
+time: 0.000; rss: 43MB	plugin loading
+time: 0.000; rss: 43MB	plugin registration
+time: 0.072; rss: 71MB	expansion
+time: 0.000; rss: 71MB	maybe building test harness
+time: 0.000; rss: 71MB	maybe creating a macro crate
+Post-expansion node count: 55750
+time: 0.000; rss: 71MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 71MB	complete gated feature checking
+time: 0.002; rss: 71MB	early lint checks
+time: 0.000; rss: 71MB	AST validation
+time: 0.009; rss: 73MB	name resolution
+time: 0.005; rss: 77MB	lowering ast -> hir
+time: 0.001; rss: 79MB	indexing hir
+time: 0.001; rss: 79MB	attribute checking
+time: 0.000; rss: 76MB	language item collection
+time: 0.001; rss: 76MB	lifetime resolution
+time: 0.000; rss: 76MB	looking for entry point
+time: 0.000; rss: 76MB	looking for plugin registrar
+time: 0.003; rss: 76MB	region resolution
+time: 0.000; rss: 76MB	loop checking
+time: 0.000; rss: 76MB	static item recursion checking
+time: 0.030; rss: 77MB	compute_incremental_hashes_map
+time: 0.000; rss: 77MB	load_dep_graph
+time: 0.001; rss: 77MB	type collecting
+time: 0.000; rss: 77MB	variance inference
+time: 0.008; rss: 79MB	coherence checking
+time: 0.001; rss: 79MB	wf checking
+time: 0.002; rss: 79MB	item-types checking
+time: 1.803; rss: 93MB	item-bodies checking
+time: 0.000; rss: 93MB	drop-impl checking
+time: 0.017; rss: 93MB	const checking
+time: 0.001; rss: 93MB	privacy checking
+time: 0.000; rss: 93MB	stability index
+time: 0.000; rss: 93MB	intrinsic checking
+time: 0.001; rss: 93MB	effect checking
+time: 0.003; rss: 93MB	match checking
+time: 0.066; rss: 91MB	liveness checking
+time: 0.013; rss: 91MB	rvalue checking
+time: 0.038; rss: 113MB	MIR dump
+  time: 0.007; rss: 111MB	SimplifyCfg
+  time: 0.005; rss: 112MB	QualifyAndPromoteConstants
+  time: 0.007; rss: 112MB	TypeckMir
+  time: 0.000; rss: 112MB	SimplifyBranches
+  time: 0.002; rss: 112MB	SimplifyCfg
+time: 0.021; rss: 112MB	MIR passes
+time: 0.251; rss: 114MB	borrow checking
+time: 0.000; rss: 114MB	reachability checking
+time: 0.003; rss: 114MB	death checking
+time: 0.003; rss: 114MB	stability checking
+time: 0.000; rss: 114MB	unused lib feature checking
+time: 0.018; rss: 115MB	lint checking
+time: 0.000; rss: 115MB	resolving dependency formats
+  time: 0.000; rss: 115MB	NoLandingPads
+  time: 0.002; rss: 115MB	SimplifyCfg
+  time: 0.003; rss: 115MB	EraseRegions
+  time: 0.001; rss: 115MB	AddCallGuards
+  time: 0.200; rss: 114MB	ElaborateDrops
+  time: 0.000; rss: 114MB	NoLandingPads
+  time: 0.006; rss: 115MB	SimplifyCfg
+  time: 0.003; rss: 115MB	InstCombine
+  time: 0.000; rss: 115MB	Deaggregator
+  time: 0.000; rss: 115MB	CopyPropagation
+  time: 0.001; rss: 115MB	AddCallGuards
+  time: 0.000; rss: 115MB	PreTrans
+time: 0.215; rss: 115MB	Prepare MIR codegen passes
+  time: 0.001; rss: 115MB	write metadata
+  time: 0.009; rss: 115MB	translation item collection
+  time: 0.001; rss: 115MB	codegen unit partitioning
+  time: 0.001; rss: 130MB	internalize symbols
+time: 0.166; rss: 114MB	translation
+time: 0.000; rss: 114MB	assert dep graph
+time: 0.000; rss: 114MB	serialize dep graph
+  time: 0.027; rss: 91MB	llvm function passes [0]
+  time: 0.005; rss: 91MB	llvm module passes [0]
+  time: 0.660; rss: 94MB	codegen passes [0]
+  time: 0.000; rss: 94MB	codegen passes [0]
+time: 0.728; rss: 94MB	LLVM passes
+time: 0.000; rss: 94MB	serialize work products
+time: 0.046; rss: 81MB	linking
+done
