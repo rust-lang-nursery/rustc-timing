@@ -1,0 +1,105 @@
+commit 49c36bf16f80a9d9d4e96172b1bc8cb7279de468
+Merge: ac919fc 4752367
+Author: bors <bors@rust-lang.org>
+Date:   Thu Nov 3 22:58:55 2016 -0700
+
+    Auto merge of #36306 - nagisa:mir-local-cleanup, r=eddyb
+    
+    A way to remove otherwise unused locals from MIR
+    
+    There is a certain amount of desire for a pass which cleans up the provably unused variables (no assignments or reads). There has been an implementation of such pass by @scottcarr, and another (two!) implementations by me in my own dataflow efforts.
+    
+    PR like https://github.com/rust-lang/rust/pull/35916 proves that this pass is useful even on its own, which is why I cherry-picked it out from my dataflow effort.
+    
+    @nikomatsakis previously expressed concerns over this pass not seeming to be very cheap to run and therefore unsuitable for regular cleanup duties. Turns out, regular cleanup of local declarations is not at all necessary, at least now, because majority of passes simply do not (or should not) care about them. That’s why it is viable to only run this pass once (perhaps a few more times in the future?) per function, right before translation.
+    
+    r? @eddyb or @nikomatsakis
+rustc: ./regex.0.1.30
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling regex v0.1.30 (file:///root/benchmarks/regex.0.1.30)
+time: 0.050; rss: 57MB	parsing
+Lines of code:             8558
+Pre-expansion node count:  58080
+time: 0.000; rss: 57MB	recursion limit
+time: 0.000; rss: 57MB	crate injection
+time: 0.000; rss: 57MB	plugin loading
+time: 0.000; rss: 57MB	plugin registration
+time: 0.031; rss: 81MB	expansion
+time: 0.000; rss: 81MB	maybe building test harness
+time: 0.001; rss: 81MB	maybe creating a macro crate
+Post-expansion node count: 68134
+time: 0.000; rss: 81MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 81MB	complete gated feature checking
+time: 0.004; rss: 81MB	early lint checks
+time: 0.001; rss: 81MB	AST validation
+time: 0.006; rss: 82MB	name resolution
+time: 0.006; rss: 87MB	lowering ast -> hir
+time: 0.001; rss: 87MB	indexing hir
+time: 0.001; rss: 87MB	attribute checking
+time: 0.001; rss: 79MB	language item collection
+time: 0.001; rss: 79MB	lifetime resolution
+time: 0.000; rss: 79MB	looking for entry point
+time: 0.000; rss: 79MB	looking for plugin registrar
+time: 0.006; rss: 82MB	region resolution
+time: 0.000; rss: 82MB	loop checking
+time: 0.001; rss: 82MB	static item recursion checking
+time: 0.029; rss: 83MB	compute_incremental_hashes_map
+time: 0.000; rss: 83MB	load_dep_graph
+time: 0.006; rss: 83MB	type collecting
+time: 0.000; rss: 83MB	variance inference
+time: 0.017; rss: 86MB	coherence checking
+time: 0.007; rss: 87MB	wf checking
+time: 0.163; rss: 97MB	item-types checking
+time: 0.127; rss: 103MB	item-bodies checking
+time: 0.000; rss: 103MB	drop-impl checking
+time: 0.024; rss: 105MB	const checking
+time: 0.002; rss: 105MB	privacy checking
+time: 0.000; rss: 105MB	stability index
+time: 0.001; rss: 105MB	intrinsic checking
+time: 0.001; rss: 105MB	effect checking
+time: 0.002; rss: 105MB	match checking
+time: 0.002; rss: 105MB	liveness checking
+time: 0.007; rss: 105MB	rvalue checking
+time: 0.041; rss: 120MB	MIR dump
+  time: 0.003; rss: 120MB	SimplifyCfg
+  time: 0.005; rss: 120MB	QualifyAndPromoteConstants
+  time: 0.009; rss: 120MB	TypeckMir
+  time: 0.000; rss: 120MB	SimplifyBranches
+  time: 0.001; rss: 120MB	SimplifyCfg
+time: 0.017; rss: 120MB	MIR cleanup and validation
+time: 0.020; rss: 120MB	borrow checking
+time: 0.000; rss: 120MB	reachability checking
+time: 0.002; rss: 120MB	death checking
+time: 0.002; rss: 120MB	stability checking
+time: 0.000; rss: 120MB	unused lib feature checking
+time: 0.023; rss: 120MB	lint checking
+time: 0.000; rss: 120MB	resolving dependency formats
+  time: 0.000; rss: 120MB	NoLandingPads
+  time: 0.001; rss: 120MB	SimplifyCfg
+  time: 0.004; rss: 120MB	EraseRegions
+  time: 0.000; rss: 120MB	AddCallGuards
+  time: 0.007; rss: 122MB	ElaborateDrops
+  time: 0.000; rss: 122MB	NoLandingPads
+  time: 0.002; rss: 122MB	SimplifyCfg
+  time: 0.002; rss: 122MB	InstCombine
+  time: 0.000; rss: 122MB	Deaggregator
+  time: 0.000; rss: 122MB	CopyPropagation
+  time: 0.002; rss: 122MB	SimplifyLocals
+  time: 0.000; rss: 122MB	AddCallGuards
+  time: 0.000; rss: 122MB	PreTrans
+time: 0.020; rss: 122MB	MIR optimisations
+  time: 0.017; rss: 124MB	write metadata
+  time: 0.045; rss: 128MB	translation item collection
+  time: 0.006; rss: 128MB	codegen unit partitioning
+  time: 0.006; rss: 157MB	internalize symbols
+time: 0.421; rss: 157MB	translation
+time: 0.000; rss: 157MB	assert dep graph
+time: 0.000; rss: 157MB	serialize dep graph
+  time: 0.036; rss: 108MB	llvm function passes [0]
+  time: 0.018; rss: 110MB	llvm module passes [0]
+  time: 0.668; rss: 113MB	codegen passes [0]
+  time: 0.000; rss: 112MB	codegen passes [0]
+time: 0.780; rss: 112MB	LLVM passes
+time: 0.000; rss: 112MB	serialize work products
+time: 0.034; rss: 84MB	linking
+done
