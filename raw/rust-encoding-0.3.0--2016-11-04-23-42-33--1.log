@@ -1,0 +1,111 @@
+commit e96b9d2bb48b7a886a4d2b9df716265af5d15646
+Merge: 713a360 67626e0
+Author: bors <bors@rust-lang.org>
+Date:   Fri Nov 4 17:48:07 2016 -0700
+
+    Auto merge of #37422 - bluss:wrapping-offset, r=alexcrichton
+    
+    Add .wrapping_offset() methods
+    
+    .wrapping_offset() exposes the arith_offset intrinsic in the core
+    module (as methods on raw pointers, next to offset). This is the
+    first step in making it possible to stabilize the interface later.
+    
+    `arith_offset` is a useful tool for developing iterators for two
+    reasons:
+    1. `arith_offset` is used by the slice's iterator, the most important
+       iterator in libcore, and it is natural that Rust users need the same
+       power available to implement similar iterators.
+    2. It is a good way to implement raw pointer iterations with step
+       greater than one.
+    
+    The name seems to fit the style of methods like "wrapping_add".
+rustc: ./rust-encoding-0.3.0
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling encoding v0.3.0-dev (file:///root/benchmarks/rust-encoding-0.3.0)
+time: 0.019; rss: 50MB	parsing
+Lines of code:             5757
+Pre-expansion node count:  26615
+time: 0.000; rss: 50MB	recursion limit
+time: 0.000; rss: 50MB	crate injection
+time: 0.000; rss: 50MB	plugin loading
+time: 0.000; rss: 50MB	plugin registration
+time: 0.036; rss: 76MB	expansion
+time: 0.000; rss: 76MB	maybe building test harness
+time: 0.000; rss: 76MB	maybe creating a macro crate
+Post-expansion node count: 37904
+time: 0.000; rss: 76MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 76MB	complete gated feature checking
+time: 0.001; rss: 76MB	early lint checks
+time: 0.000; rss: 76MB	AST validation
+time: 0.005; rss: 77MB	name resolution
+time: 0.003; rss: 77MB	lowering ast -> hir
+time: 0.000; rss: 77MB	indexing hir
+time: 0.000; rss: 77MB	attribute checking
+time: 0.000; rss: 76MB	language item collection
+time: 0.000; rss: 76MB	lifetime resolution
+time: 0.000; rss: 76MB	looking for entry point
+time: 0.000; rss: 76MB	looking for plugin registrar
+time: 0.002; rss: 78MB	region resolution
+time: 0.000; rss: 78MB	loop checking
+time: 0.000; rss: 78MB	static item recursion checking
+time: 0.019; rss: 79MB	compute_incremental_hashes_map
+time: 0.000; rss: 79MB	load_dep_graph
+time: 0.008; rss: 80MB	type collecting
+time: 0.000; rss: 80MB	variance inference
+time: 0.014; rss: 82MB	coherence checking
+time: 0.011; rss: 83MB	wf checking
+time: 0.010; rss: 83MB	item-types checking
+time: 0.125; rss: 90MB	item-bodies checking
+time: 0.000; rss: 90MB	drop-impl checking
+time: 0.009; rss: 90MB	const checking
+time: 0.001; rss: 90MB	privacy checking
+time: 0.000; rss: 90MB	stability index
+time: 0.001; rss: 90MB	intrinsic checking
+time: 0.000; rss: 90MB	effect checking
+time: 0.004; rss: 90MB	match checking
+time: 0.001; rss: 90MB	liveness checking
+time: 0.005; rss: 90MB	rvalue checking
+time: 0.018; rss: 98MB	MIR dump
+  time: 0.002; rss: 98MB	SimplifyCfg
+  time: 0.003; rss: 98MB	QualifyAndPromoteConstants
+  time: 0.004; rss: 98MB	TypeckMir
+  time: 0.000; rss: 98MB	SimplifyBranches
+  time: 0.001; rss: 98MB	SimplifyCfg
+time: 0.011; rss: 98MB	MIR cleanup and validation
+time: 0.019; rss: 98MB	borrow checking
+time: 0.000; rss: 98MB	reachability checking
+time: 0.001; rss: 98MB	death checking
+time: 0.002; rss: 98MB	stability checking
+time: 0.000; rss: 98MB	unused lib feature checking
+time: 0.015; rss: 98MB	lint checking
+time: 0.000; rss: 98MB	resolving dependency formats
+  time: 0.000; rss: 98MB	NoLandingPads
+  time: 0.001; rss: 98MB	SimplifyCfg
+  time: 0.002; rss: 98MB	EraseRegions
+  time: 0.000; rss: 98MB	AddCallGuards
+  time: 0.022; rss: 100MB	ElaborateDrops
+  time: 0.000; rss: 100MB	NoLandingPads
+  time: 0.001; rss: 100MB	SimplifyCfg
+  time: 0.001; rss: 100MB	InstCombine
+  time: 0.001; rss: 100MB	Deaggregator
+  time: 0.000; rss: 100MB	CopyPropagation
+  time: 0.001; rss: 100MB	SimplifyLocals
+  time: 0.000; rss: 100MB	AddCallGuards
+  time: 0.000; rss: 100MB	PreTrans
+time: 0.032; rss: 100MB	MIR optimisations
+  time: 0.004; rss: 100MB	write metadata
+  time: 0.153; rss: 187MB	translation item collection
+  time: 0.003; rss: 187MB	codegen unit partitioning
+  time: 0.002; rss: 210MB	internalize symbols
+time: 0.414; rss: 210MB	translation
+time: 0.000; rss: 210MB	assert dep graph
+time: 0.000; rss: 210MB	serialize dep graph
+  time: 0.025; rss: 114MB	llvm function passes [0]
+  time: 0.057; rss: 119MB	llvm module passes [0]
+  time: 0.627; rss: 124MB	codegen passes [0]
+  time: 0.000; rss: 124MB	codegen passes [0]
+time: 0.763; rss: 124MB	LLVM passes
+time: 0.000; rss: 124MB	serialize work products
+time: 0.038; rss: 94MB	linking
+done
