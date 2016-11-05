@@ -1,0 +1,121 @@
+commit 81601cd3a393d1cb8ca82eb1b2270d24c5d7724f
+Merge: ccfc38f f0e6b90
+Author: bors <bors@rust-lang.org>
+Date:   Fri Nov 4 10:40:30 2016 -0700
+
+    Auto merge of #37306 - bluss:trusted-len, r=alexcrichton
+    
+    Add Iterator trait TrustedLen to enable better FromIterator / Extend
+    
+    This trait attempts to improve FromIterator / Extend code by enabling it to trust the iterator to produce an exact number of elements, which means that reallocation needs to happen only once and is moved out of the loop.
+    
+    `TrustedLen` differs from `ExactSizeIterator` in that it attempts to include _more_ iterators by allowing for the case that the iterator's len does not fit in `usize`. Consumers must check for this case (for example they could panic, since they can't allocate a collection of that size).
+    
+    For example, chain can be TrustedLen and all numerical ranges can be TrustedLen. All they need to do is to report an exact size if it fits in `usize`, and `None` as the upper bound otherwise.
+    
+    The trait describes its contract like this:
+    
+    ```
+    An iterator that reports an accurate length using size_hint.
+    
+    The iterator reports a size hint where it is either exact
+    (lower bound is equal to upper bound), or the upper bound is `None`.
+    The upper bound must only be `None` if the actual iterator length is
+    larger than `usize::MAX`.
+    
+    The iterator must produce exactly the number of elements it reported.
+    
+    This trait must only be implemented when the contract is upheld.
+    Consumers of this trait must inspect `.size_hint()`’s upper bound.
+    ```
+    
+    Fixes #37232
+rustc: ./html5ever-2016-08-25
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling html5ever v0.5.4 (file:///root/benchmarks/html5ever-2016-08-25)
+time: 0.027; rss: 52MB	parsing
+Lines of code:             8210
+Pre-expansion node count:  52238
+time: 0.000; rss: 52MB	recursion limit
+time: 0.000; rss: 52MB	crate injection
+time: 0.000; rss: 52MB	plugin loading
+time: 0.000; rss: 52MB	plugin registration
+time: 0.499; rss: 106MB	expansion
+time: 0.000; rss: 106MB	maybe building test harness
+time: 0.002; rss: 106MB	maybe creating a macro crate
+Post-expansion node count: 163524
+time: 0.000; rss: 106MB	checking for inline asm in case the target doesn't support it
+time: 0.003; rss: 106MB	complete gated feature checking
+time: 0.009; rss: 106MB	early lint checks
+time: 0.002; rss: 106MB	AST validation
+time: 0.018; rss: 111MB	name resolution
+time: 0.014; rss: 119MB	lowering ast -> hir
+time: 0.003; rss: 123MB	indexing hir
+time: 0.002; rss: 123MB	attribute checking
+time: 0.001; rss: 101MB	language item collection
+time: 0.002; rss: 101MB	lifetime resolution
+time: 0.000; rss: 101MB	looking for entry point
+time: 0.000; rss: 101MB	looking for plugin registrar
+time: 0.014; rss: 106MB	region resolution
+time: 0.001; rss: 106MB	loop checking
+time: 0.001; rss: 106MB	static item recursion checking
+time: 0.025; rss: 106MB	compute_incremental_hashes_map
+time: 0.000; rss: 106MB	load_dep_graph
+time: 0.009; rss: 107MB	type collecting
+time: 0.000; rss: 107MB	variance inference
+time: 0.022; rss: 110MB	coherence checking
+time: 0.022; rss: 111MB	wf checking
+time: 0.324; rss: 117MB	item-types checking
+time: 0.466; rss: 130MB	item-bodies checking
+time: 0.000; rss: 130MB	drop-impl checking
+time: 0.066; rss: 134MB	const checking
+time: 0.006; rss: 134MB	privacy checking
+time: 0.001; rss: 134MB	stability index
+time: 0.003; rss: 134MB	intrinsic checking
+time: 0.002; rss: 134MB	effect checking
+time: 0.015; rss: 134MB	match checking
+time: 0.012; rss: 128MB	liveness checking
+time: 0.025; rss: 128MB	rvalue checking
+time: 0.119; rss: 178MB	MIR dump
+  time: 0.009; rss: 167MB	SimplifyCfg
+  time: 0.014; rss: 169MB	QualifyAndPromoteConstants
+  time: 0.023; rss: 169MB	TypeckMir
+  time: 0.000; rss: 169MB	SimplifyBranches
+  time: 0.004; rss: 169MB	SimplifyCfg
+time: 0.050; rss: 169MB	MIR cleanup and validation
+time: 0.087; rss: 176MB	borrow checking
+time: 0.003; rss: 176MB	reachability checking
+time: 0.006; rss: 176MB	death checking
+time: 0.008; rss: 176MB	stability checking
+time: 0.000; rss: 176MB	unused lib feature checking
+time: 0.060; rss: 176MB	lint checking
+time: 0.000; rss: 176MB	resolving dependency formats
+  time: 0.000; rss: 176MB	NoLandingPads
+  time: 0.004; rss: 176MB	SimplifyCfg
+  time: 0.010; rss: 177MB	EraseRegions
+  time: 0.001; rss: 177MB	AddCallGuards
+  time: 0.075; rss: 181MB	ElaborateDrops
+  time: 0.000; rss: 181MB	NoLandingPads
+  time: 0.006; rss: 179MB	SimplifyCfg
+  time: 0.008; rss: 177MB	InstCombine
+  time: 0.001; rss: 177MB	Deaggregator
+  time: 0.000; rss: 177MB	CopyPropagation
+  time: 0.007; rss: 175MB	SimplifyLocals
+  time: 0.001; rss: 175MB	AddCallGuards
+  time: 0.000; rss: 175MB	PreTrans
+time: 0.114; rss: 175MB	MIR optimisations
+  time: 0.011; rss: 176MB	write metadata
+  time: 0.045; rss: 179MB	translation item collection
+  time: 0.005; rss: 179MB	codegen unit partitioning
+  time: 0.005; rss: 195MB	internalize symbols
+time: 0.289; rss: 195MB	translation
+time: 0.000; rss: 195MB	assert dep graph
+time: 0.000; rss: 195MB	serialize dep graph
+  time: 0.020; rss: 107MB	llvm function passes [0]
+  time: 0.012; rss: 108MB	llvm module passes [0]
+  time: 0.464; rss: 109MB	codegen passes [0]
+  time: 0.000; rss: 109MB	codegen passes [0]
+time: 0.535; rss: 109MB	LLVM passes
+time: 0.000; rss: 109MB	serialize work products
+time: 0.025; rss: 92MB	linking
+done
