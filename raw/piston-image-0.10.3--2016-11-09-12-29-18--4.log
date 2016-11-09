@@ -1,0 +1,140 @@
+commit bca365e688f0424fb99d38d477a9b7863bb070d3
+Merge: 02aa428 a449bdb
+Author: bors <bors@rust-lang.org>
+Date:   Wed Nov 9 08:51:23 2016 -0800
+
+    Auto merge of #36520 - estebank:dataless-enum, r=brson
+    
+    Reword error when data-less enum variant called as function
+    
+    Given a file like:
+    
+    ``` rust
+    enum Test {
+        Variant,
+        Variant2 {a: u32},
+    }
+    
+    fn main(){
+        let x = Test::Variant("Hello");
+        let y = Test::Variant2("World");
+    }
+    ```
+    
+    Both errors now look similar:
+    
+    ``` bash
+    error[E0423]: `Test::Variant2` is the name of a struct or struct variant, but this expression uses it like a function name
+      --> file3.rs:10:13
+       |
+    10 |     let y = Test::Variant2("Hello");
+       |             ^^^^^^^^^^^^^^ struct called like a function
+       |
+       = help: did you mean to write: `Test::Variant2 { /* fields */ }`?
+    
+    error: `Test::Variant` is the name of a data-less enum, but this expression uses it like a function name
+     --> file3.rs:9:13
+      |
+    9 |     let x = Test::Variant("World");
+      |             ^^^^^^^^^^^^^^^^^^^^^^ data-less enum called like a function
+      |
+      = help: did you mean to write: `Test::Variant`?
+    note: defined here
+     --> file3.rs:2:5
+      |
+    2 |     Variant,
+      |     ^^^^^^^
+    
+    error: aborting due to previous error
+    ```
+    
+    Re: #28533
+rustc: ./piston-image-0.10.3
+cargo rustc -- -Ztime-passes -Zinput-stats
+   Compiling image v0.10.3 (file:///root/benchmarks/piston-image-0.10.3)
+time: 0.038; rss: 54MB	parsing
+Lines of code:             12000
+Pre-expansion node count:  90272
+time: 0.000; rss: 54MB	recursion limit
+time: 0.000; rss: 54MB	crate injection
+time: 0.000; rss: 54MB	plugin loading
+time: 0.000; rss: 54MB	plugin registration
+time: 0.065; rss: 93MB	expansion
+time: 0.000; rss: 93MB	maybe building test harness
+time: 0.001; rss: 93MB	maybe creating a macro crate
+Post-expansion node count: 148999
+time: 0.000; rss: 93MB	checking for inline asm in case the target doesn't support it
+time: 0.003; rss: 93MB	complete gated feature checking
+time: 0.005; rss: 93MB	early lint checks
+time: 0.001; rss: 93MB	AST validation
+time: 0.020; rss: 97MB	name resolution
+time: 0.012; rss: 105MB	lowering ast -> hir
+time: 0.002; rss: 110MB	indexing hir
+time: 0.002; rss: 110MB	attribute checking
+time: 0.001; rss: 99MB	language item collection
+time: 0.002; rss: 99MB	lifetime resolution
+time: 0.000; rss: 99MB	looking for entry point
+time: 0.000; rss: 99MB	looking for plugin registrar
+time: 0.010; rss: 105MB	region resolution
+time: 0.001; rss: 105MB	loop checking
+time: 0.001; rss: 105MB	static item recursion checking
+time: 0.051; rss: 105MB	compute_incremental_hashes_map
+time: 0.000; rss: 105MB	load_dep_graph
+time: 0.016; rss: 107MB	type collecting
+time: 0.000; rss: 107MB	variance inference
+time: 0.026; rss: 111MB	coherence checking
+time: 0.076; rss: 112MB	wf checking
+time: 0.148; rss: 117MB	item-types checking
+time: 0.788; rss: 133MB	item-bodies checking
+time: 0.000; rss: 133MB	drop-impl checking
+time: 0.053; rss: 135MB	const checking
+time: 0.008; rss: 135MB	privacy checking
+time: 0.001; rss: 135MB	stability index
+time: 0.007; rss: 135MB	intrinsic checking
+time: 0.003; rss: 135MB	effect checking
+time: 0.015; rss: 135MB	match checking
+time: 0.010; rss: 133MB	liveness checking
+time: 0.043; rss: 133MB	rvalue checking
+time: 0.095; rss: 175MB	MIR dump
+  time: 0.011; rss: 176MB	SimplifyCfg
+  time: 0.021; rss: 176MB	QualifyAndPromoteConstants
+  time: 0.023; rss: 176MB	TypeckMir
+  time: 0.001; rss: 176MB	SimplifyBranches
+  time: 0.005; rss: 176MB	SimplifyCfg
+time: 0.060; rss: 176MB	MIR cleanup and validation
+time: 0.115; rss: 176MB	borrow checking
+time: 0.003; rss: 176MB	reachability checking
+time: 0.008; rss: 176MB	death checking
+time: 0.009; rss: 176MB	stability checking
+time: 0.000; rss: 176MB	unused lib feature checking
+time: 0.069; rss: 176MB	lint checking
+time: 0.000; rss: 176MB	resolving dependency formats
+  time: 0.001; rss: 176MB	NoLandingPads
+  time: 0.005; rss: 176MB	SimplifyCfg
+  time: 0.012; rss: 178MB	EraseRegions
+  time: 0.002; rss: 178MB	AddCallGuards
+  time: 0.043; rss: 180MB	ElaborateDrops
+  time: 0.001; rss: 180MB	NoLandingPads
+  time: 0.009; rss: 180MB	SimplifyCfg
+  time: 0.006; rss: 180MB	InstCombine
+  time: 0.002; rss: 180MB	Deaggregator
+  time: 0.000; rss: 180MB	CopyPropagation
+  time: 0.007; rss: 180MB	SimplifyLocals
+  time: 0.002; rss: 180MB	AddCallGuards
+  time: 0.000; rss: 180MB	PreTrans
+time: 0.091; rss: 180MB	MIR optimisations
+  time: 0.016; rss: 183MB	write metadata
+  time: 0.450; rss: 195MB	translation item collection
+  time: 0.025; rss: 199MB	codegen unit partitioning
+  time: 0.021; rss: 319MB	internalize symbols
+time: 2.595; rss: 319MB	translation
+time: 0.000; rss: 319MB	assert dep graph
+time: 0.000; rss: 319MB	serialize dep graph
+  time: 0.208; rss: 228MB	llvm function passes [0]
+  time: 0.081; rss: 231MB	llvm module passes [0]
+  time: 4.208; rss: 231MB	codegen passes [0]
+  time: 0.000; rss: 231MB	codegen passes [0]
+time: 4.800; rss: 231MB	LLVM passes
+time: 0.000; rss: 231MB	serialize work products
+time: 0.129; rss: 100MB	linking
+done
