@@ -1,0 +1,123 @@
+commit 026add5f06191dfbd592a4f02bb4a38866553c63
+Merge: acce384 1a5456b
+Author: bors <bors@rust-lang.org>
+Date:   Sat Nov 12 08:41:30 2016 -0800
+
+    Auto merge of #37531 - estebank:fix-ref-mut-mut, r=jonathandturner
+    
+    Fix invalid "ref mut mut" sugestion
+    
+    Change output from:
+    
+    ```nocode
+    error: cannot borrow immutable local variable `x` as mutable
+      --> <anon>:12:23
+       |
+    11 |         TestEnum::Item(ref mut x) => {
+       |                        --------- use `ref mut mut x` here to make mutable
+    12 |             test(&mut x);
+       |                       ^ cannot borrow mutably
+    ```
+    
+    to
+    
+    ```nocode
+    error: cannot borrow immutable local variable `x` as mutable
+      --> <anon>:12:23
+       |
+    12 |             test(&mut x);
+       |                       ^
+       |                       |
+       |                       cannot reborrow mutably
+       |                       try removing `&mut` here
+    ```
+    Fixes #37139, #34337, #34126
+rustc: ./rust-encoding-0.3.0
+cargo rustc  -- -Ztime-passes -Zinput-stats
+   Compiling encoding v0.3.0-dev (file:///root/benchmarks/rust-encoding-0.3.0)
+time: 0.017; rss: 45MB	parsing
+Lines of code:             5757
+Pre-expansion node count:  26523
+time: 0.000; rss: 45MB	recursion limit
+time: 0.000; rss: 45MB	crate injection
+time: 0.000; rss: 45MB	plugin loading
+time: 0.000; rss: 45MB	plugin registration
+time: 0.031; rss: 75MB	expansion
+time: 0.000; rss: 75MB	maybe building test harness
+time: 0.000; rss: 75MB	maybe creating a macro crate
+Post-expansion node count: 37888
+time: 0.000; rss: 75MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 75MB	complete gated feature checking
+time: 0.001; rss: 75MB	early lint checks
+time: 0.000; rss: 75MB	AST validation
+time: 0.004; rss: 75MB	name resolution
+time: 0.003; rss: 77MB	lowering ast -> hir
+time: 0.000; rss: 77MB	indexing hir
+time: 0.000; rss: 77MB	attribute checking
+time: 0.000; rss: 77MB	language item collection
+time: 0.000; rss: 77MB	lifetime resolution
+time: 0.000; rss: 77MB	looking for entry point
+time: 0.000; rss: 77MB	looking for plugin registrar
+time: 0.002; rss: 79MB	region resolution
+time: 0.000; rss: 79MB	loop checking
+time: 0.000; rss: 79MB	static item recursion checking
+time: 0.013; rss: 79MB	compute_incremental_hashes_map
+time: 0.000; rss: 79MB	load_dep_graph
+time: 0.008; rss: 81MB	type collecting
+time: 0.000; rss: 81MB	variance inference
+time: 0.008; rss: 81MB	coherence checking
+time: 0.011; rss: 81MB	wf checking
+time: 0.010; rss: 82MB	item-types checking
+time: 0.107; rss: 86MB	item-bodies checking
+time: 0.000; rss: 86MB	drop-impl checking
+time: 0.008; rss: 87MB	const checking
+time: 0.001; rss: 87MB	privacy checking
+time: 0.000; rss: 87MB	stability index
+time: 0.001; rss: 87MB	intrinsic checking
+time: 0.000; rss: 87MB	effect checking
+time: 0.004; rss: 87MB	match checking
+time: 0.001; rss: 87MB	liveness checking
+time: 0.005; rss: 87MB	rvalue checking
+time: 0.017; rss: 94MB	MIR dump
+  time: 0.002; rss: 94MB	SimplifyCfg
+  time: 0.003; rss: 94MB	QualifyAndPromoteConstants
+  time: 0.004; rss: 94MB	TypeckMir
+  time: 0.000; rss: 94MB	SimplifyBranches
+  time: 0.001; rss: 94MB	SimplifyCfg
+time: 0.011; rss: 94MB	MIR cleanup and validation
+time: 0.017; rss: 94MB	borrow checking
+time: 0.000; rss: 94MB	reachability checking
+time: 0.001; rss: 94MB	death checking
+time: 0.001; rss: 94MB	stability checking
+time: 0.000; rss: 94MB	unused lib feature checking
+time: 0.013; rss: 94MB	lint checking
+time: 0.000; rss: 94MB	resolving dependency formats
+  time: 0.000; rss: 94MB	NoLandingPads
+  time: 0.001; rss: 94MB	SimplifyCfg
+  time: 0.002; rss: 96MB	EraseRegions
+  time: 0.000; rss: 96MB	AddCallGuards
+  time: 0.022; rss: 96MB	ElaborateDrops
+  time: 0.000; rss: 96MB	NoLandingPads
+  time: 0.002; rss: 96MB	SimplifyCfg
+  time: 0.001; rss: 96MB	InstCombine
+  time: 0.001; rss: 96MB	Deaggregator
+  time: 0.000; rss: 96MB	CopyPropagation
+  time: 0.001; rss: 96MB	SimplifyLocals
+  time: 0.000; rss: 96MB	AddCallGuards
+  time: 0.000; rss: 96MB	PreTrans
+time: 0.031; rss: 96MB	MIR optimisations
+  time: 0.004; rss: 96MB	write metadata
+  time: 0.142; rss: 179MB	translation item collection
+  time: 0.002; rss: 179MB	codegen unit partitioning
+  time: 0.003; rss: 202MB	internalize symbols
+time: 0.395; rss: 202MB	translation
+time: 0.000; rss: 202MB	assert dep graph
+time: 0.000; rss: 202MB	serialize dep graph
+  time: 0.025; rss: 113MB	llvm function passes [0]
+  time: 0.056; rss: 120MB	llvm module passes [0]
+  time: 0.625; rss: 126MB	codegen passes [0]
+  time: 0.000; rss: 126MB	codegen passes [0]
+time: 0.760; rss: 126MB	LLVM passes
+time: 0.000; rss: 126MB	serialize work products
+time: 0.039; rss: 95MB	linking
+done
