@@ -1,0 +1,169 @@
+commit 435246bb49226d08f22dfd317954fe015a4b3e91
+Merge: 87b76a5 276f052
+Author: bors <bors@rust-lang.org>
+Date:   Sun Nov 13 19:46:34 2016 -0800
+
+    Auto merge of #37640 - michaelwoerister:llvm-type-names, r=brson
+    
+    trans: Make type names in LLVM IR independent of crate-nums and source locations.
+    
+    UPDATE:
+    This PR makes the type names we assign in LLVM IR independent of the type definition's location in the source code and the order in which extern crates are loaded. The new type names look like the old ones, except for closures and the `<crate-num>.` prefix being gone. Resolution of name clashes (e.g. of the same type in different crate versions) is left to LLVM (which will just append `.<counter>` to the name).
+    
+    ORIGINAL TEXT:
+    This PR makes the type names we assign in LLVM IR independent of the type definition's location in the source code. Before, the type of closures contained the closures definition location. The new naming scheme follows the same pattern that we already use for symbol names: We have a human readable prefix followed by a hash that makes sure we don't have any collisions. Here is an example of what the new names look like:
+    
+    ```rust
+    // prog.rs - example program
+    
+    mod mod1
+    {
+        pub struct Struct<T>(pub T);
+    }
+    
+    fn main() {
+        use mod1::Struct;
+    
+        let _s = Struct(0u32);
+        let _t = Struct('h');
+        let _x = Struct(Struct(0i32));
+    }
+    ```
+    Old:
+    ```llvm
+    %"mod1::Struct<u32>" = type { i32 }
+    %"mod1::Struct<char>" = type { i32 }
+    %"mod1::Struct<mod1::Struct<i32>>" = type { %"mod1::Struct<i32>" }
+    %"mod1::Struct<i32>" = type { i32 }
+    ```
+    New:
+    ```llvm
+    %"prog::mod1::Struct<u32>::ejDrT" = type { i32 }
+    %"prog::mod1::Struct<char>::2eEAU" = type { i32 }
+    %"prog::mod1::Struct<prog::mod1::Struct<i32>>::ehCqR" = type { %"prog::mod1::Struct<i32>::$fAo2" }
+    %"prog::mod1::Struct<i32>::$fAo2" = type { i32 }
+    ```
+    
+    As you can see, the new names are slightly more verbose, but also more consistent. There is no difference now between a local type and one from another crate (before, non-local types where prefixed with `<crate-num>.` as in `2.std::mod1::Type1`).
+    
+    There is a bit of design space here. For example, we could leave off the crate name for local definitions (making names shorter but less consistent):
+    ```llvm
+    %"mod1::Struct<u32>::ejDrT" = type { i32 }
+    %"mod1::Struct<char>::2eEAU" = type { i32 }
+    %"mod1::Struct<mod1::Struct<i32>>::ehCqR" = type { %"mod1::Struct<i32>::$fAo2" }
+    %"mod1::Struct<i32>::$fAo2" = type { i32 }
+    ```
+    
+    We could also put the hash in front, which might be more readable:
+    ```llvm
+    %"ejDrT.mod1::Struct<u32>" = type { i32 }
+    %"2eEAU.mod1::Struct<char>" = type { i32 }
+    %"ehCqR.mod1::Struct<mod1::Struct<i32>>" = type { %"$fAo2.mod1::Struct<i32>" }
+    %"$fAo2.mod1::Struct<i32>" = type { i32 }
+    ```
+    
+    We could probably also get rid of the hash if we used full DefPaths and crate-nums (though I'm not yet a 100% sure if crate-nums could mess with incremental compilation).
+    
+    ```llvm
+    %"mod1::Struct<u32>" = type { i32 }
+    %"mod1::Struct<char>" = type { i32 }
+    %"mod1::Struct<mod1::Struct<i32>>" = type { %"mod1::Struct<i32>" }
+    %"mod1::Struct<i32>" = type { i32 }
+    %"2.std::mod1::Type1" = type { ... }
+    ```
+    I would prefer the solution with the hashes because it is nice and consistent conceptually, but visually it's admittedly a bit uglier. Maybe @rust-lang/compiler would like to bikeshed a little about this.
+    
+    On a related note: Has anyone ever tried if the LTO-linker will merge equal types with different names?
+    (^ @brson, @alexcrichton ^)
+    If not, that would be a reason to make type names more consistent.
+rustc: ./futures-rs-test-all
+cargo rustc --test all  -- -Ztime-passes -Zinput-stats
+   Compiling log v0.3.6
+   Compiling futures v0.1.0 (file:///root/benchmarks/futures-rs-test-all)
+time: 0.002; rss: 44MB	parsing
+Lines of code:             412
+Pre-expansion node count:  5286
+time: 0.000; rss: 44MB	recursion limit
+time: 0.000; rss: 44MB	crate injection
+time: 0.000; rss: 44MB	plugin loading
+time: 0.000; rss: 44MB	plugin registration
+time: 0.020; rss: 68MB	expansion
+time: 0.001; rss: 68MB	maybe building test harness
+time: 0.000; rss: 68MB	maybe creating a macro crate
+Post-expansion node count: 10387
+time: 0.000; rss: 68MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 68MB	complete gated feature checking
+time: 0.000; rss: 68MB	early lint checks
+time: 0.000; rss: 68MB	AST validation
+time: 0.003; rss: 68MB	name resolution
+time: 0.000; rss: 68MB	lowering ast -> hir
+time: 0.000; rss: 68MB	indexing hir
+time: 0.000; rss: 68MB	attribute checking
+time: 0.000; rss: 68MB	language item collection
+time: 0.000; rss: 68MB	lifetime resolution
+time: 0.000; rss: 68MB	looking for entry point
+time: 0.000; rss: 68MB	looking for plugin registrar
+time: 0.000; rss: 68MB	region resolution
+time: 0.000; rss: 68MB	loop checking
+time: 0.000; rss: 68MB	static item recursion checking
+time: 0.003; rss: 68MB	compute_incremental_hashes_map
+time: 0.000; rss: 68MB	load_dep_graph
+time: 0.004; rss: 72MB	type collecting
+time: 0.000; rss: 72MB	variance inference
+time: 0.004; rss: 72MB	coherence checking
+time: 0.007; rss: 75MB	wf checking
+time: 0.002; rss: 75MB	item-types checking
+time: 0.103; rss: 80MB	item-bodies checking
+time: 0.000; rss: 80MB	drop-impl checking
+time: 0.004; rss: 79MB	const checking
+time: 0.000; rss: 79MB	privacy checking
+time: 0.000; rss: 79MB	stability index
+time: 0.000; rss: 79MB	intrinsic checking
+time: 0.000; rss: 79MB	effect checking
+time: 0.001; rss: 79MB	match checking
+time: 0.001; rss: 79MB	liveness checking
+time: 0.002; rss: 79MB	rvalue checking
+time: 0.006; rss: 82MB	MIR dump
+  time: 0.001; rss: 82MB	SimplifyCfg
+  time: 0.001; rss: 82MB	QualifyAndPromoteConstants
+  time: 0.002; rss: 82MB	TypeckMir
+  time: 0.000; rss: 82MB	SimplifyBranches
+  time: 0.000; rss: 82MB	SimplifyCfg
+time: 0.005; rss: 82MB	MIR cleanup and validation
+time: 0.006; rss: 82MB	borrow checking
+time: 0.000; rss: 82MB	reachability checking
+time: 0.000; rss: 82MB	death checking
+time: 0.000; rss: 82MB	stability checking
+time: 0.000; rss: 82MB	unused lib feature checking
+time: 0.003; rss: 83MB	lint checking
+time: 0.001; rss: 83MB	resolving dependency formats
+  time: 0.000; rss: 83MB	NoLandingPads
+  time: 0.000; rss: 83MB	SimplifyCfg
+  time: 0.001; rss: 83MB	EraseRegions
+  time: 0.000; rss: 83MB	AddCallGuards
+  time: 0.005; rss: 83MB	ElaborateDrops
+  time: 0.000; rss: 83MB	NoLandingPads
+  time: 0.001; rss: 83MB	SimplifyCfg
+  time: 0.000; rss: 83MB	InstCombine
+  time: 0.000; rss: 83MB	Deaggregator
+  time: 0.000; rss: 83MB	CopyPropagation
+  time: 0.000; rss: 83MB	SimplifyLocals
+  time: 0.000; rss: 83MB	AddCallGuards
+  time: 0.000; rss: 83MB	PreTrans
+time: 0.009; rss: 83MB	MIR optimisations
+  time: 0.000; rss: 83MB	write metadata
+  time: 0.141; rss: 91MB	translation item collection
+  time: 0.019; rss: 93MB	codegen unit partitioning
+  time: 0.018; rss: 147MB	internalize symbols
+time: 1.062; rss: 147MB	translation
+time: 0.000; rss: 147MB	assert dep graph
+time: 0.000; rss: 147MB	serialize dep graph
+  time: 0.084; rss: 136MB	llvm function passes [0]
+  time: 0.026; rss: 136MB	llvm module passes [0]
+  time: 1.780; rss: 138MB	codegen passes [0]
+  time: 0.000; rss: 138MB	codegen passes [0]
+time: 1.891; rss: 138MB	LLVM passes
+time: 0.000; rss: 138MB	serialize work products
+  time: 0.155; rss: 84MB	running linker
+time: 0.157; rss: 84MB	linking
+done
