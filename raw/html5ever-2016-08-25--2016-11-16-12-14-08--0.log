@@ -1,0 +1,166 @@
+commit 9d4b6fa51d86ad6141679a5a157fcd9bca48064c
+Merge: 478c0d1 06242ff
+Author: bors <bors@rust-lang.org>
+Date:   Wed Nov 16 08:25:38 2016 -0800
+
+    Auto merge of #37545 - alexcrichton:crt-static, r=brson
+    
+    rustc: Implement #[link(cfg(..))] and crt-static
+    
+    This commit is an implementation of [RFC 1721] which adds a new target feature
+    to the compiler, `crt-static`, which can be used to select how the C runtime for
+    a target is linked. Most targets dynamically linke the C runtime by default with
+    the notable exception of some of the musl targets.
+    
+    [RFC 1721]: https://github.com/rust-lang/rfcs/blob/master/text/1721-crt-static.md
+    
+    This commit first adds the new target-feature, `crt-static`. If enabled, then
+    the `cfg(target_feature = "crt-static")` will be available. Targets like musl
+    will have this enabled by default. This feature can be controlled through the
+    standard target-feature interface, `-C target-feature=+crt-static` or
+    `-C target-feature=-crt-static`.
+    
+    Next this adds an gated and unstable `#[link(cfg(..))]` feature to enable the
+    `crt-static` semantics we want with libc. The exact behavior of this attribute
+    is a little squishy, but it's intended to be a forever-unstable
+    implementation detail of the liblibc crate.
+    
+    Specifically the `#[link(cfg(..))]` annotation means that the `#[link]`
+    directive is only active in a compilation unit if that `cfg` value is satisfied.
+    For example when compiling an rlib, these directives are just encoded and
+    ignored for dylibs, and all staticlibs are continued to be put into the rlib as
+    usual. When placing that rlib into a staticlib, executable, or dylib, however,
+    the `cfg` is evaluated *as if it were defined in the final artifact* and the
+    library is decided to be linked or not.
+    
+    Essentially, what'll happen is:
+    
+    * On MSVC with `-C target-feature=-crt-static`, the `msvcrt.lib` library will be
+      linked to.
+    * On MSVC with `-C target-feature=+crt-static`, the `libcmt.lib` library will be
+      linked to.
+    * On musl with `-C target-feature=-crt-static`, the object files in liblibc.rlib
+      are removed and `-lc` is passed instead.
+    * On musl with `-C target-feature=+crt-static`, the object files in liblibc.rlib
+      are used and `-lc` is not passed.
+    
+    This commit does **not** include an update to the liblibc module to implement
+    these changes. I plan to do that just after the 1.14.0 beta release is cut to
+    ensure we get ample time to test this feature.
+    
+    cc #37406
+rustc: ./html5ever-2016-08-25
+cargo rustc  -- -Ztime-passes -Zinput-stats
+   Compiling log v0.3.6
+   Compiling encoding_index_tests v0.1.4
+   Compiling phf_shared v0.7.16
+   Compiling libc v0.2.16
+   Compiling lazy_static v0.2.1
+   Compiling void v1.0.2
+   Compiling serde v0.8.9
+   Compiling matches v0.1.2
+   Compiling encoding-index-tradchinese v1.20141219.5
+   Compiling unreachable v0.1.1
+   Compiling utf-8 v0.6.0
+   Compiling encoding-index-simpchinese v1.20141219.5
+   Compiling encoding-index-korean v1.20141219.5
+   Compiling debug_unreachable v0.1.1
+   Compiling mac v0.0.2
+   Compiling encoding-index-japanese v1.20141219.5
+   Compiling rustc-serialize v0.3.19
+   Compiling phf v0.7.16
+   Compiling encoding-index-singlebyte v1.20141219.5
+   Compiling rand v0.3.14
+   Compiling futf v0.1.2
+   Compiling encoding v0.2.33
+   Compiling phf_generator v0.7.16
+   Compiling phf_codegen v0.7.16
+   Compiling string_cache v0.2.29
+   Compiling tendril v0.2.3
+   Compiling html5ever v0.5.4 (file:///root/benchmarks/html5ever-2016-08-25)
+time: 0.024; rss: 48MB	parsing
+Lines of code:             8210
+Pre-expansion node count:  52140
+time: 0.000; rss: 48MB	recursion limit
+time: 0.000; rss: 48MB	crate injection
+time: 0.000; rss: 48MB	plugin loading
+time: 0.000; rss: 48MB	plugin registration
+time: 0.647; rss: 102MB	expansion
+time: 0.000; rss: 102MB	maybe building test harness
+time: 0.002; rss: 102MB	maybe creating a macro crate
+Post-expansion node count: 163412
+time: 0.000; rss: 102MB	checking for inline asm in case the target doesn't support it
+time: 0.003; rss: 102MB	complete gated feature checking
+time: 0.008; rss: 102MB	early lint checks
+time: 0.002; rss: 102MB	AST validation
+time: 0.016; rss: 104MB	name resolution
+time: 0.012; rss: 113MB	lowering ast -> hir
+time: 0.003; rss: 117MB	indexing hir
+time: 0.002; rss: 117MB	attribute checking
+time: 0.001; rss: 97MB	language item collection
+time: 0.002; rss: 97MB	lifetime resolution
+time: 0.000; rss: 97MB	looking for entry point
+time: 0.000; rss: 97MB	looking for plugin registrar
+time: 0.011; rss: 106MB	region resolution
+time: 0.001; rss: 106MB	loop checking
+time: 0.001; rss: 106MB	static item recursion checking
+time: 0.020; rss: 107MB	compute_incremental_hashes_map
+time: 0.000; rss: 107MB	load_dep_graph
+time: 0.010; rss: 108MB	type collecting
+time: 0.000; rss: 108MB	variance inference
+time: 0.011; rss: 109MB	coherence checking
+time: 0.020; rss: 110MB	wf checking
+time: 0.260; rss: 116MB	item-types checking
+time: 0.411; rss: 128MB	item-bodies checking
+time: 0.000; rss: 128MB	drop-impl checking
+time: 0.061; rss: 136MB	const checking
+time: 0.006; rss: 136MB	privacy checking
+time: 0.001; rss: 136MB	stability index
+time: 0.002; rss: 136MB	intrinsic checking
+time: 0.002; rss: 136MB	effect checking
+time: 0.014; rss: 136MB	match checking
+time: 0.011; rss: 131MB	liveness checking
+time: 0.021; rss: 131MB	rvalue checking
+time: 0.102; rss: 172MB	MIR dump
+  time: 0.008; rss: 172MB	SimplifyCfg
+  time: 0.013; rss: 174MB	QualifyAndPromoteConstants
+  time: 0.020; rss: 174MB	TypeckMir
+  time: 0.000; rss: 174MB	SimplifyBranches
+  time: 0.004; rss: 174MB	SimplifyCfg
+time: 0.046; rss: 174MB	MIR cleanup and validation
+time: 0.078; rss: 182MB	borrow checking
+time: 0.002; rss: 182MB	reachability checking
+time: 0.005; rss: 182MB	death checking
+time: 0.006; rss: 182MB	stability checking
+time: 0.000; rss: 182MB	unused lib feature checking
+time: 0.057; rss: 182MB	lint checking
+time: 0.000; rss: 182MB	resolving dependency formats
+  time: 0.000; rss: 182MB	NoLandingPads
+  time: 0.004; rss: 182MB	SimplifyCfg
+  time: 0.009; rss: 182MB	EraseRegions
+  time: 0.001; rss: 182MB	AddCallGuards
+  time: 0.074; rss: 184MB	ElaborateDrops
+  time: 0.000; rss: 184MB	NoLandingPads
+  time: 0.007; rss: 182MB	SimplifyCfg
+  time: 0.007; rss: 182MB	InstCombine
+  time: 0.001; rss: 182MB	Deaggregator
+  time: 0.000; rss: 182MB	CopyPropagation
+  time: 0.007; rss: 177MB	SimplifyLocals
+  time: 0.001; rss: 177MB	AddCallGuards
+  time: 0.000; rss: 177MB	PreTrans
+time: 0.130; rss: 177MB	MIR optimisations
+  time: 0.011; rss: 179MB	write metadata
+  time: 0.041; rss: 181MB	translation item collection
+  time: 0.005; rss: 181MB	codegen unit partitioning
+  time: 0.005; rss: 194MB	internalize symbols
+time: 0.265; rss: 194MB	translation
+time: 0.000; rss: 194MB	assert dep graph
+time: 0.000; rss: 194MB	serialize dep graph
+  time: 0.020; rss: 103MB	llvm function passes [0]
+  time: 0.012; rss: 104MB	llvm module passes [0]
+  time: 0.475; rss: 109MB	codegen passes [0]
+  time: 0.000; rss: 109MB	codegen passes [0]
+time: 0.546; rss: 109MB	LLVM passes
+time: 0.000; rss: 109MB	serialize work products
+time: 0.025; rss: 92MB	linking
+done
