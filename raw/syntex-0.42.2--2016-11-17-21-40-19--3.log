@@ -1,0 +1,115 @@
+commit 35e8924dc5d5cc248f33767ff35f7aeb797a71ec
+Merge: c356537 c938007
+Author: bors <bors@rust-lang.org>
+Date:   Thu Nov 17 17:31:01 2016 -0800
+
+    Auto merge of #37660 - nikomatsakis:incremental-36349, r=eddyb
+    
+    Separate impl items from the parent impl
+    
+    This change separates impl item bodies out of the impl itself. This gives incremental more resolution. In so doing, it refactors how the visitors work, and cleans up a bit of the collect/check logic (mostly by moving things out of collect that didn't really belong there, because they were just checking conditions).
+    
+    However, this is not as effective as I expected, for a kind of frustrating reason. In particular, when invoking `foo.bar()` you still wind up with dependencies on private items. The problem is that the method resolution code scans that list for methods with the name `bar` -- and this winds up touching *all* the methods, even private ones.
+    
+    I can imagine two obvious ways to fix this:
+    
+    - separating fn bodies from fn sigs (#35078, currently being pursued by @flodiebold)
+    - a more aggressive model of incremental that @michaelwoerister has been advocating, in which we hash the intermediate results (e.g., the outputs of collect) so that we can see that the intermediate result hasn't changed, even if a particular impl item has changed.
+    
+    So all in all I'm not quite sure whether to land this or not. =) It still seems like it has to be a win in some cases, but not with the test cases we have just now. I can try to gin up some test cases, but I'm not sure if they will be totally realistic. On the other hand, some of the early refactorings to the visitor trait seem worthwhile to me regardless.
+    
+    cc #36349 -- well, this is basically a fix for that issue, I guess
+    
+    r? @michaelwoerister
+    
+    NB: Based atop of @eddyb's PR https://github.com/rust-lang/rust/pull/37402; don't land until that lands.
+rustc: ./syntex-0.42.2
+cargo rustc -p syntex_syntax  -- -Ztime-passes -Zinput-stats
+   Compiling syntex_syntax v0.42.0
+time: 0.091; rss: 71MB	parsing
+Lines of code:             33687
+Pre-expansion node count:  223115
+time: 0.000; rss: 71MB	recursion limit
+time: 0.000; rss: 71MB	crate injection
+time: 0.000; rss: 71MB	plugin loading
+time: 0.000; rss: 71MB	plugin registration
+time: 0.233; rss: 146MB	expansion
+time: 0.000; rss: 146MB	maybe building test harness
+time: 0.006; rss: 146MB	maybe creating a macro crate
+Post-expansion node count: 638863
+time: 0.000; rss: 146MB	checking for inline asm in case the target doesn't support it
+time: 0.013; rss: 146MB	complete gated feature checking
+time: 0.023; rss: 146MB	early lint checks
+time: 0.007; rss: 146MB	AST validation
+time: 0.076; rss: 161MB	name resolution
+time: 0.044; rss: 186MB	lowering ast -> hir
+time: 0.008; rss: 197MB	indexing hir
+time: 0.006; rss: 197MB	attribute checking
+time: 0.005; rss: 152MB	language item collection
+time: 0.010; rss: 152MB	lifetime resolution
+time: 0.000; rss: 152MB	looking for entry point
+time: 0.000; rss: 152MB	looking for plugin registrar
+time: 0.041; rss: 173MB	region resolution
+time: 0.005; rss: 173MB	loop checking
+time: 0.005; rss: 173MB	static item recursion checking
+time: 0.336; rss: 173MB	compute_incremental_hashes_map
+time: 0.000; rss: 173MB	load_dep_graph
+time: 0.046; rss: 177MB	type collecting
+time: 0.001; rss: 177MB	variance inference
+time: 0.002; rss: 177MB	impl wf inference
+time: 0.018; rss: 179MB	coherence checking
+time: 0.086; rss: 181MB	wf checking
+time: 0.177; rss: 182MB	item-types checking
+time: 6.084; rss: 233MB	item-bodies checking
+time: 0.000; rss: 233MB	drop-impl checking
+time: 0.213; rss: 254MB	const checking
+time: 0.047; rss: 254MB	privacy checking
+time: 0.006; rss: 254MB	stability index
+time: 0.017; rss: 254MB	intrinsic checking
+time: 0.014; rss: 254MB	effect checking
+time: 0.044; rss: 254MB	match checking
+time: 0.048; rss: 246MB	liveness checking
+time: 0.178; rss: 246MB	rvalue checking
+time: 0.358; rss: 438MB	MIR dump
+  time: 0.056; rss: 440MB	SimplifyCfg
+  time: 0.072; rss: 440MB	QualifyAndPromoteConstants
+  time: 0.109; rss: 440MB	TypeckMir
+  time: 0.004; rss: 440MB	SimplifyBranches
+  time: 0.030; rss: 440MB	SimplifyCfg
+time: 0.271; rss: 440MB	MIR cleanup and validation
+time: 0.544; rss: 441MB	borrow checking
+time: 0.019; rss: 441MB	reachability checking
+time: 0.039; rss: 441MB	death checking
+time: 0.030; rss: 445MB	stability checking
+time: 0.000; rss: 445MB	unused lib feature checking
+time: 0.193; rss: 445MB	lint checking
+time: 0.000; rss: 445MB	resolving dependency formats
+  time: 0.003; rss: 445MB	NoLandingPads
+  time: 0.026; rss: 445MB	SimplifyCfg
+  time: 0.060; rss: 453MB	EraseRegions
+  time: 0.011; rss: 453MB	AddCallGuards
+  time: 0.269; rss: 467MB	ElaborateDrops
+  time: 0.003; rss: 467MB	NoLandingPads
+  time: 0.051; rss: 467MB	SimplifyCfg
+  time: 0.028; rss: 467MB	InstCombine
+  time: 0.012; rss: 467MB	Deaggregator
+  time: 0.002; rss: 467MB	CopyPropagation
+  time: 0.034; rss: 467MB	SimplifyLocals
+  time: 0.010; rss: 467MB	AddCallGuards
+  time: 0.002; rss: 467MB	PreTrans
+time: 0.513; rss: 467MB	MIR optimisations
+  time: 0.061; rss: 477MB	write metadata
+  time: 0.396; rss: 489MB	translation item collection
+  time: 0.068; rss: 498MB	codegen unit partitioning
+  time: 0.047; rss: 741MB	internalize symbols
+time: 4.406; rss: 741MB	translation
+time: 0.000; rss: 741MB	assert dep graph
+time: 0.000; rss: 741MB	serialize dep graph
+  time: 0.526; rss: 419MB	llvm function passes [0]
+  time: 0.245; rss: 428MB	llvm module passes [0]
+  time: 10.358; rss: 428MB	codegen passes [0]
+  time: 0.000; rss: 428MB	codegen passes [0]
+time: 11.868; rss: 428MB	LLVM passes
+time: 0.000; rss: 428MB	serialize work products
+time: 0.339; rss: 105MB	linking
+done
