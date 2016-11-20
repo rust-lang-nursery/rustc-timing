@@ -1,0 +1,117 @@
+commit 0bd2ce62b27e2b9a7dfe92fc23d9098854008089
+Merge: bfa709a 30daedf
+Author: bors <bors@rust-lang.org>
+Date:   Sat Nov 19 16:39:25 2016 -0600
+
+    Auto merge of #37831 - rkruppe:llvm-attr-fwdcompat, r=eddyb
+    
+    [LLVM 4.0] Use llvm::Attribute APIs instead of "raw value" APIs
+    
+    The latter will be removed in LLVM 4.0 (see https://github.com/llvm-mirror/llvm/commit/4a6fc8bacf11d8066da72cf8481467167877ed16).
+    
+    The librustc_llvm API remains mostly unchanged, except that llvm::Attribute is no longer a bitflag but represents only a *single* attribute.
+    The ability to store many attributes in a small number of bits and modify them without interacting with LLVM is only used in rustc_trans::abi and closely related modules, and only attributes for function arguments are considered there.
+    Thus rustc_trans::abi now has its own bit-packed representation of argument attributes, which are translated to rustc_llvm::Attribute when applying the attributes.
+    
+    cc #37609
+rustc: ./syntex-0.42.2
+cargo rustc -p syntex_syntax  -- -Ztime-passes -Zinput-stats
+   Compiling unicode-xid v0.0.3
+   Compiling log v0.3.6
+   Compiling rustc-serialize v0.3.19
+   Compiling bitflags v0.5.0
+   Compiling winapi v0.2.8
+   Compiling libc v0.2.15
+   Compiling winapi-build v0.1.1
+   Compiling kernel32-sys v0.2.2
+   Compiling term v0.4.4
+   Compiling syntex_pos v0.42.0
+   Compiling syntex_errors v0.42.0
+   Compiling syntex_syntax v0.42.0
+time: 0.125; rss: 67MB	parsing
+Lines of code:             33687
+Pre-expansion node count:  223115
+time: 0.000; rss: 67MB	recursion limit
+time: 0.000; rss: 67MB	crate injection
+time: 0.000; rss: 67MB	plugin loading
+time: 0.000; rss: 67MB	plugin registration
+time: 0.324; rss: 139MB	expansion
+time: 0.000; rss: 139MB	maybe building test harness
+time: 0.006; rss: 139MB	maybe creating a macro crate
+Post-expansion node count: 638863
+time: 0.000; rss: 140MB	checking for inline asm in case the target doesn't support it
+time: 0.014; rss: 140MB	complete gated feature checking
+time: 0.024; rss: 140MB	early lint checks
+time: 0.007; rss: 140MB	AST validation
+time: 0.107; rss: 155MB	name resolution
+time: 0.089; rss: 180MB	lowering ast -> hir
+time: 0.020; rss: 188MB	indexing hir
+time: 0.006; rss: 188MB	attribute checking
+time: 0.005; rss: 146MB	language item collection
+time: 0.011; rss: 146MB	lifetime resolution
+time: 0.000; rss: 146MB	looking for entry point
+time: 0.000; rss: 146MB	looking for plugin registrar
+time: 0.076; rss: 165MB	region resolution
+time: 0.005; rss: 165MB	loop checking
+time: 0.005; rss: 165MB	static item recursion checking
+time: 0.334; rss: 166MB	compute_incremental_hashes_map
+time: 0.000; rss: 166MB	load_dep_graph
+time: 0.048; rss: 171MB	type collecting
+time: 0.001; rss: 171MB	variance inference
+time: 0.002; rss: 171MB	impl wf inference
+time: 0.018; rss: 173MB	coherence checking
+time: 0.088; rss: 175MB	wf checking
+time: 0.182; rss: 177MB	item-types checking
+time: 6.628; rss: 220MB	item-bodies checking
+time: 0.000; rss: 220MB	drop-impl checking
+time: 0.290; rss: 240MB	const checking
+time: 0.052; rss: 240MB	privacy checking
+time: 0.006; rss: 240MB	stability index
+time: 0.019; rss: 240MB	intrinsic checking
+time: 0.015; rss: 240MB	effect checking
+time: 0.049; rss: 240MB	match checking
+time: 0.086; rss: 233MB	liveness checking
+time: 0.195; rss: 233MB	rvalue checking
+time: 0.586; rss: 408MB	MIR dump
+  time: 0.059; rss: 415MB	SimplifyCfg
+  time: 0.076; rss: 415MB	QualifyAndPromoteConstants
+  time: 0.107; rss: 415MB	TypeckMir
+  time: 0.004; rss: 415MB	SimplifyBranches
+  time: 0.031; rss: 415MB	SimplifyCfg
+time: 0.278; rss: 415MB	MIR cleanup and validation
+time: 0.575; rss: 418MB	borrow checking
+time: 0.020; rss: 418MB	reachability checking
+time: 0.042; rss: 418MB	death checking
+time: 0.037; rss: 421MB	stability checking
+time: 0.000; rss: 421MB	unused lib feature checking
+time: 0.211; rss: 421MB	lint checking
+time: 0.000; rss: 421MB	resolving dependency formats
+  time: 0.003; rss: 421MB	NoLandingPads
+  time: 0.027; rss: 421MB	SimplifyCfg
+  time: 0.079; rss: 427MB	EraseRegions
+  time: 0.012; rss: 427MB	AddCallGuards
+  time: 0.307; rss: 447MB	ElaborateDrops
+  time: 0.003; rss: 447MB	NoLandingPads
+  time: 0.053; rss: 447MB	SimplifyCfg
+  time: 0.030; rss: 447MB	InstCombine
+  time: 0.012; rss: 447MB	Deaggregator
+  time: 0.002; rss: 447MB	CopyPropagation
+  time: 0.036; rss: 448MB	SimplifyLocals
+  time: 0.010; rss: 448MB	AddCallGuards
+  time: 0.003; rss: 448MB	PreTrans
+time: 0.578; rss: 448MB	MIR optimisations
+  time: 0.082; rss: 456MB	write metadata
+  time: 0.420; rss: 468MB	translation item collection
+  time: 0.071; rss: 475MB	codegen unit partitioning
+  time: 0.048; rss: 721MB	internalize symbols
+time: 5.038; rss: 721MB	translation
+time: 0.000; rss: 721MB	assert dep graph
+time: 0.000; rss: 721MB	serialize dep graph
+  time: 0.526; rss: 414MB	llvm function passes [0]
+  time: 0.275; rss: 423MB	llvm module passes [0]
+  time: 10.400; rss: 414MB	codegen passes [0]
+  time: 0.000; rss: 414MB	codegen passes [0]
+time: 12.104; rss: 414MB	LLVM passes
+time: 0.000; rss: 414MB	serialize work products
+time: 0.349; rss: 102MB	linking
+done
