@@ -1,0 +1,130 @@
+commit b1da18fe9be180ecfcfb1691c4eb669c496996f5
+Merge: fb025b4 f324037
+Author: bors <bors@rust-lang.org>
+Date:   Sat Nov 19 08:08:26 2016 -0800
+
+    Auto merge of #37822 - cuviper:llvm-link-shared, r=alexcrichton
+    
+    rustbuild: allow dynamically linking LLVM
+    
+    The makefiles and `mklldeps.py` called `llvm-config --shared-mode` to
+    find out if LLVM defaulted to shared or static libraries, and just went
+    with that.  But under rustbuild, `librustc_llvm/build.rs` was assuming
+    that LLVM should be static, and even forcing `--link-static` for 3.9+.
+    
+    Now that build script also uses `--shared-mode` to learn the default,
+    which should work better for pre-3.9 configured for dynamic linking, as
+    it wasn't possible back then to choose differently via `llvm-config`.
+    
+    Further, the configure script now has a new `--enable-llvm-link-shared`
+    option, which allows one to manually override `--link-shared` on 3.9+
+    instead of forcing static.
+    
+    Update: There are now four static/shared scenarios that can happen
+    for the supported LLVM versions:
+    
+    - 3.9+: By default use `llvm-config --link-static`
+    - 3.9+ and `--enable-llvm-link-shared`: Use `--link-shared` instead.
+    - 3.8: Use `llvm-config --shared-mode` and go with its answer.
+    - 3.7: Just assume static, maintaining the status quo.
+rustc: ./syntex-0.42.2
+cargo rustc -p syntex_syntax  -- -Ztime-passes -Zinput-stats
+   Compiling bitflags v0.5.0
+   Compiling log v0.3.6
+   Compiling unicode-xid v0.0.3
+   Compiling winapi v0.2.8
+   Compiling rustc-serialize v0.3.19
+   Compiling libc v0.2.15
+   Compiling winapi-build v0.1.1
+   Compiling kernel32-sys v0.2.2
+   Compiling term v0.4.4
+   Compiling syntex_pos v0.42.0
+   Compiling syntex_errors v0.42.0
+   Compiling syntex_syntax v0.42.0
+time: 0.122; rss: 66MB	parsing
+Lines of code:             33687
+Pre-expansion node count:  223115
+time: 0.000; rss: 66MB	recursion limit
+time: 0.000; rss: 66MB	crate injection
+time: 0.000; rss: 66MB	plugin loading
+time: 0.000; rss: 66MB	plugin registration
+time: 0.321; rss: 139MB	expansion
+time: 0.000; rss: 139MB	maybe building test harness
+time: 0.006; rss: 139MB	maybe creating a macro crate
+Post-expansion node count: 638863
+time: 0.000; rss: 139MB	checking for inline asm in case the target doesn't support it
+time: 0.013; rss: 139MB	complete gated feature checking
+time: 0.023; rss: 139MB	early lint checks
+time: 0.007; rss: 139MB	AST validation
+time: 0.101; rss: 154MB	name resolution
+time: 0.088; rss: 179MB	lowering ast -> hir
+time: 0.021; rss: 187MB	indexing hir
+time: 0.006; rss: 187MB	attribute checking
+time: 0.005; rss: 145MB	language item collection
+time: 0.011; rss: 145MB	lifetime resolution
+time: 0.000; rss: 145MB	looking for entry point
+time: 0.000; rss: 145MB	looking for plugin registrar
+time: 0.077; rss: 164MB	region resolution
+time: 0.005; rss: 164MB	loop checking
+time: 0.005; rss: 164MB	static item recursion checking
+time: 0.333; rss: 165MB	compute_incremental_hashes_map
+time: 0.000; rss: 165MB	load_dep_graph
+time: 0.048; rss: 170MB	type collecting
+time: 0.001; rss: 170MB	variance inference
+time: 0.002; rss: 171MB	impl wf inference
+time: 0.018; rss: 172MB	coherence checking
+time: 0.090; rss: 174MB	wf checking
+time: 0.182; rss: 176MB	item-types checking
+time: 6.436; rss: 219MB	item-bodies checking
+time: 0.000; rss: 219MB	drop-impl checking
+time: 0.287; rss: 240MB	const checking
+time: 0.051; rss: 240MB	privacy checking
+time: 0.006; rss: 240MB	stability index
+time: 0.018; rss: 240MB	intrinsic checking
+time: 0.015; rss: 240MB	effect checking
+time: 0.047; rss: 240MB	match checking
+time: 0.081; rss: 233MB	liveness checking
+time: 0.189; rss: 233MB	rvalue checking
+time: 0.581; rss: 408MB	MIR dump
+  time: 0.060; rss: 414MB	SimplifyCfg
+  time: 0.076; rss: 414MB	QualifyAndPromoteConstants
+  time: 0.108; rss: 414MB	TypeckMir
+  time: 0.004; rss: 414MB	SimplifyBranches
+  time: 0.031; rss: 414MB	SimplifyCfg
+time: 0.279; rss: 414MB	MIR cleanup and validation
+time: 0.573; rss: 418MB	borrow checking
+time: 0.020; rss: 418MB	reachability checking
+time: 0.041; rss: 418MB	death checking
+time: 0.036; rss: 420MB	stability checking
+time: 0.000; rss: 420MB	unused lib feature checking
+time: 0.204; rss: 420MB	lint checking
+time: 0.000; rss: 420MB	resolving dependency formats
+  time: 0.003; rss: 420MB	NoLandingPads
+  time: 0.027; rss: 420MB	SimplifyCfg
+  time: 0.077; rss: 427MB	EraseRegions
+  time: 0.011; rss: 427MB	AddCallGuards
+  time: 0.307; rss: 446MB	ElaborateDrops
+  time: 0.003; rss: 446MB	NoLandingPads
+  time: 0.054; rss: 447MB	SimplifyCfg
+  time: 0.030; rss: 447MB	InstCombine
+  time: 0.013; rss: 447MB	Deaggregator
+  time: 0.002; rss: 447MB	CopyPropagation
+  time: 0.036; rss: 447MB	SimplifyLocals
+  time: 0.010; rss: 447MB	AddCallGuards
+  time: 0.003; rss: 447MB	PreTrans
+time: 0.576; rss: 447MB	MIR optimisations
+  time: 0.081; rss: 455MB	write metadata
+  time: 0.438; rss: 468MB	translation item collection
+  time: 0.078; rss: 474MB	codegen unit partitioning
+  time: 0.051; rss: 720MB	internalize symbols
+time: 5.090; rss: 720MB	translation
+time: 0.000; rss: 720MB	assert dep graph
+time: 0.000; rss: 720MB	serialize dep graph
+  time: 0.530; rss: 413MB	llvm function passes [0]
+  time: 0.261; rss: 421MB	llvm module passes [0]
+  time: 10.478; rss: 412MB	codegen passes [0]
+  time: 0.000; rss: 412MB	codegen passes [0]
+time: 12.151; rss: 412MB	LLVM passes
+time: 0.000; rss: 412MB	serialize work products
+time: 0.346; rss: 101MB	linking
+done
