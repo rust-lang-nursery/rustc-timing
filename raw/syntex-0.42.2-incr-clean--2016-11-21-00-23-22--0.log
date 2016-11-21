@@ -1,0 +1,146 @@
+commit fc2373c5a24646745dcbc14dc58889a9d8843f4e
+Merge: 4bc9290 5a3aa2f
+Author: bors <bors@rust-lang.org>
+Date:   Sun Nov 20 17:06:53 2016 -0600
+
+    Auto merge of #37888 - bluss:chars-count, r=alexcrichton
+    
+    Improve .chars().count()
+    
+    Use a simpler loop to count the `char` of a string: count the
+    number of non-continuation bytes. Use `count += <conditional>` which the
+    compiler understands well and can apply loop optimizations to.
+    
+    benchmark descriptions and results for two configurations:
+    
+    - ascii: ascii text
+    - cy: cyrillic text
+    - jp: japanese text
+    - words ascii: counting each split_whitespace item from the ascii text
+    - words jp: counting each split_whitespace item from the jp text
+    
+    ```
+    x86-64 rustc -Copt-level=3
+     name               orig_ ns/iter      cmov_ ns/iter      diff ns/iter   diff %
+     count_ascii        1,453 (1755 MB/s)  1,398 (1824 MB/s)           -55   -3.79%
+     count_cy           5,990 (856 MB/s)   2,545 (2016 MB/s)        -3,445  -57.51%
+     count_jp           3,075 (1169 MB/s)  1,772 (2029 MB/s)        -1,303  -42.37%
+     count_words_ascii  4,157 (521 MB/s)   1,797 (1205 MB/s)        -2,360  -56.77%
+     count_words_jp     3,337 (1071 MB/s)  1,772 (2018 MB/s)        -1,565  -46.90%
+    
+    x86-64 rustc -Ctarget-feature=+avx -Copt-level=3
+     name               orig_ ns/iter      cmov_ ns/iter      diff ns/iter   diff %
+     count_ascii        1,444 (1766 MB/s)  763 (3343 MB/s)            -681  -47.16%
+     count_cy           5,871 (874 MB/s)   1,527 (3360 MB/s)        -4,344  -73.99%
+     count_jp           2,874 (1251 MB/s)  1,073 (3351 MB/s)        -1,801  -62.67%
+     count_words_ascii  4,131 (524 MB/s)   1,871 (1157 MB/s)        -2,260  -54.71%
+     count_words_jp     3,253 (1099 MB/s)  1,331 (2686 MB/s)        -1,922  -59.08%
+    ```
+    
+    I briefly explored a more involved blocked algorithm (looking at 8 or more bytes at a time),
+    but the code in this PR was always winning `count_words_ascii` in particular (counting
+    many small strings); this solution is an improvement without tradeoffs.
+rustc: ./syntex-0.42.2-incr-clean
+RUSTFLAGS="-Z incremental=incr" \
+    cargo rustc -p syntex_syntax  -- \
+    -Ztime-passes -Zinput-stats -Z incremental-info
+   Compiling libc v0.2.15
+   Compiling winapi v0.2.8
+   Compiling log v0.3.6
+   Compiling bitflags v0.5.0
+   Compiling unicode-xid v0.0.3
+   Compiling rustc-serialize v0.3.19
+   Compiling winapi-build v0.1.1
+   Compiling kernel32-sys v0.2.2
+   Compiling term v0.4.4
+   Compiling syntex_pos v0.42.0
+   Compiling syntex_errors v0.42.0
+   Compiling syntex_syntax v0.42.0
+time: 0.092; rss: 71MB	parsing
+Lines of code:             33687
+Pre-expansion node count:  223115
+time: 0.000; rss: 71MB	recursion limit
+time: 0.000; rss: 71MB	crate injection
+time: 0.000; rss: 71MB	plugin loading
+time: 0.000; rss: 71MB	plugin registration
+time: 0.235; rss: 147MB	expansion
+time: 0.000; rss: 147MB	maybe building test harness
+time: 0.006; rss: 147MB	maybe creating a macro crate
+Post-expansion node count: 638863
+time: 0.000; rss: 147MB	checking for inline asm in case the target doesn't support it
+time: 0.013; rss: 147MB	complete gated feature checking
+time: 0.023; rss: 147MB	early lint checks
+time: 0.007; rss: 147MB	AST validation
+time: 0.077; rss: 161MB	name resolution
+time: 0.045; rss: 187MB	lowering ast -> hir
+time: 0.008; rss: 197MB	indexing hir
+time: 0.006; rss: 197MB	attribute checking
+time: 0.005; rss: 153MB	language item collection
+time: 0.011; rss: 153MB	lifetime resolution
+time: 0.000; rss: 153MB	looking for entry point
+time: 0.000; rss: 153MB	looking for plugin registrar
+time: 0.041; rss: 173MB	region resolution
+time: 0.005; rss: 173MB	loop checking
+time: 0.005; rss: 173MB	static item recursion checking
+time: 0.329; rss: 173MB	compute_incremental_hashes_map
+time: 0.000; rss: 173MB	load_dep_graph
+time: 0.049; rss: 171MB	type collecting
+time: 0.001; rss: 171MB	variance inference
+time: 0.002; rss: 171MB	impl wf inference
+time: 0.019; rss: 174MB	coherence checking
+time: 0.087; rss: 177MB	wf checking
+time: 0.178; rss: 183MB	item-types checking
+time: 6.192; rss: 234MB	item-bodies checking
+time: 0.000; rss: 234MB	drop-impl checking
+time: 0.219; rss: 255MB	const checking
+time: 0.049; rss: 255MB	privacy checking
+time: 0.006; rss: 255MB	stability index
+time: 0.018; rss: 255MB	intrinsic checking
+time: 0.014; rss: 255MB	effect checking
+time: 0.047; rss: 255MB	match checking
+time: 0.052; rss: 239MB	liveness checking
+time: 0.179; rss: 239MB	rvalue checking
+time: 0.360; rss: 438MB	MIR dump
+  time: 0.056; rss: 440MB	SimplifyCfg
+  time: 0.074; rss: 440MB	QualifyAndPromoteConstants
+  time: 0.104; rss: 440MB	TypeckMir
+  time: 0.004; rss: 440MB	SimplifyBranches
+  time: 0.030; rss: 440MB	SimplifyCfg
+time: 0.269; rss: 440MB	MIR cleanup and validation
+time: 0.544; rss: 441MB	borrow checking
+time: 0.020; rss: 441MB	reachability checking
+time: 0.040; rss: 441MB	death checking
+time: 0.032; rss: 443MB	stability checking
+time: 0.000; rss: 443MB	unused lib feature checking
+time: 0.197; rss: 443MB	lint checking
+time: 0.000; rss: 443MB	resolving dependency formats
+  time: 0.003; rss: 443MB	NoLandingPads
+  time: 0.026; rss: 443MB	SimplifyCfg
+  time: 0.061; rss: 451MB	EraseRegions
+  time: 0.011; rss: 451MB	AddCallGuards
+  time: 0.269; rss: 467MB	ElaborateDrops
+  time: 0.003; rss: 467MB	NoLandingPads
+  time: 0.051; rss: 467MB	SimplifyCfg
+  time: 0.028; rss: 467MB	InstCombine
+  time: 0.013; rss: 467MB	Deaggregator
+  time: 0.002; rss: 467MB	CopyPropagation
+  time: 0.034; rss: 467MB	SimplifyLocals
+  time: 0.009; rss: 467MB	AddCallGuards
+  time: 0.002; rss: 467MB	PreTrans
+time: 0.513; rss: 467MB	MIR optimisations
+  time: 0.062; rss: 477MB	write metadata
+  time: 0.417; rss: 491MB	translation item collection
+  time: 0.067; rss: 498MB	codegen unit partitioning
+  time: 0.050; rss: 742MB	internalize symbols
+time: 4.528; rss: 742MB	translation
+time: 0.000; rss: 742MB	assert dep graph
+time: 0.000; rss: 742MB	serialize dep graph
+incremental: re-using 0 out of 1 modules
+  time: 0.523; rss: 418MB	llvm function passes [0]
+  time: 0.259; rss: 426MB	llvm module passes [0]
+  time: 10.422; rss: 428MB	codegen passes [0]
+  time: 0.000; rss: 428MB	codegen passes [0]
+time: 11.978; rss: 428MB	LLVM passes
+time: 0.000; rss: 428MB	serialize work products
+time: 0.342; rss: 105MB	linking
+done

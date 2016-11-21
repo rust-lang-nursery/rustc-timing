@@ -1,0 +1,133 @@
+commit fc2373c5a24646745dcbc14dc58889a9d8843f4e
+Merge: 4bc9290 5a3aa2f
+Author: bors <bors@rust-lang.org>
+Date:   Sun Nov 20 17:06:53 2016 -0600
+
+    Auto merge of #37888 - bluss:chars-count, r=alexcrichton
+    
+    Improve .chars().count()
+    
+    Use a simpler loop to count the `char` of a string: count the
+    number of non-continuation bytes. Use `count += <conditional>` which the
+    compiler understands well and can apply loop optimizations to.
+    
+    benchmark descriptions and results for two configurations:
+    
+    - ascii: ascii text
+    - cy: cyrillic text
+    - jp: japanese text
+    - words ascii: counting each split_whitespace item from the ascii text
+    - words jp: counting each split_whitespace item from the jp text
+    
+    ```
+    x86-64 rustc -Copt-level=3
+     name               orig_ ns/iter      cmov_ ns/iter      diff ns/iter   diff %
+     count_ascii        1,453 (1755 MB/s)  1,398 (1824 MB/s)           -55   -3.79%
+     count_cy           5,990 (856 MB/s)   2,545 (2016 MB/s)        -3,445  -57.51%
+     count_jp           3,075 (1169 MB/s)  1,772 (2029 MB/s)        -1,303  -42.37%
+     count_words_ascii  4,157 (521 MB/s)   1,797 (1205 MB/s)        -2,360  -56.77%
+     count_words_jp     3,337 (1071 MB/s)  1,772 (2018 MB/s)        -1,565  -46.90%
+    
+    x86-64 rustc -Ctarget-feature=+avx -Copt-level=3
+     name               orig_ ns/iter      cmov_ ns/iter      diff ns/iter   diff %
+     count_ascii        1,444 (1766 MB/s)  763 (3343 MB/s)            -681  -47.16%
+     count_cy           5,871 (874 MB/s)   1,527 (3360 MB/s)        -4,344  -73.99%
+     count_jp           2,874 (1251 MB/s)  1,073 (3351 MB/s)        -1,801  -62.67%
+     count_words_ascii  4,131 (524 MB/s)   1,871 (1157 MB/s)        -2,260  -54.71%
+     count_words_jp     3,253 (1099 MB/s)  1,331 (2686 MB/s)        -1,922  -59.08%
+    ```
+    
+    I briefly explored a more involved blocked algorithm (looking at 8 or more bytes at a time),
+    but the code in this PR was always winning `count_words_ascii` in particular (counting
+    many small strings); this solution is an improvement without tradeoffs.
+rustc: ./jld-day15-parser
+cargo rustc  -- -Ztime-passes -Zinput-stats
+   Compiling day15 v0.1.0 (file:///root/benchmarks/jld-day15-parser)
+time: 0.000; rss: 41MB	parsing
+Lines of code:             72
+Pre-expansion node count:  648
+time: 0.000; rss: 41MB	recursion limit
+time: 0.000; rss: 41MB	crate injection
+time: 0.000; rss: 41MB	plugin loading
+time: 0.000; rss: 41MB	plugin registration
+time: 0.014; rss: 68MB	expansion
+time: 0.000; rss: 68MB	maybe building test harness
+time: 0.000; rss: 68MB	maybe creating a macro crate
+Post-expansion node count: 1149
+time: 0.000; rss: 68MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 68MB	complete gated feature checking
+time: 0.000; rss: 68MB	early lint checks
+time: 0.000; rss: 68MB	AST validation
+time: 0.002; rss: 68MB	name resolution
+time: 0.000; rss: 68MB	lowering ast -> hir
+time: 0.000; rss: 68MB	indexing hir
+time: 0.000; rss: 68MB	attribute checking
+time: 0.000; rss: 68MB	language item collection
+time: 0.000; rss: 68MB	lifetime resolution
+time: 0.000; rss: 68MB	looking for entry point
+time: 0.000; rss: 68MB	looking for plugin registrar
+time: 0.000; rss: 68MB	region resolution
+time: 0.000; rss: 68MB	loop checking
+time: 0.000; rss: 68MB	static item recursion checking
+time: 0.000; rss: 68MB	compute_incremental_hashes_map
+time: 0.000; rss: 68MB	load_dep_graph
+time: 0.001; rss: 68MB	type collecting
+time: 0.000; rss: 68MB	variance inference
+time: 0.000; rss: 68MB	impl wf inference
+time: 0.004; rss: 68MB	coherence checking
+time: 0.002; rss: 68MB	wf checking
+time: 0.000; rss: 68MB	item-types checking
+time: 0.016; rss: 70MB	item-bodies checking
+time: 0.000; rss: 70MB	drop-impl checking
+time: 0.000; rss: 70MB	const checking
+time: 0.000; rss: 70MB	privacy checking
+time: 0.000; rss: 70MB	stability index
+time: 0.000; rss: 70MB	intrinsic checking
+time: 0.000; rss: 70MB	effect checking
+time: 0.000; rss: 70MB	match checking
+time: 0.000; rss: 70MB	liveness checking
+time: 0.000; rss: 70MB	rvalue checking
+time: 0.001; rss: 74MB	MIR dump
+  time: 0.000; rss: 74MB	SimplifyCfg
+  time: 0.000; rss: 74MB	QualifyAndPromoteConstants
+  time: 0.000; rss: 74MB	TypeckMir
+  time: 0.000; rss: 74MB	SimplifyBranches
+  time: 0.000; rss: 74MB	SimplifyCfg
+time: 0.001; rss: 74MB	MIR cleanup and validation
+time: 0.001; rss: 74MB	borrow checking
+time: 0.000; rss: 74MB	reachability checking
+time: 0.000; rss: 74MB	death checking
+time: 0.000; rss: 74MB	stability checking
+time: 0.000; rss: 74MB	unused lib feature checking
+time: 0.001; rss: 74MB	lint checking
+time: 0.001; rss: 74MB	resolving dependency formats
+  time: 0.000; rss: 74MB	NoLandingPads
+  time: 0.000; rss: 74MB	SimplifyCfg
+  time: 0.000; rss: 74MB	EraseRegions
+  time: 0.000; rss: 74MB	AddCallGuards
+  time: 0.001; rss: 74MB	ElaborateDrops
+  time: 0.000; rss: 74MB	NoLandingPads
+  time: 0.000; rss: 74MB	SimplifyCfg
+  time: 0.000; rss: 74MB	InstCombine
+  time: 0.002; rss: 74MB	Deaggregator
+  time: 0.000; rss: 74MB	CopyPropagation
+  time: 0.000; rss: 74MB	SimplifyLocals
+  time: 0.000; rss: 74MB	AddCallGuards
+  time: 0.000; rss: 74MB	PreTrans
+time: 0.003; rss: 74MB	MIR optimisations
+  time: 0.000; rss: 74MB	write metadata
+  time: 0.101; rss: 79MB	translation item collection
+  time: 0.003; rss: 81MB	codegen unit partitioning
+  time: 0.003; rss: 91MB	internalize symbols
+time: 0.492; rss: 91MB	translation
+time: 0.000; rss: 91MB	assert dep graph
+time: 0.000; rss: 91MB	serialize dep graph
+  time: 0.018; rss: 87MB	llvm function passes [0]
+  time: 0.001; rss: 87MB	llvm module passes [0]
+  time: 0.357; rss: 92MB	codegen passes [0]
+  time: 0.000; rss: 92MB	codegen passes [0]
+time: 0.377; rss: 92MB	LLVM passes
+time: 0.000; rss: 92MB	serialize work products
+  time: 0.099; rss: 82MB	running linker
+time: 0.100; rss: 82MB	linking
+done
