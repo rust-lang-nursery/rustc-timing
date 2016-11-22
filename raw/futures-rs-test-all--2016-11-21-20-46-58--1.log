@@ -1,0 +1,142 @@
+commit 82d8833a456a408fe8b761a3b5e88475b65066c8
+Merge: 7b3eeea 382d3b0
+Author: bors <bors@rust-lang.org>
+Date:   Mon Nov 21 17:59:10 2016 -0600
+
+    Auto merge of #37642 - nnethercote:no-HirVec-of-P, r=michaelwoerister
+    
+    Change HirVec<P<T>> to HirVec<T> in hir:: Expr.
+    
+    This PR changes data structures like this:
+    ```
+    [ ExprArray | 8 | P ]
+                      |
+                      v
+                      [ P | P | P | P | P | P | P | P ]
+                        |
+                        v
+                        [ ExprTup | 2 | P ]
+                                        |
+                                        v
+                                        [ P | P ]
+                                          |
+                                          v
+                                          [ Expr ]
+    ```
+    to this:
+    ```
+    [ ExprArray | 8 | P ]
+                      |
+                      v
+                      [ [ ExprTup | 2 | P ] | ... ]
+                                        |
+                                        v
+                                        [ Expr | Expr ]
+    ```
+    I thought this would be a win for #36799, and on a cut-down version of that workload this reduces the peak heap size (as measured by Massif) from 885 MiB to 875 MiB. However, the peak RSS as measured by `-Ztime-passes` and by `/usr/bin/time` increases by about 30 MiB.
+    
+    I'm not sure why. Just look at the picture above -- the second data structure clearly takes up less space than the first. My best idea relates to unused elements in the slices. `HirVec<Expr>` is a typedef for `P<[Expr]>`. If there were any unused excess elements then I could see that memory usage would increase, because those excess elements are larger in `HirVec<Expr>` than in `HirVec<P<Expr>>`. But AIUI there are no such excess elements, and Massif's measurements corroborate that.
+    
+    However, the two main creation points for these data structures are these lines from `lower_expr`:
+    ```rust
+            ExprKind::Vec(ref exprs) => {
+                hir::ExprArray(exprs.iter().map(|x| self.lower_expr(x)).collect())
+            }
+            ExprKind::Tup(ref elts) => {
+                hir::ExprTup(elts.iter().map(|x| self.lower_expr(x)).collect())
+            }
+    ```
+    I suspect what is happening is that temporary excess elements are created within the `collect` calls. The workload from #36799 has many 2-tuples and 3-tuples and when `Vec` gets doubled it goes from a capacity of 1 to 4, which would lead to excess elements. Though, having said that, `Vec::with_capacity` doesn't create excess AFAICT. So I'm not sure. What goes on inside `collect` is complex.
+    
+    Anyway, in its current form this PR is a memory consumption regression and so not worth landing but I figured I'd post it in case anyone has additional insight.
+rustc: ./futures-rs-test-all
+cargo rustc --test all  -- -Ztime-passes -Zinput-stats
+   Compiling futures v0.1.0 (file:///root/benchmarks/futures-rs-test-all)
+time: 0.002; rss: 43MB	parsing
+Lines of code:             412
+Pre-expansion node count:  5286
+time: 0.000; rss: 43MB	recursion limit
+time: 0.000; rss: 43MB	crate injection
+time: 0.000; rss: 43MB	plugin loading
+time: 0.000; rss: 43MB	plugin registration
+time: 0.020; rss: 68MB	expansion
+time: 0.001; rss: 68MB	maybe building test harness
+time: 0.000; rss: 68MB	maybe creating a macro crate
+Post-expansion node count: 10387
+time: 0.000; rss: 68MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 68MB	complete gated feature checking
+time: 0.000; rss: 68MB	early lint checks
+time: 0.000; rss: 68MB	AST validation
+time: 0.003; rss: 68MB	name resolution
+time: 0.000; rss: 68MB	lowering ast -> hir
+time: 0.000; rss: 68MB	indexing hir
+time: 0.000; rss: 68MB	attribute checking
+time: 0.000; rss: 68MB	language item collection
+time: 0.000; rss: 68MB	lifetime resolution
+time: 0.000; rss: 68MB	looking for entry point
+time: 0.000; rss: 68MB	looking for plugin registrar
+time: 0.000; rss: 68MB	region resolution
+time: 0.000; rss: 68MB	loop checking
+time: 0.000; rss: 68MB	static item recursion checking
+time: 0.003; rss: 68MB	compute_incremental_hashes_map
+time: 0.000; rss: 68MB	load_dep_graph
+time: 0.004; rss: 72MB	type collecting
+time: 0.000; rss: 72MB	variance inference
+time: 0.000; rss: 72MB	impl wf inference
+time: 0.003; rss: 75MB	coherence checking
+time: 0.006; rss: 75MB	wf checking
+time: 0.002; rss: 75MB	item-types checking
+time: 0.105; rss: 79MB	item-bodies checking
+time: 0.000; rss: 79MB	drop-impl checking
+time: 0.003; rss: 79MB	const checking
+time: 0.000; rss: 79MB	privacy checking
+time: 0.000; rss: 79MB	stability index
+time: 0.000; rss: 79MB	intrinsic checking
+time: 0.000; rss: 79MB	effect checking
+time: 0.001; rss: 79MB	match checking
+time: 0.000; rss: 79MB	liveness checking
+time: 0.002; rss: 79MB	rvalue checking
+time: 0.006; rss: 82MB	MIR dump
+  time: 0.001; rss: 82MB	SimplifyCfg
+  time: 0.001; rss: 82MB	QualifyAndPromoteConstants
+  time: 0.002; rss: 82MB	TypeckMir
+  time: 0.000; rss: 82MB	SimplifyBranches
+  time: 0.000; rss: 82MB	SimplifyCfg
+time: 0.005; rss: 82MB	MIR cleanup and validation
+time: 0.006; rss: 82MB	borrow checking
+time: 0.000; rss: 82MB	reachability checking
+time: 0.000; rss: 82MB	death checking
+time: 0.000; rss: 82MB	stability checking
+time: 0.000; rss: 82MB	unused lib feature checking
+time: 0.003; rss: 82MB	lint checking
+time: 0.001; rss: 82MB	resolving dependency formats
+  time: 0.000; rss: 82MB	NoLandingPads
+  time: 0.000; rss: 82MB	SimplifyCfg
+  time: 0.001; rss: 82MB	EraseRegions
+  time: 0.000; rss: 82MB	AddCallGuards
+  time: 0.005; rss: 82MB	ElaborateDrops
+  time: 0.000; rss: 82MB	NoLandingPads
+  time: 0.001; rss: 82MB	SimplifyCfg
+  time: 0.000; rss: 82MB	InstCombine
+  time: 0.000; rss: 82MB	Deaggregator
+  time: 0.000; rss: 82MB	CopyPropagation
+  time: 0.000; rss: 82MB	SimplifyLocals
+  time: 0.000; rss: 82MB	AddCallGuards
+  time: 0.000; rss: 82MB	PreTrans
+time: 0.008; rss: 82MB	MIR optimisations
+  time: 0.000; rss: 82MB	write metadata
+  time: 0.135; rss: 92MB	translation item collection
+  time: 0.016; rss: 94MB	codegen unit partitioning
+  time: 0.015; rss: 147MB	internalize symbols
+time: 1.051; rss: 147MB	translation
+time: 0.000; rss: 147MB	assert dep graph
+time: 0.000; rss: 147MB	serialize dep graph
+  time: 0.085; rss: 137MB	llvm function passes [0]
+  time: 0.026; rss: 137MB	llvm module passes [0]
+  time: 1.794; rss: 141MB	codegen passes [0]
+  time: 0.000; rss: 141MB	codegen passes [0]
+time: 1.907; rss: 141MB	LLVM passes
+time: 0.000; rss: 141MB	serialize work products
+  time: 0.157; rss: 86MB	running linker
+time: 0.159; rss: 86MB	linking
+done
