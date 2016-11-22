@@ -1,0 +1,114 @@
+commit 1c11ea3aedebac562f5125e1cf22ac56a3a8993c
+Merge: 82d8833 fa8c53b
+Author: bors <bors@rust-lang.org>
+Date:   Mon Nov 21 21:15:48 2016 -0600
+
+    Auto merge of #37602 - jseyfried:directory_ownership, r=nikomatsakis
+    
+    parser: simplify directory ownership semantics
+    
+    This PR simplifies the semantics of "directory ownership". After this PR,
+     - a non-inline module without a `#[path]` attribute (e.g. `mod foo;`) is allowed iff its parent module/block (whichever is nearer) is a directory owner,
+     - an non-inline module is a directory owner iff its corresponding file is named `mod.rs` (c.f. [comment](https://github.com/rust-lang/rust/issues/32401#issuecomment-201021902)),
+     - a block is never a directory owner (c.f. #31534), and
+     - an inline module is a directory owner iff either
+       - its parent module/block is a directory owner (again, c.f. #31534), or
+       - it has a `#[path]` attribute (c.f. #36789).
+    
+    These semantics differ from today's in three orthogonal ways:
+     - `#[path = "foo.rs"] mod foo;` is no longer a directory owner. This is a [breaking-change].
+     - #36789 is generalized to apply to modules that are not directory owners in addition to blocks.
+     - A macro-expanded non-inline module is only allowed where an ordinary non-inline module would be allowed. Today, we incorrectly allow macro-expanded non-inline modules in modules that are not directory owners (but not in blocks). This is a [breaking-change].
+    
+    Fixes #32401.
+    r? @nikomatsakis
+rustc: ./regex.0.1.30
+cargo rustc  -- -Ztime-passes -Zinput-stats
+   Compiling regex v0.1.30 (file:///root/benchmarks/regex.0.1.30)
+time: 0.043; rss: 53MB	parsing
+Lines of code:             8558
+Pre-expansion node count:  58049
+time: 0.000; rss: 54MB	recursion limit
+time: 0.000; rss: 54MB	crate injection
+time: 0.000; rss: 54MB	plugin loading
+time: 0.000; rss: 54MB	plugin registration
+time: 0.029; rss: 78MB	expansion
+time: 0.000; rss: 78MB	maybe building test harness
+time: 0.001; rss: 78MB	maybe creating a macro crate
+Post-expansion node count: 68093
+time: 0.000; rss: 78MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 78MB	complete gated feature checking
+time: 0.003; rss: 78MB	early lint checks
+time: 0.000; rss: 78MB	AST validation
+time: 0.005; rss: 79MB	name resolution
+time: 0.005; rss: 83MB	lowering ast -> hir
+time: 0.001; rss: 85MB	indexing hir
+time: 0.001; rss: 85MB	attribute checking
+time: 0.000; rss: 78MB	language item collection
+time: 0.001; rss: 78MB	lifetime resolution
+time: 0.000; rss: 78MB	looking for entry point
+time: 0.000; rss: 78MB	looking for plugin registrar
+time: 0.004; rss: 82MB	region resolution
+time: 0.000; rss: 82MB	loop checking
+time: 0.001; rss: 82MB	static item recursion checking
+time: 0.018; rss: 83MB	compute_incremental_hashes_map
+time: 0.000; rss: 83MB	load_dep_graph
+time: 0.006; rss: 84MB	type collecting
+time: 0.000; rss: 84MB	variance inference
+time: 0.000; rss: 84MB	impl wf inference
+time: 0.009; rss: 87MB	coherence checking
+time: 0.006; rss: 87MB	wf checking
+time: 0.147; rss: 97MB	item-types checking
+time: 0.113; rss: 99MB	item-bodies checking
+time: 0.000; rss: 99MB	drop-impl checking
+time: 0.020; rss: 101MB	const checking
+time: 0.002; rss: 101MB	privacy checking
+time: 0.000; rss: 101MB	stability index
+time: 0.001; rss: 101MB	intrinsic checking
+time: 0.000; rss: 101MB	effect checking
+time: 0.002; rss: 101MB	match checking
+time: 0.001; rss: 101MB	liveness checking
+time: 0.006; rss: 101MB	rvalue checking
+time: 0.035; rss: 113MB	MIR dump
+  time: 0.003; rss: 113MB	SimplifyCfg
+  time: 0.005; rss: 113MB	QualifyAndPromoteConstants
+  time: 0.008; rss: 113MB	TypeckMir
+  time: 0.000; rss: 113MB	SimplifyBranches
+  time: 0.001; rss: 113MB	SimplifyCfg
+time: 0.016; rss: 113MB	MIR cleanup and validation
+time: 0.018; rss: 113MB	borrow checking
+time: 0.000; rss: 113MB	reachability checking
+time: 0.002; rss: 113MB	death checking
+time: 0.001; rss: 113MB	stability checking
+time: 0.000; rss: 113MB	unused lib feature checking
+time: 0.022; rss: 113MB	lint checking
+time: 0.000; rss: 113MB	resolving dependency formats
+  time: 0.000; rss: 113MB	NoLandingPads
+  time: 0.001; rss: 113MB	SimplifyCfg
+  time: 0.004; rss: 113MB	EraseRegions
+  time: 0.000; rss: 113MB	AddCallGuards
+  time: 0.007; rss: 113MB	ElaborateDrops
+  time: 0.000; rss: 113MB	NoLandingPads
+  time: 0.002; rss: 113MB	SimplifyCfg
+  time: 0.002; rss: 113MB	InstCombine
+  time: 0.000; rss: 113MB	Deaggregator
+  time: 0.000; rss: 113MB	CopyPropagation
+  time: 0.002; rss: 113MB	SimplifyLocals
+  time: 0.000; rss: 113MB	AddCallGuards
+  time: 0.000; rss: 113MB	PreTrans
+time: 0.019; rss: 113MB	MIR optimisations
+  time: 0.018; rss: 118MB	write metadata
+  time: 0.042; rss: 123MB	translation item collection
+  time: 0.005; rss: 123MB	codegen unit partitioning
+  time: 0.005; rss: 150MB	internalize symbols
+time: 0.400; rss: 150MB	translation
+time: 0.000; rss: 150MB	assert dep graph
+time: 0.000; rss: 150MB	serialize dep graph
+  time: 0.036; rss: 113MB	llvm function passes [0]
+  time: 0.019; rss: 114MB	llvm module passes [0]
+  time: 0.700; rss: 116MB	codegen passes [0]
+  time: 0.000; rss: 116MB	codegen passes [0]
+time: 0.815; rss: 116MB	LLVM passes
+time: 0.000; rss: 116MB	serialize work products
+time: 0.035; rss: 87MB	linking
+done
