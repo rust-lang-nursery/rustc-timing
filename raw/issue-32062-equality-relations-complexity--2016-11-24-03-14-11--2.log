@@ -1,0 +1,106 @@
+commit 29abe6f9e86829d55ba180a5957f203a64a96b65
+Merge: 696fab8 4be7786
+Author: bors <bors@rust-lang.org>
+Date:   Thu Nov 24 00:26:44 2016 -0600
+
+    Auto merge of #37890 - eddyb:rustdoc-1, r=nrc
+    
+    rustdoc: separate test collection from the main "clean"-ing pipeline.
+    
+    While reusing the documentation "clean"-ing infrastructure for collecting code examples to test may have seemed appealing at some point, doing the same through a HIR visitor is barely any harder.
+    At the same time, supporting both "regular documentation" and "test collection" modes in `rustdoc::clean` has its cost, requiring any use of a `TyCtxt` to be speculative, and provide some sort of fallback.
+    
+    This simplification is the first step towards bringing rustdoc closer to the compiler, and perhaps even unifying the "local crate" (based on the HIR AST) and "inlinined across crates" (based on crate metadata and typesystem information) implementations of rustdoc.
+    
+    Sadly, not all possible changes to rustdoc will be uncontroversial, so I'm starting small with this patch.
+rustc: ./issue-32062-equality-relations-complexity
+cargo rustc  -- -Ztime-passes -Zinput-stats
+   Compiling issue-32062-equality-relations-complexity v0.1.0 (file:///root/benchmarks/issue-32062-equality-relations-complexity)
+time: 0.000; rss: 41MB	parsing
+Lines of code:             60
+Pre-expansion node count:  580
+time: 0.000; rss: 41MB	recursion limit
+time: 0.000; rss: 41MB	crate injection
+time: 0.000; rss: 41MB	plugin loading
+time: 0.000; rss: 41MB	plugin registration
+time: 0.012; rss: 65MB	expansion
+time: 0.000; rss: 65MB	maybe building test harness
+time: 0.000; rss: 65MB	maybe creating a macro crate
+Post-expansion node count: 593
+time: 0.000; rss: 65MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 65MB	complete gated feature checking
+time: 0.000; rss: 65MB	early lint checks
+time: 0.000; rss: 65MB	AST validation
+time: 0.002; rss: 65MB	name resolution
+time: 0.000; rss: 65MB	lowering ast -> hir
+time: 0.000; rss: 65MB	indexing hir
+time: 0.000; rss: 65MB	attribute checking
+time: 0.000; rss: 65MB	language item collection
+time: 0.000; rss: 65MB	lifetime resolution
+time: 0.000; rss: 65MB	looking for entry point
+time: 0.000; rss: 65MB	looking for plugin registrar
+time: 0.000; rss: 65MB	region resolution
+time: 0.000; rss: 65MB	loop checking
+time: 0.000; rss: 65MB	static item recursion checking
+time: 0.000; rss: 65MB	compute_incremental_hashes_map
+time: 0.000; rss: 65MB	load_dep_graph
+time: 0.000; rss: 65MB	type collecting
+time: 0.000; rss: 65MB	variance inference
+time: 0.000; rss: 65MB	impl wf inference
+time: 0.004; rss: 69MB	coherence checking
+time: 0.003; rss: 71MB	wf checking
+time: 0.000; rss: 71MB	item-types checking
+time: 0.011; rss: 71MB	item-bodies checking
+time: 0.000; rss: 71MB	drop-impl checking
+time: 0.000; rss: 71MB	const checking
+time: 0.000; rss: 71MB	privacy checking
+time: 0.000; rss: 71MB	stability index
+time: 0.000; rss: 71MB	intrinsic checking
+time: 0.000; rss: 71MB	effect checking
+time: 0.000; rss: 71MB	match checking
+time: 0.000; rss: 71MB	liveness checking
+time: 0.000; rss: 71MB	rvalue checking
+time: 0.000; rss: 71MB	MIR dump
+  time: 0.000; rss: 71MB	SimplifyCfg
+  time: 0.000; rss: 71MB	QualifyAndPromoteConstants
+  time: 0.000; rss: 71MB	TypeckMir
+  time: 0.000; rss: 71MB	SimplifyBranches
+  time: 0.000; rss: 71MB	SimplifyCfg
+time: 0.000; rss: 71MB	MIR cleanup and validation
+time: 0.001; rss: 71MB	borrow checking
+time: 0.000; rss: 71MB	reachability checking
+time: 0.000; rss: 71MB	death checking
+time: 0.000; rss: 71MB	stability checking
+time: 0.000; rss: 71MB	unused lib feature checking
+time: 0.000; rss: 71MB	lint checking
+time: 0.001; rss: 71MB	resolving dependency formats
+  time: 0.000; rss: 71MB	NoLandingPads
+  time: 0.000; rss: 71MB	SimplifyCfg
+  time: 0.000; rss: 71MB	EraseRegions
+  time: 0.000; rss: 71MB	AddCallGuards
+  time: 0.000; rss: 71MB	ElaborateDrops
+  time: 0.000; rss: 71MB	NoLandingPads
+  time: 0.000; rss: 71MB	SimplifyCfg
+  time: 0.000; rss: 71MB	InstCombine
+  time: 0.000; rss: 71MB	Deaggregator
+  time: 0.000; rss: 71MB	CopyPropagation
+  time: 0.000; rss: 71MB	SimplifyLocals
+  time: 0.000; rss: 71MB	AddCallGuards
+  time: 0.000; rss: 71MB	PreTrans
+time: 0.001; rss: 71MB	MIR optimisations
+  time: 0.000; rss: 71MB	write metadata
+  time: 0.014; rss: 71MB	translation item collection
+  time: 0.000; rss: 71MB	codegen unit partitioning
+  time: 0.000; rss: 71MB	internalize symbols
+time: 0.033; rss: 71MB	translation
+time: 0.000; rss: 71MB	assert dep graph
+time: 0.000; rss: 71MB	serialize dep graph
+  time: 0.000; rss: 71MB	llvm function passes [0]
+  time: 0.000; rss: 71MB	llvm module passes [0]
+  time: 0.010; rss: 79MB	codegen passes [0]
+  time: 0.000; rss: 79MB	codegen passes [0]
+time: 0.012; rss: 79MB	LLVM passes
+time: 0.000; rss: 79MB	serialize work products
+  time: 0.070; rss: 79MB	running linker
+time: 0.071; rss: 79MB	linking
+done

@@ -1,0 +1,105 @@
+commit 29abe6f9e86829d55ba180a5957f203a64a96b65
+Merge: 696fab8 4be7786
+Author: bors <bors@rust-lang.org>
+Date:   Thu Nov 24 00:26:44 2016 -0600
+
+    Auto merge of #37890 - eddyb:rustdoc-1, r=nrc
+    
+    rustdoc: separate test collection from the main "clean"-ing pipeline.
+    
+    While reusing the documentation "clean"-ing infrastructure for collecting code examples to test may have seemed appealing at some point, doing the same through a HIR visitor is barely any harder.
+    At the same time, supporting both "regular documentation" and "test collection" modes in `rustdoc::clean` has its cost, requiring any use of a `TyCtxt` to be speculative, and provide some sort of fallback.
+    
+    This simplification is the first step towards bringing rustdoc closer to the compiler, and perhaps even unifying the "local crate" (based on the HIR AST) and "inlinined across crates" (based on crate metadata and typesystem information) implementations of rustdoc.
+    
+    Sadly, not all possible changes to rustdoc will be uncontroversial, so I'm starting small with this patch.
+rustc: ./html5ever-2016-08-25
+cargo rustc  -- -Ztime-passes -Zinput-stats
+   Compiling html5ever v0.5.4 (file:///root/benchmarks/html5ever-2016-08-25)
+time: 0.023; rss: 50MB	parsing
+Lines of code:             8210
+Pre-expansion node count:  52140
+time: 0.000; rss: 50MB	recursion limit
+time: 0.000; rss: 50MB	crate injection
+time: 0.000; rss: 50MB	plugin loading
+time: 0.000; rss: 50MB	plugin registration
+time: 0.634; rss: 102MB	expansion
+time: 0.000; rss: 102MB	maybe building test harness
+time: 0.002; rss: 102MB	maybe creating a macro crate
+Post-expansion node count: 163412
+time: 0.000; rss: 102MB	checking for inline asm in case the target doesn't support it
+time: 0.002; rss: 102MB	complete gated feature checking
+time: 0.008; rss: 102MB	early lint checks
+time: 0.002; rss: 102MB	AST validation
+time: 0.015; rss: 105MB	name resolution
+time: 0.011; rss: 112MB	lowering ast -> hir
+time: 0.003; rss: 116MB	indexing hir
+time: 0.002; rss: 116MB	attribute checking
+time: 0.001; rss: 96MB	language item collection
+time: 0.002; rss: 96MB	lifetime resolution
+time: 0.000; rss: 96MB	looking for entry point
+time: 0.000; rss: 96MB	looking for plugin registrar
+time: 0.012; rss: 105MB	region resolution
+time: 0.001; rss: 105MB	loop checking
+time: 0.001; rss: 105MB	static item recursion checking
+time: 0.020; rss: 106MB	compute_incremental_hashes_map
+time: 0.000; rss: 106MB	load_dep_graph
+time: 0.009; rss: 106MB	type collecting
+time: 0.000; rss: 106MB	variance inference
+time: 0.000; rss: 106MB	impl wf inference
+time: 0.010; rss: 108MB	coherence checking
+time: 0.020; rss: 109MB	wf checking
+time: 0.260; rss: 115MB	item-types checking
+time: 0.452; rss: 128MB	item-bodies checking
+time: 0.000; rss: 128MB	drop-impl checking
+time: 0.058; rss: 135MB	const checking
+time: 0.005; rss: 135MB	privacy checking
+time: 0.001; rss: 135MB	stability index
+time: 0.003; rss: 135MB	intrinsic checking
+time: 0.002; rss: 135MB	effect checking
+time: 0.014; rss: 135MB	match checking
+time: 0.011; rss: 130MB	liveness checking
+time: 0.021; rss: 130MB	rvalue checking
+time: 0.099; rss: 173MB	MIR dump
+  time: 0.008; rss: 174MB	SimplifyCfg
+  time: 0.013; rss: 176MB	QualifyAndPromoteConstants
+  time: 0.022; rss: 176MB	TypeckMir
+  time: 0.000; rss: 176MB	SimplifyBranches
+  time: 0.004; rss: 176MB	SimplifyCfg
+time: 0.047; rss: 176MB	MIR cleanup and validation
+time: 0.078; rss: 181MB	borrow checking
+time: 0.002; rss: 181MB	reachability checking
+time: 0.005; rss: 181MB	death checking
+time: 0.006; rss: 181MB	stability checking
+time: 0.000; rss: 181MB	unused lib feature checking
+time: 0.053; rss: 181MB	lint checking
+time: 0.000; rss: 181MB	resolving dependency formats
+  time: 0.000; rss: 181MB	NoLandingPads
+  time: 0.003; rss: 181MB	SimplifyCfg
+  time: 0.009; rss: 181MB	EraseRegions
+  time: 0.001; rss: 181MB	AddCallGuards
+  time: 0.072; rss: 187MB	ElaborateDrops
+  time: 0.000; rss: 187MB	NoLandingPads
+  time: 0.007; rss: 183MB	SimplifyCfg
+  time: 0.007; rss: 181MB	InstCombine
+  time: 0.001; rss: 181MB	Deaggregator
+  time: 0.000; rss: 181MB	CopyPropagation
+  time: 0.007; rss: 179MB	SimplifyLocals
+  time: 0.001; rss: 179MB	AddCallGuards
+  time: 0.000; rss: 179MB	PreTrans
+time: 0.110; rss: 179MB	MIR optimisations
+  time: 0.011; rss: 179MB	write metadata
+  time: 0.038; rss: 181MB	translation item collection
+  time: 0.004; rss: 181MB	codegen unit partitioning
+  time: 0.004; rss: 193MB	internalize symbols
+time: 0.259; rss: 193MB	translation
+time: 0.000; rss: 193MB	assert dep graph
+time: 0.000; rss: 193MB	serialize dep graph
+  time: 0.020; rss: 110MB	llvm function passes [0]
+  time: 0.012; rss: 111MB	llvm module passes [0]
+  time: 0.480; rss: 113MB	codegen passes [0]
+  time: 0.000; rss: 113MB	codegen passes [0]
+time: 0.552; rss: 113MB	LLVM passes
+time: 0.000; rss: 113MB	serialize work products
+time: 0.025; rss: 96MB	linking
+done
