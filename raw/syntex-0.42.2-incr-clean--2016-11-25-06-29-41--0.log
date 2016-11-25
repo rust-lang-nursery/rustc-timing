@@ -1,0 +1,131 @@
+commit c78cc52afd99ec0b3dd7f83cd257f0be767a508a
+Merge: 2e7176f 4d0618e
+Author: bors <bors@rust-lang.org>
+Date:   Fri Nov 25 00:22:49 2016 -0600
+
+    Auto merge of #37979 - nnethercote:Ty-super_fold_with, r=eddyb
+    
+    Avoid more unnecessary mk_ty calls in Ty::super_fold_with.
+    
+    This speeds up several rustc-benchmarks by 1--5%.
+    
+    This PR is the lovechild of #37108 and #37705.
+    ```
+    futures-rs-test  4.059s vs  4.011s --> 1.012x faster (variance: 1.016x, 1.026x)
+    helloworld       0.236s vs  0.239s --> 0.986x faster (variance: 1.051x, 1.014x)
+    html5ever-2016-  3.831s vs  3.824s --> 1.002x faster (variance: 1.020x, 1.019x)
+    hyper.0.5.0      4.928s vs  4.936s --> 0.998x faster (variance: 1.003x, 1.012x)
+    inflate-0.1.0    4.135s vs  4.104s --> 1.007x faster (variance: 1.026x, 1.028x)
+    issue-32062-equ  0.309s vs  0.303s --> 1.017x faster (variance: 1.019x, 1.084x)
+    issue-32278-big  1.818s vs  1.797s --> 1.011x faster (variance: 1.011x, 1.008x)
+    jld-day15-parse  1.304s vs  1.271s --> 1.026x faster (variance: 1.018x, 1.012x)
+    piston-image-0. 10.938s vs 10.921s --> 1.002x faster (variance: 1.025x, 1.016x)
+    reddit-stress    2.327s vs  2.208s --> 1.054x faster (variance: 1.016x, 1.006x)
+    regex-0.1.80     8.796s vs  8.727s --> 1.008x faster (variance: 1.012x, 1.019x)
+    regex.0.1.30     2.294s vs  2.249s --> 1.020x faster (variance: 1.013x, 1.026x)
+    rust-encoding-0  1.914s vs  1.886s --> 1.015x faster (variance: 1.027x, 1.026x)
+    ```
+rustc: ./syntex-0.42.2-incr-clean
+RUSTFLAGS="-Z incremental=incr" \
+    cargo rustc -p syntex_syntax  -- \
+    -Ztime-passes -Zinput-stats -Z incremental-info
+   Compiling libc v0.2.15
+   Compiling log v0.3.6
+   Compiling unicode-xid v0.0.3
+   Compiling bitflags v0.5.0
+   Compiling winapi v0.2.8
+   Compiling winapi-build v0.1.1
+   Compiling rustc-serialize v0.3.19
+   Compiling kernel32-sys v0.2.2
+   Compiling term v0.4.4
+   Compiling syntex_pos v0.42.0
+   Compiling syntex_errors v0.42.0
+   Compiling syntex_syntax v0.42.0
+time: 0.091; rss: 72MB	parsing
+Lines of code:             33687
+Pre-expansion node count:  223115
+time: 0.000; rss: 72MB	recursion limit
+time: 0.000; rss: 72MB	crate injection
+time: 0.000; rss: 72MB	plugin loading
+time: 0.000; rss: 72MB	plugin registration
+time: 0.240; rss: 145MB	expansion
+time: 0.000; rss: 145MB	maybe building test harness
+time: 0.006; rss: 145MB	maybe creating a macro crate
+Post-expansion node count: 638863
+time: 0.000; rss: 145MB	checking for inline asm in case the target doesn't support it
+time: 0.012; rss: 145MB	complete gated feature checking
+time: 0.022; rss: 145MB	early lint checks
+time: 0.007; rss: 145MB	AST validation
+time: 0.075; rss: 159MB	name resolution
+time: 0.044; rss: 184MB	lowering ast -> hir
+time: 0.008; rss: 195MB	indexing hir
+time: 0.006; rss: 195MB	attribute checking
+time: 0.004; rss: 150MB	language item collection
+time: 0.010; rss: 150MB	lifetime resolution
+time: 0.000; rss: 150MB	looking for entry point
+time: 0.000; rss: 150MB	looking for plugin registrar
+time: 0.041; rss: 170MB	region resolution
+time: 0.005; rss: 170MB	loop checking
+time: 0.004; rss: 170MB	static item recursion checking
+time: 0.327; rss: 171MB	compute_incremental_hashes_map
+time: 0.000; rss: 171MB	load_dep_graph
+time: 0.045; rss: 175MB	type collecting
+time: 0.001; rss: 175MB	variance inference
+time: 0.002; rss: 175MB	impl wf inference
+time: 0.018; rss: 177MB	coherence checking
+time: 0.085; rss: 179MB	wf checking
+time: 0.176; rss: 182MB	item-types checking
+time: 6.098; rss: 232MB	item-bodies checking
+time: 0.000; rss: 232MB	drop-impl checking
+time: 0.210; rss: 254MB	const checking
+time: 0.047; rss: 254MB	privacy checking
+time: 0.006; rss: 254MB	stability index
+time: 0.017; rss: 254MB	intrinsic checking
+time: 0.014; rss: 254MB	effect checking
+time: 0.045; rss: 254MB	match checking
+time: 0.048; rss: 254MB	liveness checking
+time: 0.173; rss: 254MB	rvalue checking
+time: 0.355; rss: 437MB	MIR dump
+  time: 0.056; rss: 439MB	SimplifyCfg
+  time: 0.074; rss: 439MB	QualifyAndPromoteConstants
+  time: 0.102; rss: 439MB	TypeckMir
+  time: 0.004; rss: 439MB	SimplifyBranches
+  time: 0.030; rss: 439MB	SimplifyCfg
+time: 0.266; rss: 439MB	MIR cleanup and validation
+time: 0.535; rss: 439MB	borrow checking
+time: 0.019; rss: 439MB	reachability checking
+time: 0.038; rss: 439MB	death checking
+time: 0.030; rss: 441MB	stability checking
+time: 0.000; rss: 441MB	unused lib feature checking
+time: 0.191; rss: 441MB	lint checking
+time: 0.000; rss: 441MB	resolving dependency formats
+  time: 0.003; rss: 441MB	NoLandingPads
+  time: 0.026; rss: 441MB	SimplifyCfg
+  time: 0.061; rss: 449MB	EraseRegions
+  time: 0.010; rss: 449MB	AddCallGuards
+  time: 0.265; rss: 463MB	ElaborateDrops
+  time: 0.003; rss: 463MB	NoLandingPads
+  time: 0.051; rss: 463MB	SimplifyCfg
+  time: 0.028; rss: 463MB	InstCombine
+  time: 0.012; rss: 463MB	Deaggregator
+  time: 0.002; rss: 463MB	CopyPropagation
+  time: 0.033; rss: 464MB	SimplifyLocals
+  time: 0.009; rss: 464MB	AddCallGuards
+  time: 0.002; rss: 464MB	PreTrans
+time: 0.508; rss: 464MB	MIR optimisations
+  time: 0.061; rss: 475MB	write metadata
+  time: 0.367; rss: 486MB	translation item collection
+  time: 0.056; rss: 495MB	codegen unit partitioning
+  time: 0.040; rss: 740MB	internalize symbols
+time: 4.449; rss: 740MB	translation
+time: 0.000; rss: 740MB	assert dep graph
+time: 0.000; rss: 740MB	serialize dep graph
+incremental: re-using 0 out of 1 modules
+  time: 0.528; rss: 428MB	llvm function passes [0]
+  time: 0.248; rss: 434MB	llvm module passes [0]
+  time: 10.332; rss: 424MB	codegen passes [0]
+  time: 0.000; rss: 424MB	codegen passes [0]
+time: 11.847; rss: 424MB	LLVM passes
+time: 0.000; rss: 424MB	serialize work products
+time: 0.338; rss: 116MB	linking
+done
