@@ -1,0 +1,127 @@
+commit 0b399e5e99a44cf44d3860d353a8b7619d466410
+Merge: c7ddb89 372c6df
+Author: bors <bors@rust-lang.org>
+Date:   Sun Nov 27 23:32:57 2016 -0600
+
+    Auto merge of #37676 - eddyb:lazy-7, r=nikomatsakis
+    
+    [7/n] rustc: desugar UFCS in HIR and don't use DefMap for associated resolutions.
+    
+    _This is part of a series ([prev](https://github.com/rust-lang/rust/pull/37412) | [next](https://github.com/rust-lang/rust/pull/37688)) of patches designed to rework rustc into an out-of-order on-demand pipeline model for both better feature support (e.g. [MIR-based](https://github.com/solson/miri) early constant evaluation) and incremental execution of compiler passes (e.g. type-checking), with beneficial consequences to IDE support as well.
+    If any motivation is unclear, please ask for additional PR description clarifications or code comments._
+    
+    <hr>
+    
+    Previously, a path like `T::Assoc::method`, while equivalent to `<<T>::Assoc>::method`, wasn't desugared in any way at the HIR level and everything inspecting it had to either deal with knowing only `T` (before typeck) or knowing only the definition of `method` (after typeck).
+    Such a path also had only one `NodeId` and associated resolution during typeck modified `DefMap`, in a way that would be hard for incremental recompilation to track, and inconvenient for partial type conversions from HIR to `Ty`, which are required to break faux-cycles in on-demand type collection.
+    
+    The desugarings performed by this PR are as follows:
+    * `use a::{b,c};` is flattened to `use a as _; use a::b; use a::c;`
+      * as resolution is complete, `use a as _;` doesn't do anything, except get checked for stability
+    * `Vec::new` (an expression) becomes `Vec<..>::new<..>`, to distinguish it from `<Vec>::new<..>`
+      * the "infer all parameters" `<..>` form is internal and not even pretty-printed
+      * used when there are no type parameters at all, in an expression or pattern path segment
+    * `T::A::B` becomes `<<T>::A>::B` in a type, and `<<T<..>>::A<..>>::B<..>` in an expression/pattern
+      * one additional `hir::Ty` node is created for each prefix, starting with the fully-resolved type (`T`) and extending it with each segment (e.g. `<T>::A`)
+    * fully-resolved paths contain their `Def` in HIR, getting rid of the `DefMap` and absolving incremental recompilation of needing to manually look up nodes to handle that side information
+    
+    Not keeping the `DefMap` around meant that associated resolutions had to be stored somewhere else:
+    * expressions and patterns use a new `NodeId -> Def` map in `ty::Tables`
+      * compatible with the future per-body (constant / `fn` / closure) `Tables`
+    * types are accessible via `Ty` and the usual per-item generics / predicates / type
+      * `rustdoc` and `save-analysis` are the only situations which insist on mapping syntactical types to semantical ones, or at least understand the resolution of associated types, therefore the type conversion cache, i.e. a `NodeId -> Ty` map, is exposed by typeck for this purpose
+      * stability had to be split into a pass that runs on HIR and checks the results of name resolution, and impromptu checks triggered by `typeck` for associated paths, methods, fields, etc.
+      * privacy using semantic types results in accurate reachability for `impl Trait`, which fixes #35870, and thorough introspection of associated types, which may allow relaxing private-in-public checking on bounds, while keeping the intended ban on projections with private type parameters
+    
+    cc @petrochenkov
+rustc: ./futures-rs-test-all
+cargo rustc --test all  -- -Ztime-passes -Zinput-stats
+   Compiling futures v0.1.0 (file:///root/benchmarks/futures-rs-test-all)
+time: 0.002; rss: 43MB	parsing
+Lines of code:             412
+Pre-expansion node count:  5286
+time: 0.000; rss: 43MB	recursion limit
+time: 0.000; rss: 43MB	crate injection
+time: 0.000; rss: 43MB	plugin loading
+time: 0.000; rss: 43MB	plugin registration
+time: 0.020; rss: 68MB	expansion
+time: 0.001; rss: 68MB	maybe building test harness
+time: 0.000; rss: 68MB	maybe creating a macro crate
+Post-expansion node count: 10387
+time: 0.000; rss: 68MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 68MB	complete gated feature checking
+time: 0.000; rss: 68MB	early lint checks
+time: 0.000; rss: 68MB	AST validation
+time: 0.003; rss: 68MB	name resolution
+time: 0.001; rss: 68MB	lowering ast -> hir
+time: 0.000; rss: 68MB	indexing hir
+time: 0.000; rss: 68MB	attribute checking
+time: 0.000; rss: 68MB	language item collection
+time: 0.000; rss: 68MB	lifetime resolution
+time: 0.000; rss: 68MB	looking for entry point
+time: 0.000; rss: 68MB	looking for plugin registrar
+time: 0.000; rss: 68MB	region resolution
+time: 0.000; rss: 68MB	loop checking
+time: 0.000; rss: 68MB	static item recursion checking
+time: 0.003; rss: 68MB	compute_incremental_hashes_map
+time: 0.000; rss: 68MB	load_dep_graph
+time: 0.000; rss: 68MB	stability index
+time: 0.000; rss: 68MB	stability checking
+time: 0.004; rss: 74MB	type collecting
+time: 0.000; rss: 74MB	variance inference
+time: 0.000; rss: 74MB	impl wf inference
+time: 0.003; rss: 74MB	coherence checking
+time: 0.006; rss: 74MB	wf checking
+time: 0.002; rss: 74MB	item-types checking
+time: 0.101; rss: 79MB	item-bodies checking
+time: 0.000; rss: 79MB	drop-impl checking
+time: 0.003; rss: 81MB	const checking
+time: 0.000; rss: 81MB	privacy checking
+time: 0.000; rss: 81MB	intrinsic checking
+time: 0.000; rss: 81MB	effect checking
+time: 0.001; rss: 80MB	match checking
+time: 0.000; rss: 80MB	liveness checking
+time: 0.002; rss: 80MB	rvalue checking
+time: 0.006; rss: 82MB	MIR dump
+  time: 0.001; rss: 82MB	SimplifyCfg
+  time: 0.001; rss: 82MB	QualifyAndPromoteConstants
+  time: 0.002; rss: 82MB	TypeckMir
+  time: 0.000; rss: 82MB	SimplifyBranches
+  time: 0.000; rss: 82MB	SimplifyCfg
+time: 0.005; rss: 82MB	MIR cleanup and validation
+time: 0.006; rss: 82MB	borrow checking
+time: 0.000; rss: 82MB	reachability checking
+time: 0.000; rss: 82MB	death checking
+time: 0.000; rss: 82MB	unused lib feature checking
+time: 0.003; rss: 82MB	lint checking
+time: 0.001; rss: 82MB	resolving dependency formats
+  time: 0.000; rss: 82MB	NoLandingPads
+  time: 0.000; rss: 82MB	SimplifyCfg
+  time: 0.001; rss: 82MB	EraseRegions
+  time: 0.000; rss: 82MB	AddCallGuards
+  time: 0.005; rss: 83MB	ElaborateDrops
+  time: 0.000; rss: 83MB	NoLandingPads
+  time: 0.001; rss: 83MB	SimplifyCfg
+  time: 0.000; rss: 83MB	InstCombine
+  time: 0.000; rss: 83MB	Deaggregator
+  time: 0.000; rss: 83MB	CopyPropagation
+  time: 0.000; rss: 83MB	SimplifyLocals
+  time: 0.000; rss: 83MB	AddCallGuards
+  time: 0.000; rss: 83MB	PreTrans
+time: 0.008; rss: 83MB	MIR optimisations
+  time: 0.000; rss: 83MB	write metadata
+  time: 0.136; rss: 98MB	translation item collection
+  time: 0.016; rss: 100MB	codegen unit partitioning
+  time: 0.015; rss: 154MB	internalize symbols
+time: 1.036; rss: 154MB	translation
+time: 0.000; rss: 154MB	assert dep graph
+time: 0.000; rss: 154MB	serialize dep graph
+  time: 0.084; rss: 137MB	llvm function passes [0]
+  time: 0.029; rss: 137MB	llvm module passes [0]
+  time: 1.795; rss: 139MB	codegen passes [0]
+  time: 0.000; rss: 139MB	codegen passes [0]
+time: 1.910; rss: 139MB	LLVM passes
+time: 0.000; rss: 139MB	serialize work products
+  time: 0.164; rss: 86MB	running linker
+time: 0.165; rss: 86MB	linking
+done
