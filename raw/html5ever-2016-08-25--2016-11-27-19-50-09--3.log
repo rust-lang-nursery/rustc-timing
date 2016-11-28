@@ -1,0 +1,100 @@
+commit 03bdaade2a0c39118a5be927c667776a5de0d681
+Merge: 9ca50bd 178e29d
+Author: bors <bors@rust-lang.org>
+Date:   Sun Nov 27 17:06:58 2016 -0600
+
+    Auto merge of #38022 - arthurprs:micro-opt-hm, r=bluss
+    
+    Use displacement instead of initial bucket in HashMap code
+    
+    Use displacement instead of initial bucket in HashMap code. It makes the code a bit cleaner and also saves a few instructions (handy since it'll be using some to do some sort of adaptive behavior soon).
+rustc: ./html5ever-2016-08-25
+cargo rustc  -- -Ztime-passes -Zinput-stats
+   Compiling html5ever v0.5.4 (file:///root/benchmarks/html5ever-2016-08-25)
+time: 0.023; rss: 50MB	parsing
+Lines of code:             8210
+Pre-expansion node count:  52140
+time: 0.000; rss: 50MB	recursion limit
+time: 0.000; rss: 50MB	crate injection
+time: 0.000; rss: 50MB	plugin loading
+time: 0.000; rss: 50MB	plugin registration
+time: 0.634; rss: 102MB	expansion
+time: 0.000; rss: 102MB	maybe building test harness
+time: 0.002; rss: 102MB	maybe creating a macro crate
+Post-expansion node count: 163412
+time: 0.000; rss: 102MB	checking for inline asm in case the target doesn't support it
+time: 0.003; rss: 102MB	complete gated feature checking
+time: 0.008; rss: 102MB	early lint checks
+time: 0.002; rss: 102MB	AST validation
+time: 0.015; rss: 105MB	name resolution
+time: 0.011; rss: 112MB	lowering ast -> hir
+time: 0.002; rss: 116MB	indexing hir
+time: 0.002; rss: 116MB	attribute checking
+time: 0.001; rss: 96MB	language item collection
+time: 0.002; rss: 96MB	lifetime resolution
+time: 0.000; rss: 96MB	looking for entry point
+time: 0.000; rss: 96MB	looking for plugin registrar
+time: 0.010; rss: 104MB	region resolution
+time: 0.001; rss: 104MB	loop checking
+time: 0.001; rss: 104MB	static item recursion checking
+time: 0.020; rss: 105MB	compute_incremental_hashes_map
+time: 0.000; rss: 105MB	load_dep_graph
+time: 0.009; rss: 106MB	type collecting
+time: 0.000; rss: 106MB	variance inference
+time: 0.000; rss: 106MB	impl wf inference
+time: 0.010; rss: 107MB	coherence checking
+time: 0.020; rss: 108MB	wf checking
+time: 0.260; rss: 115MB	item-types checking
+time: 0.451; rss: 128MB	item-bodies checking
+time: 0.000; rss: 128MB	drop-impl checking
+time: 0.056; rss: 135MB	const checking
+time: 0.005; rss: 135MB	privacy checking
+time: 0.001; rss: 135MB	stability index
+time: 0.002; rss: 135MB	intrinsic checking
+time: 0.002; rss: 135MB	effect checking
+time: 0.014; rss: 135MB	match checking
+time: 0.011; rss: 130MB	liveness checking
+time: 0.021; rss: 130MB	rvalue checking
+time: 0.098; rss: 174MB	MIR dump
+  time: 0.008; rss: 174MB	SimplifyCfg
+  time: 0.013; rss: 176MB	QualifyAndPromoteConstants
+  time: 0.022; rss: 176MB	TypeckMir
+  time: 0.000; rss: 176MB	SimplifyBranches
+  time: 0.003; rss: 176MB	SimplifyCfg
+time: 0.047; rss: 176MB	MIR cleanup and validation
+time: 0.077; rss: 181MB	borrow checking
+time: 0.002; rss: 181MB	reachability checking
+time: 0.005; rss: 181MB	death checking
+time: 0.006; rss: 181MB	stability checking
+time: 0.000; rss: 181MB	unused lib feature checking
+time: 0.055; rss: 181MB	lint checking
+time: 0.000; rss: 181MB	resolving dependency formats
+  time: 0.000; rss: 181MB	NoLandingPads
+  time: 0.003; rss: 181MB	SimplifyCfg
+  time: 0.009; rss: 181MB	EraseRegions
+  time: 0.001; rss: 181MB	AddCallGuards
+  time: 0.073; rss: 183MB	ElaborateDrops
+  time: 0.000; rss: 183MB	NoLandingPads
+  time: 0.006; rss: 183MB	SimplifyCfg
+  time: 0.007; rss: 181MB	InstCombine
+  time: 0.001; rss: 181MB	Deaggregator
+  time: 0.000; rss: 181MB	CopyPropagation
+  time: 0.007; rss: 178MB	SimplifyLocals
+  time: 0.001; rss: 178MB	AddCallGuards
+  time: 0.000; rss: 178MB	PreTrans
+time: 0.109; rss: 178MB	MIR optimisations
+  time: 0.011; rss: 179MB	write metadata
+  time: 0.039; rss: 181MB	translation item collection
+  time: 0.004; rss: 181MB	codegen unit partitioning
+  time: 0.004; rss: 196MB	internalize symbols
+time: 0.266; rss: 196MB	translation
+time: 0.000; rss: 196MB	assert dep graph
+time: 0.000; rss: 196MB	serialize dep graph
+  time: 0.020; rss: 111MB	llvm function passes [0]
+  time: 0.013; rss: 113MB	llvm module passes [0]
+  time: 0.477; rss: 114MB	codegen passes [0]
+  time: 0.000; rss: 114MB	codegen passes [0]
+time: 0.550; rss: 114MB	LLVM passes
+time: 0.000; rss: 114MB	serialize work products
+time: 0.024; rss: 96MB	linking
+done
