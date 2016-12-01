@@ -1,0 +1,35 @@
+commit 908dba0c9477b7dd022a236cb1514ddfca9369f2
+Merge: 149e76f 85dc08e
+Author: bors <bors@rust-lang.org>
+Date:   Thu Dec 1 15:21:11 2016 +0000
+
+    Auto merge of #38048 - rkruppe:llvm-stringref-fixes, r=alexcrichton
+    
+    [LLVM 4.0] Don't assume llvm::StringRef is null terminated
+    
+    StringRefs have a length and their contents are not usually null-terminated. The solution is to either copy the string data (in `rustc_llvm::diagnostic`) or take the size into account (in LLVMRustPrintPasses).
+    
+    I couldn't trigger a bug caused by this (apparently all the strings returned in practice are actually null-terminated) but this is more correct and more future-proof.
+    
+    cc #37609
+rustc: ./regex-0.1.80
+git apply 030-compile_one.diff
+find . -name "*.rs" | xargs touch
+git diff
+diff --git a/regex-0.1.80/src/compile.rs b/regex-0.1.80/src/compile.rs
+index 9db743f..9a32d30 100644
+--- a/regex-0.1.80/src/compile.rs
++++ b/regex-0.1.80/src/compile.rs
+@@ -137,6 +137,8 @@ impl Compiler {
+     }
+ 
+     fn compile_one(mut self, expr: &Expr) -> result::Result<Program, Error> {
++        {} // @030
++
+         // If we're compiling a forward DFA and we aren't anchored, then
+         // add a `.*?` before the first capture group.
+         // Other matching engines handle this by baking the logic into the
+RUSTFLAGS="""" cargo rustc  -- \
+  -Ztime-passes -Zinput-stats -Z incremental-info
+makefile:24: recipe for target 'all@030-compile_one' failed
+done
