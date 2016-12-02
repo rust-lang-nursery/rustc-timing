@@ -1,0 +1,108 @@
+commit c80c31a502c838f9ec06f1003d7c61cf9de9d551
+Merge: 2f8fd53 07ff914
+Author: bors <bors@rust-lang.org>
+Date:   Fri Dec 2 15:06:36 2016 +0000
+
+    Auto merge of #38053 - eddyb:lazy-9, r=nikomatsakis
+    
+    [9/n] rustc: move type information out of AdtDef and TraitDef.
+    
+    _This is part of a series ([prev](https://github.com/rust-lang/rust/pull/37688) | [next]()) of patches designed to rework rustc into an out-of-order on-demand pipeline model for both better feature support (e.g. [MIR-based](https://github.com/solson/miri) early constant evaluation) and incremental execution of compiler passes (e.g. type-checking), with beneficial consequences to IDE support as well.
+    If any motivation is unclear, please ask for additional PR description clarifications or code comments._
+    
+    <hr>
+    
+    Both `AdtDef` and `TraitDef` contained type information (field types, generics and predicates) which was required to create them, preventing their use before that type information exists, or in the case of field types, *mutation* was required, leading to a variance-magicking implementation of `ivar`s.
+    
+    This PR takes that information out and the resulting cleaner setup could even eventually end up merged with HIR, because, just like `AssociatedItem` before it, there's no dependency on types anymore.
+    (With one exception, variant discriminants should probably be moved into their own map later.)
+rustc: ./tuple-stress
+cargo rustc  -- -Ztime-passes -Zinput-stats
+time: 0.412; rss: 135MB	parsing
+Lines of code:             65571
+Pre-expansion node count:  393241
+time: 0.000; rss: 135MB	recursion limit
+time: 0.000; rss: 135MB	crate injection
+time: 0.000; rss: 135MB	plugin loading
+time: 0.000; rss: 135MB	plugin registration
+time: 0.092; rss: 157MB	expansion
+time: 0.000; rss: 157MB	maybe building test harness
+time: 0.005; rss: 157MB	maybe creating a macro crate
+Post-expansion node count: 393303
+time: 0.000; rss: 157MB	checking for inline asm in case the target doesn't support it
+time: 0.005; rss: 157MB	complete gated feature checking
+time: 0.034; rss: 157MB	early lint checks
+time: 0.005; rss: 157MB	AST validation
+time: 0.011; rss: 157MB	name resolution
+time: 0.031; rss: 200MB	lowering ast -> hir
+time: 0.008; rss: 217MB	indexing hir
+time: 0.005; rss: 217MB	attribute checking
+time: 0.002; rss: 140MB	language item collection
+time: 0.002; rss: 140MB	lifetime resolution
+time: 0.000; rss: 140MB	looking for entry point
+time: 0.000; rss: 140MB	looking for plugin registrar
+time: 0.051; rss: 163MB	region resolution
+time: 0.002; rss: 163MB	loop checking
+time: 0.004; rss: 163MB	static item recursion checking
+time: 0.210; rss: 163MB	compute_incremental_hashes_map
+time: 0.000; rss: 163MB	load_dep_graph
+time: 0.002; rss: 163MB	stability index
+time: 0.002; rss: 163MB	stability checking
+time: 0.002; rss: 163MB	type collecting
+time: 0.000; rss: 163MB	variance inference
+time: 0.000; rss: 163MB	impl wf inference
+time: 0.003; rss: 165MB	coherence checking
+time: 0.002; rss: 165MB	wf checking
+time: 0.587; rss: 212MB	item-types checking
+time: 0.003; rss: 213MB	item-bodies checking
+time: 0.000; rss: 213MB	drop-impl checking
+time: 0.175; rss: 213MB	const checking
+time: 0.004; rss: 213MB	privacy checking
+time: 0.002; rss: 213MB	intrinsic checking
+time: 0.002; rss: 213MB	effect checking
+time: 0.000; rss: 213MB	match checking
+time: 0.003; rss: 213MB	liveness checking
+time: 0.002; rss: 213MB	rvalue checking
+time: 0.295; rss: 277MB	MIR dump
+  time: 0.000; rss: 277MB	SimplifyCfg
+  time: 0.012; rss: 277MB	QualifyAndPromoteConstants
+  time: 0.036; rss: 277MB	TypeckMir
+  time: 0.000; rss: 277MB	SimplifyBranches
+  time: 0.000; rss: 277MB	SimplifyCfg
+time: 0.048; rss: 277MB	MIR cleanup and validation
+time: 0.004; rss: 277MB	borrow checking
+time: 0.000; rss: 277MB	reachability checking
+time: 0.004; rss: 277MB	death checking
+time: 0.000; rss: 277MB	unused lib feature checking
+time: 0.175; rss: 277MB	lint checking
+time: 0.001; rss: 277MB	resolving dependency formats
+  time: 0.000; rss: 277MB	NoLandingPads
+  time: 0.000; rss: 277MB	SimplifyCfg
+  time: 0.007; rss: 277MB	EraseRegions
+  time: 0.000; rss: 277MB	AddCallGuards
+  time: 0.000; rss: 277MB	ElaborateDrops
+  time: 0.000; rss: 277MB	NoLandingPads
+  time: 0.000; rss: 277MB	SimplifyCfg
+  time: 0.007; rss: 277MB	InstCombine
+  time: 0.000; rss: 277MB	Deaggregator
+  time: 0.000; rss: 277MB	CopyPropagation
+  time: 0.009; rss: 277MB	SimplifyLocals
+  time: 0.000; rss: 277MB	AddCallGuards
+  time: 0.000; rss: 277MB	PreTrans
+time: 0.023; rss: 277MB	MIR optimisations
+  time: 0.000; rss: 277MB	write metadata
+  time: 0.006; rss: 278MB	translation item collection
+  time: 0.000; rss: 278MB	codegen unit partitioning
+  time: 0.000; rss: 304MB	internalize symbols
+time: 0.271; rss: 304MB	translation
+time: 0.000; rss: 304MB	assert dep graph
+time: 0.000; rss: 304MB	serialize dep graph
+  time: 0.023; rss: 126MB	llvm function passes [0]
+  time: 0.000; rss: 126MB	llvm module passes [0]
+  time: 0.317; rss: 126MB	codegen passes [0]
+  time: 0.000; rss: 126MB	codegen passes [0]
+time: 0.342; rss: 126MB	LLVM passes
+time: 0.000; rss: 126MB	serialize work products
+  time: 0.078; rss: 90MB	running linker
+time: 0.079; rss: 90MB	linking
+done
