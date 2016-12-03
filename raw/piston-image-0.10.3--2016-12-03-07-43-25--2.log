@@ -1,0 +1,57 @@
+commit 9a101d8987ea66795db6623f42788db856e7efc8
+Merge: 24175e8 5c0eb6e
+Author: bors <bors@rust-lang.org>
+Date:   Sat Dec 3 11:04:01 2016 +0000
+
+    Auto merge of #38059 - arielb1:no-mere-overflow, r=nikomatsakis
+    
+    evaluate obligations in LIFO order during closure projection
+    
+    This is an annoying gotcha with the projection cache's handling of
+    nested obligations.
+    
+    Nested projection obligations enter the issue in this case:
+    ```
+    DEBUG:rustc::traits::project: AssociatedTypeNormalizer: depth=3
+    normalized
+    <std::iter::Map<std::ops::Range<i32>,
+    [closure@not-a-recursion-error.rs:5:30: 5:53]> as
+    std::iter::IntoIterator>::Item to _#7t with 12 add'l obligations
+    ```
+    
+    Here the normalization result is the result of the nested impl
+    `<[closure@not-a-recursion-error.rs:5:30: 5:53] as FnMut(i32)>::Output`,
+    which is an additional obligation that is a part of "add'l obligations".
+    
+    By itself, this is proper behaviour - the additional obligation is
+    returned, and the RFC 447 rules ensure that it is processed before the
+    output `#_7t` is used in any way.
+    
+    However, the projection cache breaks this - it caches the
+    `<std::iter::Map<std::ops::Range<i32>,[closure@not-a-recursion-error.rs:5:30:
+    5:53]> as std::iter::IntoIterator>::Item = #_7t` resolution. Now
+    everybody else that attempts to look up the projection will just get
+    `#_7t` *without* any additional obligations. This obviously causes all
+    sorts of trouble (here a spurious `EvaluatedToAmbig` results in
+    specializations not being discarded
+    [here](https://github.com/rust-lang/rust/blob/9ca50bd4d50b55456e88a8c3ad8fcc9798f57522/src/librustc/traits/select.rs#L1705)).
+    
+    The compiler works even with this projection cache gotcha because in most
+    cases during "one-pass evaluation". we tend to process obligations in LIFO
+    order - after an obligation is added to the cache, we process its nested
+    obligations before we do anything else (and if we have a cycle, we handle
+    it specifically) - which makes sure the inference variables are resolved
+    before they are used.
+    
+    That "LIFO" order That was not done when projecting out of a closure, so
+    let's just fix that for the time being.
+    
+    Fixes #38033.
+    
+    Beta-nominating because regression.
+    
+    r? @nikomatsakis
+rustc: ./piston-image-0.10.3
+cargo rustc  -- -Ztime-passes -Zinput-stats
+makefile:4: recipe for target 'all' failed
+done

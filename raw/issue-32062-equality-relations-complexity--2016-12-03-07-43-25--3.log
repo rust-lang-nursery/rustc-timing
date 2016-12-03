@@ -1,0 +1,143 @@
+commit 9a101d8987ea66795db6623f42788db856e7efc8
+Merge: 24175e8 5c0eb6e
+Author: bors <bors@rust-lang.org>
+Date:   Sat Dec 3 11:04:01 2016 +0000
+
+    Auto merge of #38059 - arielb1:no-mere-overflow, r=nikomatsakis
+    
+    evaluate obligations in LIFO order during closure projection
+    
+    This is an annoying gotcha with the projection cache's handling of
+    nested obligations.
+    
+    Nested projection obligations enter the issue in this case:
+    ```
+    DEBUG:rustc::traits::project: AssociatedTypeNormalizer: depth=3
+    normalized
+    <std::iter::Map<std::ops::Range<i32>,
+    [closure@not-a-recursion-error.rs:5:30: 5:53]> as
+    std::iter::IntoIterator>::Item to _#7t with 12 add'l obligations
+    ```
+    
+    Here the normalization result is the result of the nested impl
+    `<[closure@not-a-recursion-error.rs:5:30: 5:53] as FnMut(i32)>::Output`,
+    which is an additional obligation that is a part of "add'l obligations".
+    
+    By itself, this is proper behaviour - the additional obligation is
+    returned, and the RFC 447 rules ensure that it is processed before the
+    output `#_7t` is used in any way.
+    
+    However, the projection cache breaks this - it caches the
+    `<std::iter::Map<std::ops::Range<i32>,[closure@not-a-recursion-error.rs:5:30:
+    5:53]> as std::iter::IntoIterator>::Item = #_7t` resolution. Now
+    everybody else that attempts to look up the projection will just get
+    `#_7t` *without* any additional obligations. This obviously causes all
+    sorts of trouble (here a spurious `EvaluatedToAmbig` results in
+    specializations not being discarded
+    [here](https://github.com/rust-lang/rust/blob/9ca50bd4d50b55456e88a8c3ad8fcc9798f57522/src/librustc/traits/select.rs#L1705)).
+    
+    The compiler works even with this projection cache gotcha because in most
+    cases during "one-pass evaluation". we tend to process obligations in LIFO
+    order - after an obligation is added to the cache, we process its nested
+    obligations before we do anything else (and if we have a cycle, we handle
+    it specifically) - which makes sure the inference variables are resolved
+    before they are used.
+    
+    That "LIFO" order That was not done when projecting out of a closure, so
+    let's just fix that for the time being.
+    
+    Fixes #38033.
+    
+    Beta-nominating because regression.
+    
+    r? @nikomatsakis
+rustc: ./issue-32062-equality-relations-complexity
+cargo rustc  -- -Ztime-passes -Zinput-stats
+time: 0.000; rss: 41MB	parsing
+Lines of code:             60
+Pre-expansion node count:  580
+time: 0.000; rss: 41MB	recursion limit
+time: 0.000; rss: 41MB	crate injection
+time: 0.000; rss: 41MB	plugin loading
+time: 0.000; rss: 41MB	plugin registration
+time: 0.012; rss: 63MB	expansion
+time: 0.000; rss: 63MB	maybe building test harness
+time: 0.000; rss: 63MB	maybe creating a macro crate
+Post-expansion node count: 593
+time: 0.000; rss: 63MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 63MB	complete gated feature checking
+time: 0.000; rss: 63MB	early lint checks
+time: 0.000; rss: 63MB	AST validation
+time: 0.001; rss: 63MB	name resolution
+time: 0.000; rss: 63MB	lowering ast -> hir
+time: 0.000; rss: 63MB	indexing hir
+time: 0.000; rss: 63MB	attribute checking
+time: 0.000; rss: 63MB	language item collection
+time: 0.000; rss: 63MB	lifetime resolution
+time: 0.000; rss: 63MB	looking for entry point
+time: 0.000; rss: 63MB	looking for plugin registrar
+time: 0.000; rss: 63MB	region resolution
+time: 0.000; rss: 63MB	loop checking
+time: 0.000; rss: 63MB	static item recursion checking
+time: 0.000; rss: 67MB	compute_incremental_hashes_map
+time: 0.000; rss: 67MB	load_dep_graph
+time: 0.000; rss: 67MB	stability index
+time: 0.000; rss: 67MB	stability checking
+time: 0.000; rss: 67MB	type collecting
+time: 0.000; rss: 67MB	variance inference
+time: 0.000; rss: 67MB	impl wf inference
+time: 0.003; rss: 67MB	coherence checking
+time: 0.003; rss: 71MB	wf checking
+time: 0.000; rss: 71MB	item-types checking
+time: 0.012; rss: 71MB	item-bodies checking
+time: 0.000; rss: 71MB	drop-impl checking
+time: 0.000; rss: 71MB	const checking
+time: 0.000; rss: 71MB	privacy checking
+time: 0.000; rss: 71MB	intrinsic checking
+time: 0.000; rss: 71MB	effect checking
+time: 0.000; rss: 71MB	match checking
+time: 0.000; rss: 71MB	liveness checking
+time: 0.000; rss: 71MB	rvalue checking
+time: 0.000; rss: 71MB	MIR dump
+  time: 0.000; rss: 71MB	SimplifyCfg
+  time: 0.000; rss: 71MB	QualifyAndPromoteConstants
+  time: 0.000; rss: 71MB	TypeckMir
+  time: 0.000; rss: 71MB	SimplifyBranches
+  time: 0.000; rss: 71MB	SimplifyCfg
+time: 0.000; rss: 71MB	MIR cleanup and validation
+time: 0.001; rss: 71MB	borrow checking
+time: 0.000; rss: 71MB	reachability checking
+time: 0.000; rss: 71MB	death checking
+time: 0.000; rss: 71MB	unused lib feature checking
+time: 0.000; rss: 71MB	lint checking
+time: 0.001; rss: 71MB	resolving dependency formats
+  time: 0.000; rss: 71MB	NoLandingPads
+  time: 0.000; rss: 71MB	SimplifyCfg
+  time: 0.000; rss: 71MB	EraseRegions
+  time: 0.000; rss: 71MB	AddCallGuards
+  time: 0.000; rss: 71MB	ElaborateDrops
+  time: 0.000; rss: 71MB	NoLandingPads
+  time: 0.000; rss: 71MB	SimplifyCfg
+  time: 0.000; rss: 71MB	InstCombine
+  time: 0.000; rss: 71MB	Deaggregator
+  time: 0.000; rss: 71MB	CopyPropagation
+  time: 0.000; rss: 71MB	SimplifyLocals
+  time: 0.000; rss: 71MB	AddCallGuards
+  time: 0.000; rss: 71MB	PreTrans
+time: 0.001; rss: 71MB	MIR optimisations
+  time: 0.000; rss: 71MB	write metadata
+  time: 0.012; rss: 71MB	translation item collection
+  time: 0.000; rss: 71MB	codegen unit partitioning
+  time: 0.000; rss: 71MB	internalize symbols
+time: 0.030; rss: 71MB	translation
+time: 0.000; rss: 71MB	assert dep graph
+time: 0.000; rss: 71MB	serialize dep graph
+  time: 0.000; rss: 71MB	llvm function passes [0]
+  time: 0.000; rss: 71MB	llvm module passes [0]
+  time: 0.010; rss: 79MB	codegen passes [0]
+  time: 0.000; rss: 79MB	codegen passes [0]
+time: 0.011; rss: 79MB	LLVM passes
+time: 0.000; rss: 79MB	serialize work products
+  time: 0.071; rss: 79MB	running linker
+time: 0.072; rss: 79MB	linking
+done

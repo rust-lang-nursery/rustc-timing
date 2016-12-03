@@ -1,0 +1,135 @@
+commit 9a101d8987ea66795db6623f42788db856e7efc8
+Merge: 24175e8 5c0eb6e
+Author: bors <bors@rust-lang.org>
+Date:   Sat Dec 3 11:04:01 2016 +0000
+
+    Auto merge of #38059 - arielb1:no-mere-overflow, r=nikomatsakis
+    
+    evaluate obligations in LIFO order during closure projection
+    
+    This is an annoying gotcha with the projection cache's handling of
+    nested obligations.
+    
+    Nested projection obligations enter the issue in this case:
+    ```
+    DEBUG:rustc::traits::project: AssociatedTypeNormalizer: depth=3
+    normalized
+    <std::iter::Map<std::ops::Range<i32>,
+    [closure@not-a-recursion-error.rs:5:30: 5:53]> as
+    std::iter::IntoIterator>::Item to _#7t with 12 add'l obligations
+    ```
+    
+    Here the normalization result is the result of the nested impl
+    `<[closure@not-a-recursion-error.rs:5:30: 5:53] as FnMut(i32)>::Output`,
+    which is an additional obligation that is a part of "add'l obligations".
+    
+    By itself, this is proper behaviour - the additional obligation is
+    returned, and the RFC 447 rules ensure that it is processed before the
+    output `#_7t` is used in any way.
+    
+    However, the projection cache breaks this - it caches the
+    `<std::iter::Map<std::ops::Range<i32>,[closure@not-a-recursion-error.rs:5:30:
+    5:53]> as std::iter::IntoIterator>::Item = #_7t` resolution. Now
+    everybody else that attempts to look up the projection will just get
+    `#_7t` *without* any additional obligations. This obviously causes all
+    sorts of trouble (here a spurious `EvaluatedToAmbig` results in
+    specializations not being discarded
+    [here](https://github.com/rust-lang/rust/blob/9ca50bd4d50b55456e88a8c3ad8fcc9798f57522/src/librustc/traits/select.rs#L1705)).
+    
+    The compiler works even with this projection cache gotcha because in most
+    cases during "one-pass evaluation". we tend to process obligations in LIFO
+    order - after an obligation is added to the cache, we process its nested
+    obligations before we do anything else (and if we have a cycle, we handle
+    it specifically) - which makes sure the inference variables are resolved
+    before they are used.
+    
+    That "LIFO" order That was not done when projecting out of a closure, so
+    let's just fix that for the time being.
+    
+    Fixes #38033.
+    
+    Beta-nominating because regression.
+    
+    r? @nikomatsakis
+rustc: ./regex-0.1.80
+git apply 080-SparseSet.diff
+find . -name "*.rs" | xargs touch
+git diff
+diff --git a/regex-0.1.80/src/compile.rs b/regex-0.1.80/src/compile.rs
+index 9db743f..629328a 100644
+--- a/regex-0.1.80/src/compile.rs
++++ b/regex-0.1.80/src/compile.rs
+@@ -54,6 +54,7 @@ impl Compiler {
+     ///
+     /// Various options can be set before calling `compile` on an expression.
+     pub fn new() -> Self {
++        {}
+         Compiler {
+             insts: vec![],
+             compiled: Program::new(),
+@@ -137,6 +138,8 @@ impl Compiler {
+     }
+ 
+     fn compile_one(mut self, expr: &Expr) -> result::Result<Program, Error> {
++        {} // @030
++
+         // If we're compiling a forward DFA and we aren't anchored, then
+         // add a `.*?` before the first capture group.
+         // Other matching engines handle this by baking the logic into the
+diff --git a/regex-0.1.80/src/expand.rs b/regex-0.1.80/src/expand.rs
+index 9bea703..b4ae1ab 100644
+--- a/regex-0.1.80/src/expand.rs
++++ b/regex-0.1.80/src/expand.rs
+@@ -5,6 +5,7 @@ use memchr::memchr;
+ use bytes::Captures;
+ 
+ pub fn expand(caps: &Captures, mut replacement: &[u8], dst: &mut Vec<u8>) {
++    { }
+     while !replacement.is_empty() {
+         match memchr(b'$', replacement) {
+             None => break,
+@@ -84,6 +85,7 @@ fn find_cap_ref(mut replacement: &[u8]) -> Option<CaptureRef> {
+ }
+ 
+ fn is_valid_cap_letter(b: &u8) -> bool {
++    { }
+     match *b {
+         b'0' ... b'9' | b'a' ... b'z' | b'A' ... b'Z' | b'_' => true,
+         _ => false,
+diff --git a/regex-0.1.80/src/freqs.rs b/regex-0.1.80/src/freqs.rs
+index 92bafc1..6eb5799 100644
+--- a/regex-0.1.80/src/freqs.rs
++++ b/regex-0.1.80/src/freqs.rs
+@@ -12,7 +12,7 @@
+ // edit directly
+ 
+ pub const BYTE_FREQUENCIES: [u8; 256] = [
+-     55, // '\x00'
++     54+1, // '\x00'
+      52, // '\x01'
+      51, // '\x02'
+      50, // '\x03'
+diff --git a/regex-0.1.80/src/sparse.rs b/regex-0.1.80/src/sparse.rs
+index 34c05e7..ef5188e 100644
+--- a/regex-0.1.80/src/sparse.rs
++++ b/regex-0.1.80/src/sparse.rs
+@@ -16,13 +16,13 @@ pub struct SparseSet {
+     /// Dense contains the instruction pointers in the order in which they
+     /// were inserted. Accessing elements >= self.size is illegal.
+     dense: Vec<usize>,
++    /// The number of elements in the set.
++    size: usize,
+     /// Sparse maps instruction pointers to their location in dense.
+     ///
+     /// An instruction pointer is in the set if and only if
+     /// sparse[ip] < size && ip == dense[sparse[ip]].
+     sparse: Vec<usize>,
+-    /// The number of elements in the set.
+-    size: usize,
+ }
+ 
+ impl SparseSet {
+RUSTFLAGS="""" cargo rustc  -- \
+  -Ztime-passes -Zinput-stats -Z incremental-info
+makefile:64: recipe for target 'all@080-SparseSet' failed
+done
