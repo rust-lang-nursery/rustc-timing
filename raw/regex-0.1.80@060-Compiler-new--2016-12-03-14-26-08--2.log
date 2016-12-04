@@ -1,0 +1,73 @@
+commit 2cdbd5eb4255974db204819f9aa49c00b15a6d23
+Merge: 8900854 80ef1db
+Author: bors <bors@rust-lang.org>
+Date:   Sat Dec 3 17:41:14 2016 +0000
+
+    Auto merge of #38079 - BurntSushi:attrtarget, r=alexcrichton
+    
+    Add new #[target_feature = "..."] attribute.
+    
+    This commit adds a new attribute that instructs the compiler to emit
+    target specific code for a single function. For example, the following
+    function is permitted to use instructions that are part of SSE 4.2:
+    
+        #[target_feature = "+sse4.2"]
+        fn foo() { ... }
+    
+    In particular, use of this attribute does not require setting the
+    -C target-feature or -C target-cpu options on rustc.
+    
+    This attribute does not have any protections built into it. For example,
+    nothing stops one from calling the above `foo` function on hosts without
+    SSE 4.2 support. Doing so may result in a SIGILL.
+    
+    I've also expanded the x86 target feature whitelist.
+rustc: ./regex-0.1.80
+git apply 060-Compiler-new.diff
+find . -name "*.rs" | xargs touch
+git diff
+diff --git a/regex-0.1.80/src/compile.rs b/regex-0.1.80/src/compile.rs
+index 9db743f..629328a 100644
+--- a/regex-0.1.80/src/compile.rs
++++ b/regex-0.1.80/src/compile.rs
+@@ -54,6 +54,7 @@ impl Compiler {
+     ///
+     /// Various options can be set before calling `compile` on an expression.
+     pub fn new() -> Self {
++        {}
+         Compiler {
+             insts: vec![],
+             compiled: Program::new(),
+@@ -137,6 +138,8 @@ impl Compiler {
+     }
+ 
+     fn compile_one(mut self, expr: &Expr) -> result::Result<Program, Error> {
++        {} // @030
++
+         // If we're compiling a forward DFA and we aren't anchored, then
+         // add a `.*?` before the first capture group.
+         // Other matching engines handle this by baking the logic into the
+diff --git a/regex-0.1.80/src/expand.rs b/regex-0.1.80/src/expand.rs
+index 9bea703..b4ae1ab 100644
+--- a/regex-0.1.80/src/expand.rs
++++ b/regex-0.1.80/src/expand.rs
+@@ -5,6 +5,7 @@ use memchr::memchr;
+ use bytes::Captures;
+ 
+ pub fn expand(caps: &Captures, mut replacement: &[u8], dst: &mut Vec<u8>) {
++    { }
+     while !replacement.is_empty() {
+         match memchr(b'$', replacement) {
+             None => break,
+@@ -84,6 +85,7 @@ fn find_cap_ref(mut replacement: &[u8]) -> Option<CaptureRef> {
+ }
+ 
+ fn is_valid_cap_letter(b: &u8) -> bool {
++    { }
+     match *b {
+         b'0' ... b'9' | b'a' ... b'z' | b'A' ... b'Z' | b'_' => true,
+         _ => false,
+RUSTFLAGS="""" cargo rustc  -- \
+  -Ztime-passes -Zinput-stats -Z incremental-info
+makefile:48: recipe for target 'all@060-Compiler-new' failed
+done
