@@ -1,0 +1,110 @@
+commit d14d74d5f7d39d1e2583bca231c26bbc0d4ee9a0
+Merge: 125474d f809706
+Author: bors <bors@rust-lang.org>
+Date:   Sun Dec 4 06:38:38 2016 +0000
+
+    Auto merge of #37920 - nikomatsakis:compile-time-regression-37864, r=mw
+    
+    in region, treat current (and future) item-likes alike
+    
+    The `visit_fn` code mutates its surrounding context.  Between *items*,
+    this was saved/restored, but between impl items it was not. This meant
+    that we wound up with `CallSiteScope` entries with two parents (or
+    more!).  As far as I can tell, this is harmless in actual type-checking,
+    since the regions you interact with are always from at most one of those
+    branches. But it can slow things down.
+    
+    Before, the effect was limited, since it only applied to impl items
+    within an impl. After #37660, impl items are visisted all together at
+    the end, and hence this could create a very messed up
+    hierarchy. Isolating impl item properly solves both issues.
+    
+    I cannot come up with a way to unit-test this; for posterity, however,
+    you can observe the messed up hierarchies with a test as simple as the
+    following, which would create a callsite scope with two parents both
+    before and after
+    
+    ```
+    struct Foo {
+    }
+    
+    impl Foo {
+        fn bar(&self) -> usize {
+            22
+        }
+    
+        fn baz(&self) -> usize {
+            22
+        }
+    }
+    
+    fn main() { }
+    ```
+    
+    Fixes #37864.
+    
+    r? @michaelwoerister
+    
+    cc @pnkfelix -- can you think of a way to make a regr test?
+rustc: ./regex-0.1.80
+git apply 070-BYTE_FREQUENCIES.diff
+find . -name "*.rs" | xargs touch
+git diff
+diff --git a/regex-0.1.80/src/compile.rs b/regex-0.1.80/src/compile.rs
+index 9db743f..629328a 100644
+--- a/regex-0.1.80/src/compile.rs
++++ b/regex-0.1.80/src/compile.rs
+@@ -54,6 +54,7 @@ impl Compiler {
+     ///
+     /// Various options can be set before calling `compile` on an expression.
+     pub fn new() -> Self {
++        {}
+         Compiler {
+             insts: vec![],
+             compiled: Program::new(),
+@@ -137,6 +138,8 @@ impl Compiler {
+     }
+ 
+     fn compile_one(mut self, expr: &Expr) -> result::Result<Program, Error> {
++        {} // @030
++
+         // If we're compiling a forward DFA and we aren't anchored, then
+         // add a `.*?` before the first capture group.
+         // Other matching engines handle this by baking the logic into the
+diff --git a/regex-0.1.80/src/expand.rs b/regex-0.1.80/src/expand.rs
+index 9bea703..b4ae1ab 100644
+--- a/regex-0.1.80/src/expand.rs
++++ b/regex-0.1.80/src/expand.rs
+@@ -5,6 +5,7 @@ use memchr::memchr;
+ use bytes::Captures;
+ 
+ pub fn expand(caps: &Captures, mut replacement: &[u8], dst: &mut Vec<u8>) {
++    { }
+     while !replacement.is_empty() {
+         match memchr(b'$', replacement) {
+             None => break,
+@@ -84,6 +85,7 @@ fn find_cap_ref(mut replacement: &[u8]) -> Option<CaptureRef> {
+ }
+ 
+ fn is_valid_cap_letter(b: &u8) -> bool {
++    { }
+     match *b {
+         b'0' ... b'9' | b'a' ... b'z' | b'A' ... b'Z' | b'_' => true,
+         _ => false,
+diff --git a/regex-0.1.80/src/freqs.rs b/regex-0.1.80/src/freqs.rs
+index 92bafc1..6eb5799 100644
+--- a/regex-0.1.80/src/freqs.rs
++++ b/regex-0.1.80/src/freqs.rs
+@@ -12,7 +12,7 @@
+ // edit directly
+ 
+ pub const BYTE_FREQUENCIES: [u8; 256] = [
+-     55, // '\x00'
++     54+1, // '\x00'
+      52, // '\x01'
+      51, // '\x02'
+      50, // '\x03'
+RUSTFLAGS="""" cargo rustc  -- \
+  -Ztime-passes -Zinput-stats -Z incremental-info
+makefile:56: recipe for target 'all@070-BYTE_FREQUENCIES' failed
+done

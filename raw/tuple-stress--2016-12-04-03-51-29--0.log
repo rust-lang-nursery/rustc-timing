@@ -1,0 +1,138 @@
+commit d14d74d5f7d39d1e2583bca231c26bbc0d4ee9a0
+Merge: 125474d f809706
+Author: bors <bors@rust-lang.org>
+Date:   Sun Dec 4 06:38:38 2016 +0000
+
+    Auto merge of #37920 - nikomatsakis:compile-time-regression-37864, r=mw
+    
+    in region, treat current (and future) item-likes alike
+    
+    The `visit_fn` code mutates its surrounding context.  Between *items*,
+    this was saved/restored, but between impl items it was not. This meant
+    that we wound up with `CallSiteScope` entries with two parents (or
+    more!).  As far as I can tell, this is harmless in actual type-checking,
+    since the regions you interact with are always from at most one of those
+    branches. But it can slow things down.
+    
+    Before, the effect was limited, since it only applied to impl items
+    within an impl. After #37660, impl items are visisted all together at
+    the end, and hence this could create a very messed up
+    hierarchy. Isolating impl item properly solves both issues.
+    
+    I cannot come up with a way to unit-test this; for posterity, however,
+    you can observe the messed up hierarchies with a test as simple as the
+    following, which would create a callsite scope with two parents both
+    before and after
+    
+    ```
+    struct Foo {
+    }
+    
+    impl Foo {
+        fn bar(&self) -> usize {
+            22
+        }
+    
+        fn baz(&self) -> usize {
+            22
+        }
+    }
+    
+    fn main() { }
+    ```
+    
+    Fixes #37864.
+    
+    r? @michaelwoerister
+    
+    cc @pnkfelix -- can you think of a way to make a regr test?
+rustc: ./tuple-stress
+cargo rustc  -- -Ztime-passes -Zinput-stats
+time: 0.407; rss: 135MB	parsing
+Lines of code:             65571
+Pre-expansion node count:  393241
+time: 0.000; rss: 135MB	recursion limit
+time: 0.000; rss: 135MB	crate injection
+time: 0.000; rss: 135MB	plugin loading
+time: 0.000; rss: 135MB	plugin registration
+time: 0.093; rss: 157MB	expansion
+time: 0.000; rss: 157MB	maybe building test harness
+time: 0.005; rss: 157MB	maybe creating a macro crate
+Post-expansion node count: 393303
+time: 0.000; rss: 157MB	checking for inline asm in case the target doesn't support it
+time: 0.005; rss: 157MB	complete gated feature checking
+time: 0.033; rss: 157MB	early lint checks
+time: 0.005; rss: 157MB	AST validation
+time: 0.011; rss: 157MB	name resolution
+time: 0.031; rss: 201MB	lowering ast -> hir
+time: 0.008; rss: 217MB	indexing hir
+time: 0.005; rss: 217MB	attribute checking
+time: 0.002; rss: 140MB	language item collection
+time: 0.002; rss: 140MB	lifetime resolution
+time: 0.000; rss: 140MB	looking for entry point
+time: 0.000; rss: 140MB	looking for plugin registrar
+time: 0.051; rss: 164MB	region resolution
+time: 0.002; rss: 164MB	loop checking
+time: 0.004; rss: 164MB	static item recursion checking
+time: 0.212; rss: 164MB	compute_incremental_hashes_map
+time: 0.000; rss: 164MB	load_dep_graph
+time: 0.002; rss: 164MB	stability index
+time: 0.002; rss: 164MB	stability checking
+time: 0.002; rss: 164MB	type collecting
+time: 0.000; rss: 164MB	variance inference
+time: 0.000; rss: 164MB	impl wf inference
+time: 0.003; rss: 166MB	coherence checking
+time: 0.002; rss: 166MB	wf checking
+time: 0.581; rss: 213MB	item-types checking
+time: 0.004; rss: 213MB	item-bodies checking
+time: 0.000; rss: 213MB	drop-impl checking
+time: 0.184; rss: 213MB	const checking
+time: 0.004; rss: 213MB	privacy checking
+time: 0.002; rss: 213MB	intrinsic checking
+time: 0.002; rss: 213MB	effect checking
+time: 0.000; rss: 213MB	match checking
+time: 0.003; rss: 213MB	liveness checking
+time: 0.002; rss: 213MB	rvalue checking
+time: 0.309; rss: 278MB	MIR dump
+  time: 0.000; rss: 278MB	SimplifyCfg
+  time: 0.012; rss: 278MB	QualifyAndPromoteConstants
+  time: 0.036; rss: 278MB	TypeckMir
+  time: 0.000; rss: 278MB	SimplifyBranches
+  time: 0.000; rss: 278MB	SimplifyCfg
+time: 0.049; rss: 278MB	MIR cleanup and validation
+time: 0.004; rss: 278MB	borrow checking
+time: 0.000; rss: 278MB	reachability checking
+time: 0.004; rss: 278MB	death checking
+time: 0.000; rss: 278MB	unused lib feature checking
+time: 0.188; rss: 278MB	lint checking
+time: 0.001; rss: 278MB	resolving dependency formats
+  time: 0.000; rss: 278MB	NoLandingPads
+  time: 0.000; rss: 278MB	SimplifyCfg
+  time: 0.007; rss: 278MB	EraseRegions
+  time: 0.000; rss: 278MB	AddCallGuards
+  time: 0.000; rss: 278MB	ElaborateDrops
+  time: 0.000; rss: 278MB	NoLandingPads
+  time: 0.000; rss: 278MB	SimplifyCfg
+  time: 0.006; rss: 278MB	InstCombine
+  time: 0.000; rss: 278MB	Deaggregator
+  time: 0.000; rss: 278MB	CopyPropagation
+  time: 0.009; rss: 278MB	SimplifyLocals
+  time: 0.000; rss: 278MB	AddCallGuards
+  time: 0.000; rss: 278MB	PreTrans
+time: 0.023; rss: 278MB	MIR optimisations
+  time: 0.000; rss: 278MB	write metadata
+  time: 0.006; rss: 278MB	translation item collection
+  time: 0.000; rss: 278MB	codegen unit partitioning
+  time: 0.000; rss: 305MB	internalize symbols
+time: 0.273; rss: 305MB	translation
+time: 0.000; rss: 305MB	assert dep graph
+time: 0.000; rss: 305MB	serialize dep graph
+  time: 0.030; rss: 127MB	llvm function passes [0]
+  time: 0.000; rss: 127MB	llvm module passes [0]
+  time: 0.338; rss: 127MB	codegen passes [0]
+  time: 0.000; rss: 127MB	codegen passes [0]
+time: 0.369; rss: 127MB	LLVM passes
+time: 0.000; rss: 127MB	serialize work products
+  time: 0.076; rss: 91MB	running linker
+time: 0.077; rss: 91MB	linking
+done
