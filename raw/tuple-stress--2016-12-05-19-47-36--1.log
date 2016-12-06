@@ -1,0 +1,43 @@
+commit 09991241fd75ec69281d06c8f907d2e9f61ac5e2
+Merge: daf8c1d c735d7f
+Author: bors <bors@rust-lang.org>
+Date:   Tue Dec 6 00:17:24 2016 +0000
+
+    Auto merge of #38121 - jonathandturner:better_e0061, r=nikomatsakis
+    
+    Point arg num mismatch errors back to their definition
+    
+    This PR updates the arg num errors (like E0061) to point back at the function definition where they were defined.
+    
+    Before:
+    
+    ```
+    error[E0061]: this function takes 2 parameters but 1 parameter was supplied
+      --> E0061.rs:18:7
+       |
+    18 |     f(0);
+       |       ^
+       |
+       = note: the following parameter types were expected:
+       = note: u16, &str
+    ```
+    
+    Now:
+    
+    ```
+    error[E0061]: this function takes 2 parameters but 1 parameter was supplied
+      --> E0061.rs:18:7
+       |
+    11 | fn f(a: u16, b: &str) {}
+       | ------------------------ defined here
+    ...
+    18 |     f(0);
+       |       ^ expected 2 parameters
+    ```
+    
+    This is an incremental improvement.  We probably want to underline only the function name and also have support for functions defined in crates outside of the current crate.
+    
+    r? @nikomatsakis
+rustc: ./tuple-stress
+cargo rustc  -- -Ztime-passes -Zinput-stats
+done
