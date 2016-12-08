@@ -1,0 +1,104 @@
+commit 816a34aca23f3ebd0fddf79ebdf96c9fae976f58
+Merge: d9aae63 a1882ca
+Author: bors <bors@rust-lang.org>
+Date:   Thu Dec 8 07:05:19 2016 +0000
+
+    Auto merge of #38146 - kali:master, r=alexcrichton
+    
+    fix objc ABI in std::env::args
+    
+    iOS use different calling convention for `objc_msgSend` depending on the platform. armv7 expect good old variadic arguments, but aarch64 wants "normal" convention: `objc_msgSend` has to be called mimicking the actual callee prototype.
+    
+    https://developer.apple.com/library/content/documentation/General/Conceptual/CocoaTouch64BitGuide/ConvertingYourAppto64-Bit/ConvertingYourAppto64-Bit.html#//apple_ref/doc/uid/TP40013501-CH3-SW26
+    
+    This currently breaks std::env:args() on aarch64 iOS devices. As far as I can tell, in the standard library, this is the only occurrence of ObjectiveC dispatching.
+rustc: ./helloworld
+cargo rustc  -- -Ztime-passes -Zinput-stats
+time: 0.000; rss: 41MB	parsing
+Lines of code:             3
+Pre-expansion node count:  8
+time: 0.000; rss: 41MB	recursion limit
+time: 0.000; rss: 41MB	crate injection
+time: 0.000; rss: 41MB	plugin loading
+time: 0.000; rss: 41MB	plugin registration
+time: 0.015; rss: 62MB	expansion
+time: 0.000; rss: 62MB	maybe building test harness
+time: 0.000; rss: 62MB	maybe creating a macro crate
+Post-expansion node count: 68
+time: 0.000; rss: 62MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 62MB	complete gated feature checking
+time: 0.000; rss: 62MB	early lint checks
+time: 0.000; rss: 66MB	AST validation
+time: 0.002; rss: 66MB	name resolution
+time: 0.000; rss: 66MB	lowering ast -> hir
+time: 0.000; rss: 66MB	indexing hir
+time: 0.000; rss: 66MB	attribute checking
+time: 0.000; rss: 66MB	language item collection
+time: 0.000; rss: 66MB	lifetime resolution
+time: 0.000; rss: 66MB	looking for entry point
+time: 0.000; rss: 66MB	looking for plugin registrar
+time: 0.000; rss: 66MB	region resolution
+time: 0.000; rss: 66MB	loop checking
+time: 0.000; rss: 66MB	static item recursion checking
+time: 0.000; rss: 66MB	compute_incremental_hashes_map
+time: 0.000; rss: 66MB	load_dep_graph
+time: 0.000; rss: 66MB	stability index
+time: 0.000; rss: 66MB	stability checking
+time: 0.000; rss: 66MB	type collecting
+time: 0.000; rss: 66MB	variance inference
+time: 0.000; rss: 66MB	impl wf inference
+time: 0.003; rss: 66MB	coherence checking
+time: 0.000; rss: 66MB	wf checking
+time: 0.000; rss: 66MB	item-types checking
+time: 0.000; rss: 66MB	item-bodies checking
+time: 0.000; rss: 66MB	drop-impl checking
+time: 0.000; rss: 66MB	const checking
+time: 0.000; rss: 66MB	privacy checking
+time: 0.000; rss: 66MB	intrinsic checking
+time: 0.000; rss: 66MB	effect checking
+time: 0.000; rss: 66MB	match checking
+time: 0.000; rss: 66MB	liveness checking
+time: 0.000; rss: 66MB	rvalue checking
+time: 0.000; rss: 66MB	MIR dump
+  time: 0.000; rss: 66MB	SimplifyCfg
+  time: 0.000; rss: 66MB	QualifyAndPromoteConstants
+  time: 0.000; rss: 66MB	TypeckMir
+  time: 0.000; rss: 66MB	SimplifyBranches
+  time: 0.000; rss: 66MB	SimplifyCfg
+time: 0.000; rss: 66MB	MIR cleanup and validation
+time: 0.000; rss: 70MB	borrow checking
+time: 0.000; rss: 70MB	reachability checking
+time: 0.000; rss: 70MB	death checking
+time: 0.000; rss: 70MB	unused lib feature checking
+time: 0.000; rss: 70MB	lint checking
+time: 0.001; rss: 70MB	resolving dependency formats
+  time: 0.000; rss: 70MB	NoLandingPads
+  time: 0.000; rss: 70MB	SimplifyCfg
+  time: 0.000; rss: 70MB	EraseRegions
+  time: 0.000; rss: 70MB	AddCallGuards
+  time: 0.000; rss: 70MB	ElaborateDrops
+  time: 0.000; rss: 70MB	NoLandingPads
+  time: 0.000; rss: 70MB	SimplifyCfg
+  time: 0.000; rss: 70MB	InstCombine
+  time: 0.000; rss: 70MB	Deaggregator
+  time: 0.000; rss: 70MB	CopyPropagation
+  time: 0.000; rss: 70MB	SimplifyLocals
+  time: 0.000; rss: 70MB	AddCallGuards
+  time: 0.000; rss: 70MB	PreTrans
+time: 0.000; rss: 70MB	MIR optimisations
+  time: 0.000; rss: 70MB	write metadata
+  time: 0.000; rss: 70MB	translation item collection
+  time: 0.000; rss: 70MB	codegen unit partitioning
+  time: 0.000; rss: 76MB	internalize symbols
+time: 0.044; rss: 76MB	translation
+time: 0.000; rss: 76MB	assert dep graph
+time: 0.000; rss: 76MB	serialize dep graph
+  time: 0.000; rss: 76MB	llvm function passes [0]
+  time: 0.000; rss: 76MB	llvm module passes [0]
+  time: 0.002; rss: 76MB	codegen passes [0]
+  time: 0.000; rss: 76MB	codegen passes [0]
+time: 0.003; rss: 76MB	LLVM passes
+time: 0.000; rss: 76MB	serialize work products
+  time: 0.090; rss: 76MB	running linker
+time: 0.091; rss: 80MB	linking
+done
