@@ -1,0 +1,108 @@
+commit 3db197aa9d343c7974b06a9b18ae5f78d5c64637
+Merge: 6d5ec58 fbc3f11
+Author: bors <bors@rust-lang.org>
+Date:   Sun Dec 11 21:19:34 2016 +0000
+
+    Auto merge of #38265 - bluss:mir-deaggregator-loop, r=nagisa
+    
+    Reinstate while loop in deaggregator pass
+    
+    A previous commit must have removed the `while let` loop here by
+    mistake; for each basic block, it should find and deaggregate multiple
+    statements in their index order, and the `curr` index tracks the
+    progress through the block.
+    
+    This fixes both the case of deaggregating statements in separate
+    basic blocks (preserving `curr` could prevent that) as well
+    as multiple times in the same block (missing loop prevented that).
+    
+    The loop was lost in commit bda46c21fe30377b9587b584c64ffe99da6c14ce.
+rustc: ./syntex-0.42.2
+cargo rustc -p syntex_syntax  -- -Ztime-passes -Zinput-stats
+time: 0.092; rss: 71MB	parsing
+Lines of code:             33687
+Pre-expansion node count:  223115
+time: 0.000; rss: 71MB	recursion limit
+time: 0.000; rss: 71MB	crate injection
+time: 0.000; rss: 71MB	plugin loading
+time: 0.000; rss: 71MB	plugin registration
+time: 0.313; rss: 143MB	expansion
+time: 0.000; rss: 143MB	maybe building test harness
+time: 0.006; rss: 143MB	maybe creating a macro crate
+Post-expansion node count: 638863
+time: 0.000; rss: 143MB	checking for inline asm in case the target doesn't support it
+time: 0.012; rss: 143MB	complete gated feature checking
+time: 0.024; rss: 143MB	early lint checks
+time: 0.007; rss: 143MB	AST validation
+time: 0.104; rss: 158MB	name resolution
+time: 0.120; rss: 191MB	lowering ast -> hir
+time: 0.011; rss: 184MB	indexing hir
+time: 0.006; rss: 184MB	attribute checking
+time: 0.002; rss: 146MB	language item collection
+time: 0.012; rss: 146MB	lifetime resolution
+time: 0.000; rss: 146MB	looking for entry point
+time: 0.000; rss: 146MB	looking for plugin registrar
+time: 0.093; rss: 165MB	region resolution
+time: 0.008; rss: 165MB	loop checking
+time: 0.002; rss: 165MB	static item recursion checking
+time: 0.383; rss: 168MB	compute_incremental_hashes_map
+time: 0.000; rss: 168MB	load_dep_graph
+time: 0.009; rss: 168MB	stability index
+time: 0.017; rss: 168MB	stability checking
+time: 0.049; rss: 172MB	type collecting
+time: 0.002; rss: 172MB	variance inference
+time: 0.003; rss: 173MB	impl wf inference
+time: 0.018; rss: 175MB	coherence checking
+time: 0.084; rss: 177MB	wf checking
+time: 0.188; rss: 181MB	item-types checking
+time: 3.535; rss: 225MB	item-bodies checking
+time: 0.000; rss: 225MB	drop-impl checking
+time: 0.317; rss: 236MB	const checking
+time: 0.057; rss: 236MB	privacy checking
+time: 0.016; rss: 236MB	intrinsic checking
+time: 0.014; rss: 236MB	effect checking
+time: 0.047; rss: 236MB	match checking
+time: 0.051; rss: 242MB	liveness checking
+time: 0.176; rss: 242MB	rvalue checking
+time: 0.590; rss: 415MB	MIR dump
+  time: 0.059; rss: 422MB	SimplifyCfg
+  time: 0.076; rss: 422MB	QualifyAndPromoteConstants
+  time: 0.110; rss: 422MB	TypeckMir
+  time: 0.004; rss: 422MB	SimplifyBranches
+  time: 0.031; rss: 422MB	SimplifyCfg
+time: 0.279; rss: 422MB	MIR cleanup and validation
+time: 0.485; rss: 425MB	borrow checking
+time: 0.024; rss: 425MB	reachability checking
+time: 0.039; rss: 425MB	death checking
+time: 0.000; rss: 425MB	unused lib feature checking
+time: 0.187; rss: 425MB	lint checking
+time: 0.000; rss: 425MB	resolving dependency formats
+  time: 0.003; rss: 425MB	NoLandingPads
+  time: 0.027; rss: 425MB	SimplifyCfg
+  time: 0.081; rss: 433MB	EraseRegions
+  time: 0.011; rss: 433MB	AddCallGuards
+  time: 0.315; rss: 455MB	ElaborateDrops
+  time: 0.003; rss: 455MB	NoLandingPads
+  time: 0.054; rss: 455MB	SimplifyCfg
+  time: 0.029; rss: 455MB	InstCombine
+  time: 0.012; rss: 455MB	Deaggregator
+  time: 0.002; rss: 455MB	CopyPropagation
+  time: 0.035; rss: 455MB	SimplifyLocals
+  time: 0.010; rss: 455MB	AddCallGuards
+  time: 0.002; rss: 455MB	PreTrans
+time: 0.586; rss: 455MB	MIR optimisations
+  time: 0.083; rss: 463MB	write metadata
+  time: 0.407; rss: 477MB	translation item collection
+  time: 0.069; rss: 484MB	codegen unit partitioning
+  time: 0.054; rss: 740MB	internalize symbols
+time: 5.210; rss: 740MB	translation
+time: 0.000; rss: 740MB	assert dep graph
+time: 0.000; rss: 740MB	serialize dep graph
+  time: 0.543; rss: 428MB	llvm function passes [0]
+  time: 0.309; rss: 435MB	llvm module passes [0]
+  time: 10.612; rss: 424MB	codegen passes [0]
+  time: 0.000; rss: 424MB	codegen passes [0]
+time: 12.349; rss: 424MB	LLVM passes
+time: 0.000; rss: 424MB	serialize work products
+time: 0.350; rss: 116MB	linking
+done
