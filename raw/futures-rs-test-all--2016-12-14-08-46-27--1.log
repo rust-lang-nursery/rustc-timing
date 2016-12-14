@@ -1,0 +1,118 @@
+commit 01d53df82ef12625f947f5c0a6004e1aea2f9782
+Merge: 5d3ec6b 5e991e0
+Author: bors <bors@rust-lang.org>
+Date:   Wed Dec 14 09:56:38 2016 +0000
+
+    Auto merge of #38340 - alexcrichton:fix-travis, r=alexcrichton
+    
+    Fix travis builds
+    
+    After reading some articles [1] [2] yesterday about Docker and the "init"
+    process I got to thinking about the problems that we've been seeing on Travis.
+    The basic problem is that a Linux system may need an "init" process to work
+    properly when processes become zombies. Docker by default doesn't handle this
+    and the root process typically isn't an init process, so this can occasionally
+    cause quite a few problems.
+    
+    We've been seeing spurious errors on Travis inside containers which look like
+    OOM and such, but my guess is that zombie processes were being reparented to the
+    top-level shell. The shell didn't expect the zombies and then behaved very
+    strangely.
+    
+    This commit fixes these problems by using Yelp's "dumb-init" program [2] as the
+    init process in all of our containers. This ensures that there's a valid init
+    ready to reap children when they're reparented, which our test suite apparently
+    generates a bunch of throughout the tests and such.
+    
+    [1]: https://blog.phusion.nl/2015/01/20/docker-and-the-pid-1-zombie-reaping-problem/
+    [2]: https://engineeringblog.yelp.com/2016/01/dumb-init-an-init-for-docker.html
+rustc: ./futures-rs-test-all
+cargo rustc --test all  -- -Ztime-passes -Zinput-stats
+time: 0.002; rss: 44MB	parsing
+Lines of code:             412
+Pre-expansion node count:  5286
+time: 0.000; rss: 44MB	recursion limit
+time: 0.000; rss: 44MB	crate injection
+time: 0.000; rss: 44MB	plugin loading
+time: 0.000; rss: 44MB	plugin registration
+time: 0.020; rss: 69MB	expansion
+time: 0.001; rss: 69MB	maybe building test harness
+time: 0.000; rss: 69MB	maybe creating a macro crate
+Post-expansion node count: 10387
+time: 0.000; rss: 69MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 69MB	complete gated feature checking
+time: 0.000; rss: 69MB	early lint checks
+time: 0.000; rss: 69MB	AST validation
+time: 0.003; rss: 69MB	name resolution
+time: 0.001; rss: 69MB	lowering ast -> hir
+time: 0.000; rss: 69MB	indexing hir
+time: 0.000; rss: 69MB	attribute checking
+time: 0.000; rss: 69MB	language item collection
+time: 0.000; rss: 69MB	lifetime resolution
+time: 0.000; rss: 69MB	looking for entry point
+time: 0.000; rss: 69MB	looking for plugin registrar
+time: 0.000; rss: 69MB	region resolution
+time: 0.000; rss: 69MB	loop checking
+time: 0.000; rss: 69MB	static item recursion checking
+time: 0.004; rss: 69MB	compute_incremental_hashes_map
+time: 0.000; rss: 69MB	load_dep_graph
+time: 0.000; rss: 69MB	stability index
+time: 0.000; rss: 69MB	stability checking
+time: 0.003; rss: 75MB	type collecting
+time: 0.000; rss: 75MB	variance inference
+time: 0.000; rss: 75MB	impl wf inference
+time: 0.003; rss: 75MB	coherence checking
+time: 0.006; rss: 75MB	wf checking
+time: 0.002; rss: 75MB	item-types checking
+time: 0.101; rss: 81MB	item-bodies checking
+time: 0.000; rss: 81MB	drop-impl checking
+time: 0.003; rss: 81MB	const checking
+time: 0.000; rss: 81MB	privacy checking
+time: 0.000; rss: 81MB	intrinsic checking
+time: 0.000; rss: 81MB	effect checking
+time: 0.001; rss: 81MB	match checking
+time: 0.001; rss: 82MB	liveness checking
+time: 0.002; rss: 82MB	rvalue checking
+time: 0.006; rss: 83MB	MIR dump
+  time: 0.001; rss: 83MB	SimplifyCfg
+  time: 0.001; rss: 83MB	QualifyAndPromoteConstants
+  time: 0.002; rss: 83MB	TypeckMir
+  time: 0.000; rss: 83MB	SimplifyBranches
+  time: 0.000; rss: 83MB	SimplifyCfg
+time: 0.005; rss: 83MB	MIR cleanup and validation
+time: 0.006; rss: 83MB	borrow checking
+time: 0.000; rss: 83MB	reachability checking
+time: 0.000; rss: 83MB	death checking
+time: 0.000; rss: 83MB	unused lib feature checking
+time: 0.003; rss: 83MB	lint checking
+time: 0.001; rss: 83MB	resolving dependency formats
+  time: 0.000; rss: 83MB	NoLandingPads
+  time: 0.000; rss: 83MB	SimplifyCfg
+  time: 0.001; rss: 83MB	EraseRegions
+  time: 0.000; rss: 83MB	AddCallGuards
+  time: 0.005; rss: 85MB	ElaborateDrops
+  time: 0.000; rss: 85MB	NoLandingPads
+  time: 0.001; rss: 85MB	SimplifyCfg
+  time: 0.000; rss: 85MB	InstCombine
+  time: 0.000; rss: 85MB	Deaggregator
+  time: 0.000; rss: 85MB	CopyPropagation
+  time: 0.000; rss: 85MB	SimplifyLocals
+  time: 0.000; rss: 85MB	AddCallGuards
+  time: 0.000; rss: 85MB	PreTrans
+time: 0.009; rss: 85MB	MIR optimisations
+  time: 0.000; rss: 87MB	write metadata
+  time: 0.134; rss: 99MB	translation item collection
+  time: 0.016; rss: 101MB	codegen unit partitioning
+  time: 0.016; rss: 157MB	internalize symbols
+time: 1.080; rss: 157MB	translation
+time: 0.000; rss: 157MB	assert dep graph
+time: 0.000; rss: 157MB	serialize dep graph
+  time: 0.084; rss: 138MB	llvm function passes [0]
+  time: 0.030; rss: 139MB	llvm module passes [0]
+  time: 1.769; rss: 142MB	codegen passes [0]
+  time: 0.000; rss: 142MB	codegen passes [0]
+time: 1.884; rss: 142MB	LLVM passes
+time: 0.000; rss: 142MB	serialize work products
+  time: 0.155; rss: 88MB	running linker
+time: 0.156; rss: 88MB	linking
+done
