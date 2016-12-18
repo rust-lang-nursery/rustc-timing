@@ -1,0 +1,104 @@
+commit 8327b5afafde7cdd6fd4e939d9a8fe12f76503ef
+Merge: d54e723 ff59474
+Author: bors <bors@rust-lang.org>
+Date:   Sun Dec 18 07:59:32 2016 +0000
+
+    Auto merge of #37429 - camlorn:univariant_layout_optimization, r=eddyb
+    
+    struct field reordering and optimization
+    
+    This is work in progress.  The goal is to divorce the order of fields in source code from the order of fields in the LLVM IR, then optimize structs (and tuples/enum variants)by always ordering fields from least to most aligned.  It does not work yet.  I intend to check compiler memory usage as a benchmark, and a crater run will probably be required.
+    
+    I don't know enough of the compiler to complete this work unaided.  If you see places that still need updating, please mention them.  The only one I know of currently is debuginfo, which I'm putting off intentionally until a bit later.
+    
+    r? @eddyb
+rustc: ./issue-32062-equality-relations-complexity
+cargo rustc  -- -Ztime-passes -Zinput-stats
+time: 0.000; rss: 41MB	parsing
+Lines of code:             60
+Pre-expansion node count:  580
+time: 0.000; rss: 41MB	recursion limit
+time: 0.000; rss: 41MB	crate injection
+time: 0.000; rss: 41MB	plugin loading
+time: 0.000; rss: 41MB	plugin registration
+time: 0.013; rss: 65MB	expansion
+time: 0.000; rss: 65MB	maybe building test harness
+time: 0.000; rss: 65MB	maybe creating a macro crate
+Post-expansion node count: 593
+time: 0.000; rss: 65MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 65MB	complete gated feature checking
+time: 0.000; rss: 65MB	early lint checks
+time: 0.000; rss: 65MB	AST validation
+time: 0.002; rss: 65MB	name resolution
+time: 0.000; rss: 65MB	lowering ast -> hir
+time: 0.000; rss: 65MB	indexing hir
+time: 0.000; rss: 65MB	attribute checking
+time: 0.000; rss: 65MB	language item collection
+time: 0.000; rss: 65MB	lifetime resolution
+time: 0.000; rss: 65MB	looking for entry point
+time: 0.000; rss: 65MB	looking for plugin registrar
+time: 0.000; rss: 65MB	region resolution
+time: 0.000; rss: 65MB	loop checking
+time: 0.000; rss: 65MB	static item recursion checking
+time: 0.000; rss: 65MB	compute_incremental_hashes_map
+time: 0.000; rss: 65MB	load_dep_graph
+time: 0.000; rss: 65MB	stability index
+time: 0.000; rss: 65MB	stability checking
+time: 0.000; rss: 65MB	type collecting
+time: 0.000; rss: 65MB	variance inference
+time: 0.000; rss: 65MB	impl wf inference
+time: 0.003; rss: 65MB	coherence checking
+time: 0.003; rss: 72MB	wf checking
+time: 0.000; rss: 72MB	item-types checking
+time: 0.012; rss: 72MB	item-bodies checking
+time: 0.000; rss: 72MB	drop-impl checking
+time: 0.000; rss: 72MB	const checking
+time: 0.000; rss: 72MB	privacy checking
+time: 0.000; rss: 72MB	intrinsic checking
+time: 0.000; rss: 72MB	effect checking
+time: 0.000; rss: 72MB	match checking
+time: 0.000; rss: 72MB	liveness checking
+time: 0.000; rss: 72MB	rvalue checking
+time: 0.000; rss: 72MB	MIR dump
+  time: 0.000; rss: 72MB	SimplifyCfg
+  time: 0.000; rss: 72MB	QualifyAndPromoteConstants
+  time: 0.000; rss: 72MB	TypeckMir
+  time: 0.000; rss: 72MB	SimplifyBranches
+  time: 0.000; rss: 72MB	SimplifyCfg
+time: 0.000; rss: 72MB	MIR cleanup and validation
+time: 0.001; rss: 72MB	borrow checking
+time: 0.000; rss: 72MB	reachability checking
+time: 0.000; rss: 72MB	death checking
+time: 0.000; rss: 72MB	unused lib feature checking
+time: 0.000; rss: 72MB	lint checking
+time: 0.001; rss: 72MB	resolving dependency formats
+  time: 0.000; rss: 72MB	NoLandingPads
+  time: 0.000; rss: 72MB	SimplifyCfg
+  time: 0.000; rss: 72MB	EraseRegions
+  time: 0.000; rss: 72MB	AddCallGuards
+  time: 0.000; rss: 72MB	ElaborateDrops
+  time: 0.000; rss: 72MB	NoLandingPads
+  time: 0.000; rss: 72MB	SimplifyCfg
+  time: 0.000; rss: 72MB	InstCombine
+  time: 0.000; rss: 72MB	Deaggregator
+  time: 0.000; rss: 72MB	CopyPropagation
+  time: 0.000; rss: 72MB	SimplifyLocals
+  time: 0.000; rss: 72MB	AddCallGuards
+  time: 0.000; rss: 72MB	PreTrans
+time: 0.001; rss: 72MB	MIR optimisations
+  time: 0.000; rss: 72MB	write metadata
+  time: 0.012; rss: 72MB	translation item collection
+  time: 0.000; rss: 72MB	codegen unit partitioning
+  time: 0.000; rss: 74MB	internalize symbols
+time: 0.070; rss: 74MB	translation
+time: 0.000; rss: 74MB	assert dep graph
+time: 0.000; rss: 74MB	serialize dep graph
+  time: 0.001; rss: 74MB	llvm function passes [0]
+  time: 0.000; rss: 74MB	llvm module passes [0]
+  time: 0.010; rss: 82MB	codegen passes [0]
+  time: 0.000; rss: 82MB	codegen passes [0]
+time: 0.012; rss: 82MB	LLVM passes
+time: 0.000; rss: 82MB	serialize work products
+  time: 0.071; rss: 81MB	running linker
+time: 0.071; rss: 81MB	linking
+done
