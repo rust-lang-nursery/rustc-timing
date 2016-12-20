@@ -1,0 +1,107 @@
+commit 94ae2a2e6791e0c4ab6fba836b2b09a07f2d3c8a
+Merge: 3f9823d 83453bc
+Author: bors <bors@rust-lang.org>
+Date:   Mon Dec 19 20:07:49 2016 +0000
+
+    Auto merge of #38072 - nikomatsakis:bootstrap-incremental, r=acrichto
+    
+    add preliminary support for incremental compilation to rustbuild.py
+    
+    This implements the integration described in #37929. It requires the use of a local nightly as your bootstrap compiler. The setup is described in `src/bootstrap/README.md`.
+    
+    This does NOT implement the "copy stage0 libs to stage1" optimization described in #37929, just because that seems orthogonal to me.
+    
+    In local testing, I do not yet see any incremental re-use when building rustc. I'm not sure why that is, more investigation needed.
+    
+    (For these reasons, this is not marked as fixing the relevant issue.)
+    
+    r? @alexcrichton -- I included one random cleanup (`Step::noop()`) that turned out to not be especially relevant. Feel free to tell me you liked it better the old way.
+rustc: ./piston-image-0.10.3
+cargo rustc  -- -Ztime-passes -Zinput-stats
+time: 0.037; rss: 54MB	parsing
+Lines of code:             12000
+Pre-expansion node count:  90152
+time: 0.000; rss: 54MB	recursion limit
+time: 0.000; rss: 54MB	crate injection
+time: 0.000; rss: 54MB	plugin loading
+time: 0.000; rss: 54MB	plugin registration
+time: 0.068; rss: 95MB	expansion
+time: 0.000; rss: 95MB	maybe building test harness
+time: 0.001; rss: 95MB	maybe creating a macro crate
+Post-expansion node count: 148881
+time: 0.000; rss: 95MB	checking for inline asm in case the target doesn't support it
+time: 0.002; rss: 95MB	complete gated feature checking
+time: 0.006; rss: 95MB	early lint checks
+time: 0.001; rss: 95MB	AST validation
+time: 0.017; rss: 97MB	name resolution
+time: 0.015; rss: 108MB	lowering ast -> hir
+time: 0.003; rss: 110MB	indexing hir
+time: 0.001; rss: 110MB	attribute checking
+time: 0.001; rss: 98MB	language item collection
+time: 0.003; rss: 98MB	lifetime resolution
+time: 0.000; rss: 98MB	looking for entry point
+time: 0.000; rss: 98MB	looking for plugin registrar
+time: 0.011; rss: 105MB	region resolution
+time: 0.002; rss: 105MB	loop checking
+time: 0.001; rss: 105MB	static item recursion checking
+time: 0.059; rss: 105MB	compute_incremental_hashes_map
+time: 0.000; rss: 105MB	load_dep_graph
+time: 0.002; rss: 105MB	stability index
+time: 0.004; rss: 105MB	stability checking
+time: 0.015; rss: 107MB	type collecting
+time: 0.000; rss: 107MB	variance inference
+time: 0.000; rss: 108MB	impl wf inference
+time: 0.013; rss: 109MB	coherence checking
+time: 0.064; rss: 110MB	wf checking
+time: 0.136; rss: 114MB	item-types checking
+time: 0.680; rss: 125MB	item-bodies checking
+time: 0.000; rss: 125MB	drop-impl checking
+time: 0.045; rss: 129MB	const checking
+time: 0.011; rss: 129MB	privacy checking
+time: 0.005; rss: 129MB	intrinsic checking
+time: 0.002; rss: 129MB	effect checking
+time: 0.013; rss: 129MB	match checking
+time: 0.008; rss: 130MB	liveness checking
+time: 0.037; rss: 130MB	rvalue checking
+time: 0.085; rss: 170MB	MIR dump
+  time: 0.011; rss: 170MB	SimplifyCfg
+  time: 0.019; rss: 170MB	QualifyAndPromoteConstants
+  time: 0.022; rss: 170MB	TypeckMir
+  time: 0.001; rss: 170MB	SimplifyBranches
+  time: 0.004; rss: 170MB	SimplifyCfg
+time: 0.057; rss: 170MB	MIR cleanup and validation
+time: 0.101; rss: 170MB	borrow checking
+time: 0.003; rss: 170MB	reachability checking
+time: 0.007; rss: 170MB	death checking
+time: 0.000; rss: 170MB	unused lib feature checking
+time: 0.058; rss: 170MB	lint checking
+time: 0.000; rss: 170MB	resolving dependency formats
+  time: 0.000; rss: 170MB	NoLandingPads
+  time: 0.005; rss: 170MB	SimplifyCfg
+  time: 0.011; rss: 170MB	EraseRegions
+  time: 0.002; rss: 170MB	AddCallGuards
+  time: 0.042; rss: 174MB	ElaborateDrops
+  time: 0.001; rss: 174MB	NoLandingPads
+  time: 0.009; rss: 174MB	SimplifyCfg
+  time: 0.006; rss: 174MB	InstCombine
+  time: 0.002; rss: 174MB	Deaggregator
+  time: 0.001; rss: 174MB	CopyPropagation
+  time: 0.007; rss: 174MB	SimplifyLocals
+  time: 0.002; rss: 174MB	AddCallGuards
+  time: 0.000; rss: 174MB	PreTrans
+time: 0.087; rss: 174MB	MIR optimisations
+  time: 0.016; rss: 176MB	write metadata
+  time: 0.404; rss: 220MB	translation item collection
+  time: 0.020; rss: 220MB	codegen unit partitioning
+  time: 0.020; rss: 336MB	internalize symbols
+time: 2.354; rss: 336MB	translation
+time: 0.000; rss: 336MB	assert dep graph
+time: 0.000; rss: 336MB	serialize dep graph
+  time: 0.205; rss: 230MB	llvm function passes [0]
+  time: 0.092; rss: 233MB	llvm module passes [0]
+  time: 4.195; rss: 233MB	codegen passes [0]
+  time: 0.000; rss: 233MB	codegen passes [0]
+time: 4.790; rss: 233MB	LLVM passes
+time: 0.000; rss: 233MB	serialize work products
+time: 0.126; rss: 106MB	linking
+done
