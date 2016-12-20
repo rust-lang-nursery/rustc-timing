@@ -1,0 +1,251 @@
+commit 3038f30f96fe366e910f9a02521c5a06e5cdc653
+Merge: 94ae2a2 cfabce2
+Author: bors <bors@rust-lang.org>
+Date:   Tue Dec 20 17:44:15 2016 +0000
+
+    Auto merge of #38271 - jseyfried:rfc_1560_warning_cycle, r=nrc
+    
+    resolve: change most backwards incompatible ambiguity errors to `legacy_imports` warnings
+    
+    Fixes #38176.
+    r? @nrc or @nikomatsakis
+rustc: ./syntex-0.42.2
+find . -name '*.rs' | xargs touch
+RUSTFLAGS="-Z incremental=incr" \
+    cargo rustc -p syntex_syntax  -- \
+    -Ztime-passes -Zinput-stats -Z incremental-info
+time: 0.092; rss: 75MB	parsing
+Lines of code:             33687
+Pre-expansion node count:  223115
+time: 0.000; rss: 75MB	recursion limit
+time: 0.000; rss: 75MB	crate injection
+time: 0.000; rss: 75MB	plugin loading
+time: 0.000; rss: 75MB	plugin registration
+time: 0.332; rss: 148MB	expansion
+time: 0.000; rss: 148MB	maybe building test harness
+time: 0.007; rss: 148MB	maybe creating a macro crate
+Post-expansion node count: 638863
+time: 0.000; rss: 148MB	checking for inline asm in case the target doesn't support it
+time: 0.014; rss: 148MB	complete gated feature checking
+time: 0.025; rss: 148MB	early lint checks
+time: 0.008; rss: 148MB	AST validation
+time: 0.105; rss: 163MB	name resolution
+time: 0.122; rss: 196MB	lowering ast -> hir
+time: 0.011; rss: 189MB	indexing hir
+time: 0.006; rss: 189MB	attribute checking
+time: 0.002; rss: 151MB	language item collection
+time: 0.015; rss: 152MB	lifetime resolution
+time: 0.000; rss: 152MB	looking for entry point
+time: 0.000; rss: 152MB	looking for plugin registrar
+time: 0.099; rss: 172MB	region resolution
+time: 0.009; rss: 172MB	loop checking
+time: 0.002; rss: 172MB	static item recursion checking
+time: 0.386; rss: 173MB	compute_incremental_hashes_map
+time: 0.000; rss: 173MB	load_dep_graph
+time: 0.009; rss: 174MB	stability index
+time: 0.029; rss: 176MB	stability checking
+time: 0.072; rss: 182MB	type collecting
+time: 0.005; rss: 182MB	variance inference
+time: 0.013; rss: 187MB	impl wf inference
+time: 0.035; rss: 191MB	coherence checking
+time: 0.090; rss: 194MB	wf checking
+time: 0.217; rss: 202MB	item-types checking
+time: 3.810; rss: 254MB	item-bodies checking
+time: 0.000; rss: 254MB	drop-impl checking
+time: 0.429; rss: 266MB	const checking
+time: 0.075; rss: 266MB	privacy checking
+time: 0.046; rss: 273MB	intrinsic checking
+time: 0.019; rss: 273MB	effect checking
+time: 0.069; rss: 273MB	match checking
+time: 0.065; rss: 280MB	liveness checking
+time: 0.208; rss: 280MB	rvalue checking
+time: 0.588; rss: 453MB	MIR dump
+  time: 0.060; rss: 459MB	SimplifyCfg
+  time: 0.077; rss: 459MB	QualifyAndPromoteConstants
+  time: 0.181; rss: 476MB	TypeckMir
+  time: 0.005; rss: 476MB	SimplifyBranches
+  time: 0.034; rss: 477MB	SimplifyCfg
+time: 0.356; rss: 477MB	MIR cleanup and validation
+time: 0.500; rss: 480MB	borrow checking
+time: 0.026; rss: 480MB	reachability checking
+time: 0.045; rss: 480MB	death checking
+time: 0.000; rss: 480MB	unused lib feature checking
+time: 0.185; rss: 480MB	lint checking
+time: 0.000; rss: 480MB	resolving dependency formats
+  time: 0.004; rss: 480MB	NoLandingPads
+  time: 0.029; rss: 480MB	SimplifyCfg
+  time: 0.083; rss: 487MB	EraseRegions
+  time: 0.012; rss: 487MB	AddCallGuards
+  time: 0.318; rss: 510MB	ElaborateDrops
+  time: 0.004; rss: 510MB	NoLandingPads
+  time: 0.054; rss: 510MB	SimplifyCfg
+  time: 0.030; rss: 510MB	InstCombine
+  time: 0.013; rss: 510MB	Deaggregator
+  time: 0.004; rss: 510MB	CopyPropagation
+  time: 0.037; rss: 510MB	SimplifyLocals
+  time: 0.010; rss: 510MB	AddCallGuards
+  time: 0.003; rss: 510MB	PreTrans
+time: 0.600; rss: 510MB	MIR optimisations
+  time: 0.084; rss: 518MB	write metadata
+  time: 0.419; rss: 532MB	translation item collection
+  time: 0.074; rss: 536MB	codegen unit partitioning
+  time: 0.053; rss: 1439MB	internalize symbols
+time: 13.973; rss: 1439MB	translation
+time: 0.000; rss: 1439MB	assert dep graph
+time: 2.053; rss: 1468MB	serialize dep graph
+incremental: re-using 0 out of 50 modules
+time: 0.000; rss: 1177MB	llvm function passes [0]
+time: 0.000; rss: 1177MB	llvm module passes [0]
+time: 0.000; rss: 1177MB	llvm function passes [1]
+time: 0.000; rss: 1177MB	llvm module passes [1]
+time: 0.002; rss: 1180MB	llvm function passes [2]
+time: 0.000; rss: 1180MB	llvm module passes [2]
+time: 0.002; rss: 1180MB	codegen passes [0]
+time: 0.007; rss: 1182MB	llvm function passes [5]
+time: 0.004; rss: 1182MB	llvm function passes [3]
+time: 0.000; rss: 1182MB	llvm module passes [3]
+time: 0.002; rss: 1185MB	llvm module passes [5]
+time: 0.019; rss: 1185MB	llvm function passes [0]
+time: 0.020; rss: 1185MB	codegen passes [1]
+time: 0.001; rss: 1187MB	llvm function passes [8]
+time: 0.000; rss: 1188MB	llvm module passes [8]
+time: 0.016; rss: 1190MB	llvm module passes [0]
+time: 0.039; rss: 1190MB	llvm function passes [4]
+time: 0.026; rss: 1191MB	llvm function passes [1]
+time: 0.024; rss: 1193MB	llvm module passes [4]
+time: 0.040; rss: 1194MB	llvm function passes [10]
+time: 0.054; rss: 1194MB	codegen passes [3]
+time: 0.000; rss: 1195MB	llvm function passes [3]
+time: 0.000; rss: 1195MB	llvm module passes [3]
+time: 0.001; rss: 1195MB	codegen passes [3]
+time: 0.003; rss: 1195MB	llvm function passes [3]
+time: 0.002; rss: 1195MB	llvm module passes [3]
+time: 0.064; rss: 1196MB	codegen passes [2]
+time: 0.001; rss: 1196MB	llvm function passes [2]
+time: 0.000; rss: 1196MB	llvm module passes [2]
+time: 0.034; rss: 1197MB	llvm module passes [10]
+time: 0.082; rss: 1199MB	codegen passes [8]
+time: 0.000; rss: 1199MB	llvm function passes [8]
+time: 0.000; rss: 1199MB	llvm module passes [8]
+time: 0.056; rss: 1200MB	llvm function passes [12]
+time: 0.001; rss: 1200MB	llvm function passes [15]
+time: 0.000; rss: 1200MB	llvm module passes [15]
+time: 0.009; rss: 1201MB	codegen passes [8]
+time: 0.042; rss: 1202MB	codegen passes [2]
+time: 0.016; rss: 1202MB	llvm function passes [20]
+time: 0.000; rss: 1202MB	llvm module passes [20]
+time: 0.033; rss: 1203MB	llvm module passes [12]
+time: 0.144; rss: 1204MB	llvm module passes [1]
+time: 0.031; rss: 1211MB	llvm function passes [30]
+time: 0.001; rss: 1211MB	llvm module passes [30]
+time: 0.177; rss: 1212MB	llvm function passes [13]
+time: 0.066; rss: 1212MB	llvm function passes [26]
+time: 0.004; rss: 1213MB	llvm module passes [26]
+time: 0.213; rss: 1212MB	llvm function passes [9]
+time: 0.067; rss: 1216MB	codegen passes [20]
+time: 0.004; rss: 1217MB	llvm function passes [20]
+time: 0.009; rss: 1220MB	llvm module passes [20]
+time: 0.090; rss: 1221MB	llvm function passes [29]
+time: 0.085; rss: 1221MB	llvm function passes [24]
+time: 0.170; rss: 1223MB	llvm function passes [19]
+time: 0.098; rss: 1224MB	llvm function passes [27]
+time: 0.190; rss: 1228MB	llvm function passes [2]
+time: 0.179; rss: 1229MB	llvm function passes [28]
+time: 0.166; rss: 1230MB	codegen passes [15]
+time: 0.002; rss: 1230MB	codegen passes [40]
+time: 0.196; rss: 1234MB	llvm function passes [25]
+time: 0.094; rss: 1234MB	llvm module passes [27]
+time: 0.031; rss: 1234MB	llvm function passes [41]
+time: 0.160; rss: 1234MB	llvm function passes [34]
+time: 0.275; rss: 1235MB	llvm function passes [16]
+time: 0.042; rss: 1237MB	llvm function passes [39]
+time: 0.006; rss: 1238MB	llvm module passes [39]
+time: 0.126; rss: 1239MB	llvm module passes [24]
+time: 0.026; rss: 1240MB	llvm module passes [34]
+time: 0.030; rss: 1240MB	llvm module passes [41]
+time: 0.141; rss: 1240MB	llvm module passes [29]
+time: 0.208; rss: 1242MB	llvm module passes [13]
+time: 0.447; rss: 1243MB	llvm function passes [6]
+time: 0.109; rss: 1243MB	llvm module passes [2]
+time: 0.183; rss: 1246MB	llvm module passes [19]
+time: 0.062; rss: 1245MB	codegen passes [41]
+time: 0.355; rss: 1247MB	llvm function passes [21]
+time: 0.266; rss: 1248MB	codegen passes [30]
+time: 0.272; rss: 1249MB	llvm function passes [36]
+time: 0.143; rss: 1249MB	llvm module passes [16]
+time: 0.348; rss: 1249MB	codegen passes [3]
+time: 0.551; rss: 1249MB	llvm function passes [7]
+time: 0.438; rss: 1249MB	llvm function passes [17]
+time: 0.178; rss: 1252MB	llvm module passes [25]
+time: 0.226; rss: 1253MB	llvm function passes [37]
+time: 0.225; rss: 1253MB	llvm module passes [28]
+time: 0.426; rss: 1258MB	llvm function passes [32]
+time: 0.504; rss: 1259MB	llvm function passes [18]
+time: 0.097; rss: 1265MB	llvm module passes [36]
+time: 0.432; rss: 1268MB	llvm function passes [33]
+time: 0.403; rss: 1269MB	llvm module passes [9]
+time: 0.353; rss: 1270MB	llvm function passes [38]
+time: 0.536; rss: 1271MB	llvm function passes [8]
+time: 0.651; rss: 1273MB	codegen passes [5]
+time: 0.691; rss: 1278MB	llvm function passes [11]
+time: 0.141; rss: 1278MB	llvm module passes [37]
+time: 0.203; rss: 1278MB	llvm module passes [21]
+time: 0.471; rss: 1280MB	llvm function passes [35]
+time: 0.568; rss: 1282MB	llvm function passes [22]
+time: 0.123; rss: 1282MB	llvm module passes [18]
+time: 0.572; rss: 1282MB	llvm function passes [23]
+time: 0.572; rss: 1282MB	llvm function passes [31]
+time: 0.351; rss: 1284MB	codegen passes [20]
+time: 0.754; rss: 1292MB	llvm function passes [14]
+time: 0.195; rss: 1295MB	llvm module passes [38]
+time: 0.262; rss: 1299MB	llvm module passes [8]
+time: 0.490; rss: 1299MB	llvm module passes [6]
+time: 0.295; rss: 1300MB	llvm module passes [33]
+time: 0.194; rss: 1301MB	llvm module passes [23]
+time: 0.457; rss: 1312MB	llvm module passes [17]
+time: 0.432; rss: 1314MB	llvm module passes [32]
+time: 0.348; rss: 1322MB	llvm module passes [22]
+time: 0.588; rss: 1327MB	llvm module passes [7]
+time: 0.481; rss: 1329MB	llvm module passes [11]
+time: 0.490; rss: 1329MB	llvm module passes [35]
+time: 0.393; rss: 1330MB	llvm module passes [14]
+time: 0.692; rss: 1337MB	codegen passes [39]
+time: 0.567; rss: 1338MB	llvm module passes [31]
+time: 1.211; rss: 1345MB	codegen passes [0]
+time: 1.128; rss: 1348MB	codegen passes [26]
+time: 1.038; rss: 1349MB	codegen passes [4]
+time: 1.390; rss: 1379MB	codegen passes [12]
+time: 1.702; rss: 1401MB	codegen passes [10]
+time: 1.702; rss: 1428MB	codegen passes [29]
+time: 1.970; rss: 1462MB	codegen passes [1]
+time: 1.835; rss: 1454MB	codegen passes [13]
+time: 1.614; rss: 1450MB	codegen passes [34]
+time: 2.021; rss: 1417MB	codegen passes [24]
+time: 2.165; rss: 1417MB	codegen passes [27]
+time: 2.071; rss: 1417MB	codegen passes [28]
+time: 2.161; rss: 1409MB	codegen passes [16]
+time: 2.069; rss: 1410MB	codegen passes [37]
+time: 2.567; rss: 1386MB	codegen passes [19]
+time: 2.047; rss: 1384MB	codegen passes [21]
+time: 2.699; rss: 1451MB	codegen passes [36]
+time: 2.632; rss: 1456MB	codegen passes [25]
+time: 2.616; rss: 1459MB	codegen passes [2]
+time: 2.771; rss: 1496MB	codegen passes [18]
+time: 3.307; rss: 1541MB	codegen passes [9]
+time: 3.939; rss: 1595MB	codegen passes [33]
+time: 3.797; rss: 1614MB	codegen passes [17]
+time: 3.870; rss: 1586MB	codegen passes [22]
+time: 4.007; rss: 1596MB	codegen passes [6]
+time: 4.399; rss: 1558MB	codegen passes [38]
+time: 4.264; rss: 1528MB	codegen passes [23]
+time: 4.360; rss: 1542MB	codegen passes [8]
+time: 4.510; rss: 1505MB	codegen passes [35]
+time: 4.522; rss: 1476MB	codegen passes [32]
+time: 4.620; rss: 1458MB	codegen passes [11]
+time: 4.600; rss: 1405MB	codegen passes [7]
+time: 5.088; rss: 1362MB	codegen passes [31]
+time: 5.148; rss: 1296MB	codegen passes [14]
+time: 8.463; rss: 1296MB	LLVM passes
+time: 0.000; rss: 1296MB	serialize work products
+time: 1.051; rss: 273MB	linking
+done
