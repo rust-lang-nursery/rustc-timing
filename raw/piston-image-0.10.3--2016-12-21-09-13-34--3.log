@@ -1,0 +1,113 @@
+commit 1b38776c1f68c6fd47c1b2f7b7974efc7dd64901
+Merge: 439c312 0013d4c
+Author: bors <bors@rust-lang.org>
+Date:   Wed Dec 21 10:38:22 2016 +0000
+
+    Auto merge of #38302 - Mark-Simulacrum:trans-cleanup, r=eddyb
+    
+    Cleanup old trans
+    
+    This is a cleanup of old trans, with the following main points:
+     - Remove the `build.rs` API (prefer using `Builder` directly, which is now passed where needed through `BlockAndBuilder`).
+     - Remove `Block` (inlining it into `BlockAndBuilder`)
+     - Remove `Callee::call`, primarily through inlining and simplification of code.
+     - Thinned `FunctionContext`:
+       - `mir`, `debug_scopes`, `scopes`, and `fn_ty` are moved to `MirContext`.
+       - `param_env` is moved to `SharedCrateContext` and renamed to `empty_param_env`.
+       - `llretslotptr` is removed, replaced with more careful management of the return values in calls.
+       - `landingpad_alloca` is inlined into cleanup.
+       - `param_substs` are moved to `MirContext`.
+       - `span` is removed, it was never set to anything but `None`.
+       - `block_arena` and `lpad_arena` are removed, since neither was necessary (landing pads and block are quite small, and neither needs arena allocation).
+     - Fixed `drop_in_place` not running other destructors in the same function.
+    
+    Fixes #35566 (thanks to @est31 for confirming).
+rustc: ./piston-image-0.10.3
+cargo rustc  -- -Ztime-passes -Zinput-stats
+time: 0.038; rss: 54MB	parsing
+Lines of code:             12000
+Pre-expansion node count:  90152
+time: 0.000; rss: 54MB	recursion limit
+time: 0.000; rss: 54MB	crate injection
+time: 0.000; rss: 54MB	plugin loading
+time: 0.000; rss: 54MB	plugin registration
+time: 0.068; rss: 96MB	expansion
+time: 0.000; rss: 96MB	maybe building test harness
+time: 0.001; rss: 96MB	maybe creating a macro crate
+Post-expansion node count: 148881
+time: 0.000; rss: 96MB	checking for inline asm in case the target doesn't support it
+time: 0.002; rss: 96MB	complete gated feature checking
+time: 0.005; rss: 96MB	early lint checks
+time: 0.001; rss: 96MB	AST validation
+time: 0.017; rss: 98MB	name resolution
+time: 0.015; rss: 108MB	lowering ast -> hir
+time: 0.003; rss: 110MB	indexing hir
+time: 0.002; rss: 110MB	attribute checking
+time: 0.001; rss: 98MB	language item collection
+time: 0.003; rss: 98MB	lifetime resolution
+time: 0.000; rss: 98MB	looking for entry point
+time: 0.000; rss: 98MB	looking for plugin registrar
+time: 0.010; rss: 106MB	region resolution
+time: 0.002; rss: 106MB	loop checking
+time: 0.000; rss: 106MB	static item recursion checking
+time: 0.058; rss: 106MB	compute_incremental_hashes_map
+time: 0.000; rss: 106MB	load_dep_graph
+time: 0.002; rss: 106MB	stability index
+time: 0.004; rss: 106MB	stability checking
+time: 0.015; rss: 108MB	type collecting
+time: 0.000; rss: 108MB	variance inference
+time: 0.000; rss: 108MB	impl wf inference
+time: 0.013; rss: 110MB	coherence checking
+time: 0.065; rss: 110MB	wf checking
+time: 0.136; rss: 114MB	item-types checking
+time: 0.686; rss: 126MB	item-bodies checking
+time: 0.000; rss: 126MB	drop-impl checking
+time: 0.046; rss: 130MB	const checking
+time: 0.011; rss: 130MB	privacy checking
+time: 0.005; rss: 130MB	intrinsic checking
+time: 0.002; rss: 130MB	effect checking
+time: 0.013; rss: 130MB	match checking
+time: 0.009; rss: 130MB	liveness checking
+time: 0.038; rss: 130MB	rvalue checking
+time: 0.086; rss: 170MB	MIR dump
+  time: 0.011; rss: 170MB	SimplifyCfg
+  time: 0.019; rss: 170MB	QualifyAndPromoteConstants
+  time: 0.022; rss: 170MB	TypeckMir
+  time: 0.001; rss: 170MB	SimplifyBranches
+  time: 0.005; rss: 170MB	SimplifyCfg
+time: 0.058; rss: 170MB	MIR cleanup and validation
+time: 0.102; rss: 170MB	borrow checking
+time: 0.003; rss: 170MB	reachability checking
+time: 0.007; rss: 170MB	death checking
+time: 0.000; rss: 170MB	unused lib feature checking
+time: 0.057; rss: 170MB	lint checking
+time: 0.000; rss: 170MB	resolving dependency formats
+  time: 0.000; rss: 170MB	NoLandingPads
+  time: 0.005; rss: 170MB	SimplifyCfg
+  time: 0.011; rss: 170MB	EraseRegions
+  time: 0.002; rss: 170MB	AddCallGuards
+  time: 0.042; rss: 175MB	ElaborateDrops
+  time: 0.001; rss: 175MB	NoLandingPads
+  time: 0.009; rss: 175MB	SimplifyCfg
+  time: 0.005; rss: 175MB	InstCombine
+  time: 0.002; rss: 175MB	Deaggregator
+  time: 0.000; rss: 175MB	CopyPropagation
+  time: 0.007; rss: 175MB	SimplifyLocals
+  time: 0.002; rss: 175MB	AddCallGuards
+  time: 0.000; rss: 175MB	PreTrans
+time: 0.086; rss: 175MB	MIR optimisations
+  time: 0.016; rss: 177MB	write metadata
+  time: 0.407; rss: 220MB	translation item collection
+  time: 0.020; rss: 220MB	codegen unit partitioning
+  time: 0.020; rss: 337MB	internalize symbols
+time: 2.328; rss: 337MB	translation
+time: 0.000; rss: 337MB	assert dep graph
+time: 0.000; rss: 337MB	serialize dep graph
+  time: 0.205; rss: 231MB	llvm function passes [0]
+  time: 0.092; rss: 233MB	llvm module passes [0]
+  time: 4.169; rss: 233MB	codegen passes [0]
+  time: 0.000; rss: 233MB	codegen passes [0]
+time: 4.765; rss: 233MB	LLVM passes
+time: 0.000; rss: 233MB	serialize work products
+time: 0.127; rss: 106MB	linking
+done
