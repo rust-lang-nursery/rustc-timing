@@ -1,0 +1,207 @@
+commit d86cf13316a885dbc78fc33becbc718c6ff3468c
+Merge: 8d65c8d ecc6010
+Author: bors <bors@rust-lang.org>
+Date:   Sat Dec 24 13:28:37 2016 +0000
+
+    Auto merge of #38062 - alexcrichton:fix-line-writer, r=brson
+    
+    std: Fix partial writes in LineWriter
+    
+    Previously the `LineWriter` could successfully write some bytes but then fail to
+    report that it has done so. Additionally, an erroneous flush after a successful
+    write was permanently ignored. This commit fixes these two issues by (a)
+    maintaining a `need_flush` flag to indicate whether a flush should be the first
+    operation in `LineWriter::write` and (b) avoiding returning an error once some
+    bytes have been successfully written.
+    
+    Closes #37807
+rustc: ./regex-0.1.80@030-compile_one
+git apply 030-compile_one.diff
+find . -name "*.rs" | xargs touch
+git diff
+diff --git a/regex-0.1.80/src/compile.rs b/regex-0.1.80/src/compile.rs
+index 9db743f..9a32d30 100644
+--- a/regex-0.1.80/src/compile.rs
++++ b/regex-0.1.80/src/compile.rs
+@@ -137,6 +137,8 @@ impl Compiler {
+     }
+ 
+     fn compile_one(mut self, expr: &Expr) -> result::Result<Program, Error> {
++        {} // @030
++
+         // If we're compiling a forward DFA and we aren't anchored, then
+         // add a `.*?` before the first capture group.
+         // Other matching engines handle this by baking the logic into the
+RUSTFLAGS="-Z incremental=incr" cargo rustc  -- \
+  -Ztime-passes -Zinput-stats -Z incremental-info
+time: 0.024; rss: 54MB	parsing
+Lines of code:             10691
+Pre-expansion node count:  55399
+time: 0.000; rss: 54MB	recursion limit
+time: 0.000; rss: 54MB	crate injection
+time: 0.000; rss: 54MB	plugin loading
+time: 0.000; rss: 54MB	plugin registration
+time: 0.044; rss: 86MB	expansion
+time: 0.000; rss: 86MB	maybe building test harness
+time: 0.001; rss: 86MB	maybe creating a macro crate
+Post-expansion node count: 86872
+time: 0.000; rss: 86MB	checking for inline asm in case the target doesn't support it
+time: 0.001; rss: 86MB	complete gated feature checking
+time: 0.003; rss: 86MB	early lint checks
+time: 0.001; rss: 86MB	AST validation
+time: 0.010; rss: 88MB	name resolution
+time: 0.008; rss: 92MB	lowering ast -> hir
+time: 0.001; rss: 95MB	indexing hir
+time: 0.001; rss: 95MB	attribute checking
+time: 0.000; rss: 89MB	language item collection
+time: 0.002; rss: 89MB	lifetime resolution
+time: 0.000; rss: 89MB	looking for entry point
+time: 0.000; rss: 89MB	looking for plugin registrar
+time: 0.005; rss: 93MB	region resolution
+time: 0.001; rss: 93MB	loop checking
+time: 0.000; rss: 93MB	static item recursion checking
+time: 0.034; rss: 93MB	compute_incremental_hashes_map
+incremental: session directory: 45 files hard-linked
+incremental: session directory: 0 files copied
+incremental: module WorkProduct(WorkProductId("regex-literals")) is dirty because Hir("regex/487ea9dfbd1eb8b5ec8d0b2a966660e2::compile[0]::MaybeInst[0]") changed or was removed
+incremental: module WorkProduct(WorkProductId("regex-re_unicode")) is dirty because Hir("regex/487ea9dfbd1eb8b5ec8d0b2a966660e2::compile[0]::{{impl}}[13]") changed or was removed
+incremental: module WorkProduct(WorkProductId("regex-error")) is dirty because Hir("regex/487ea9dfbd1eb8b5ec8d0b2a966660e2::compile[0]::SuffixCacheKey[0]") changed or was removed
+incremental: module WorkProduct(WorkProductId("regex-re_bytes")) is dirty because Hir("regex/487ea9dfbd1eb8b5ec8d0b2a966660e2::compile[0]::MaybeInst[0]") changed or was removed
+incremental: module WorkProduct(WorkProductId("regex-re_plugin")) is dirty because Hir("regex/487ea9dfbd1eb8b5ec8d0b2a966660e2::compile[0]::Hole[0]") changed or was removed
+incremental: module WorkProduct(WorkProductId("regex-re_builder-bytes")) is dirty because Hir("regex/487ea9dfbd1eb8b5ec8d0b2a966660e2::compile[0]::InstHole[0]") changed or was removed
+incremental: module WorkProduct(WorkProductId("regex-expand")) is dirty because Hir("regex/487ea9dfbd1eb8b5ec8d0b2a966660e2::compile[0]::InstHole[0]") changed or was removed
+incremental: module WorkProduct(WorkProductId("regex-pikevm")) is dirty because Hir("regex/487ea9dfbd1eb8b5ec8d0b2a966660e2::compile[0]::Hole[0]") changed or was removed
+incremental: module WorkProduct(WorkProductId("regex-prog")) is dirty because Hir("regex/487ea9dfbd1eb8b5ec8d0b2a966660e2::compile[0]::{{impl}}[13]") changed or was removed
+incremental: module WorkProduct(WorkProductId("regex-compile")) is dirty because Hir("regex/487ea9dfbd1eb8b5ec8d0b2a966660e2::compile[0]::MaybeInst[0]") changed or was removed
+incremental: module WorkProduct(WorkProductId("regex-sparse")) is dirty because Hir("regex/487ea9dfbd1eb8b5ec8d0b2a966660e2::compile[0]::{{impl}}[12]") changed or was removed
+incremental: module WorkProduct(WorkProductId("regex-utf8")) is dirty because Hir("regex/487ea9dfbd1eb8b5ec8d0b2a966660e2::compile[0]::Hole[0]") changed or was removed
+incremental: module WorkProduct(WorkProductId("regex-re_set-unicode")) is dirty because Hir("regex/487ea9dfbd1eb8b5ec8d0b2a966660e2::compile[0]::SuffixCacheEntry[0]") changed or was removed
+incremental: module WorkProduct(WorkProductId("regex-re_builder")) is dirty because Hir("regex/487ea9dfbd1eb8b5ec8d0b2a966660e2::compile[0]::Hole[0]") changed or was removed
+incremental: module WorkProduct(WorkProductId("regex-dfa")) is dirty because Hir("regex/487ea9dfbd1eb8b5ec8d0b2a966660e2::compile[0]::Hole[0]") changed or was removed
+incremental: module WorkProduct(WorkProductId("regex-re_builder-unicode")) is dirty because Hir("regex/487ea9dfbd1eb8b5ec8d0b2a966660e2::compile[0]::InstHole[0]") changed or was removed
+incremental: module WorkProduct(WorkProductId("regex-simd_accel-teddy128")) is dirty because Hir("regex/487ea9dfbd1eb8b5ec8d0b2a966660e2::compile[0]::SuffixCacheEntry[0]") changed or was removed
+incremental: module WorkProduct(WorkProductId("regex-input")) is dirty because Hir("regex/487ea9dfbd1eb8b5ec8d0b2a966660e2::compile[0]::{{impl}}[13]") changed or was removed
+incremental: module WorkProduct(WorkProductId("regex-re_set-bytes")) is dirty because Hir("regex/487ea9dfbd1eb8b5ec8d0b2a966660e2::compile[0]::InstHole[0]") changed or was removed
+incremental: module WorkProduct(WorkProductId("regex-exec")) is dirty because Hir("regex/487ea9dfbd1eb8b5ec8d0b2a966660e2::compile[0]::SuffixCacheEntry[0]") changed or was removed
+incremental: module WorkProduct(WorkProductId("regex-backtrack")) is dirty because Hir("regex/487ea9dfbd1eb8b5ec8d0b2a966660e2::compile[0]::InstHole[0]") changed or was removed
+time: 0.022; rss: 93MB	load_dep_graph
+time: 0.002; rss: 93MB	stability index
+time: 0.002; rss: 93MB	stability checking
+time: 0.012; rss: 96MB	type collecting
+time: 0.001; rss: 96MB	variance inference
+time: 0.001; rss: 96MB	impl wf inference
+time: 0.015; rss: 102MB	coherence checking
+time: 0.021; rss: 103MB	wf checking
+time: 0.123; rss: 111MB	item-types checking
+time: 0.297; rss: 122MB	item-bodies checking
+time: 0.000; rss: 122MB	drop-impl checking
+time: 0.039; rss: 150MB	const checking
+time: 0.007; rss: 150MB	privacy checking
+time: 0.002; rss: 150MB	intrinsic checking
+time: 0.001; rss: 150MB	effect checking
+time: 0.005; rss: 150MB	match checking
+time: 0.004; rss: 151MB	liveness checking
+time: 0.016; rss: 151MB	rvalue checking
+time: 0.043; rss: 172MB	MIR dump
+  time: 0.006; rss: 173MB	SimplifyCfg
+  time: 0.009; rss: 173MB	QualifyAndPromoteConstants
+  time: 0.012; rss: 173MB	TypeckMir
+  time: 0.000; rss: 173MB	SimplifyBranches
+  time: 0.003; rss: 173MB	SimplifyCfg
+time: 0.031; rss: 173MB	MIR cleanup and validation
+time: 0.046; rss: 173MB	borrow checking
+time: 0.001; rss: 173MB	reachability checking
+time: 0.004; rss: 173MB	death checking
+time: 0.000; rss: 173MB	unused lib feature checking
+time: 0.029; rss: 173MB	lint checking
+time: 0.000; rss: 173MB	resolving dependency formats
+  time: 0.000; rss: 173MB	NoLandingPads
+  time: 0.003; rss: 173MB	SimplifyCfg
+  time: 0.008; rss: 173MB	EraseRegions
+  time: 0.001; rss: 173MB	AddCallGuards
+  time: 0.017; rss: 175MB	ElaborateDrops
+  time: 0.000; rss: 175MB	NoLandingPads
+  time: 0.004; rss: 175MB	SimplifyCfg
+  time: 0.003; rss: 175MB	InstCombine
+  time: 0.002; rss: 175MB	Deaggregator
+  time: 0.000; rss: 175MB	CopyPropagation
+  time: 0.004; rss: 175MB	SimplifyLocals
+  time: 0.001; rss: 175MB	AddCallGuards
+  time: 0.000; rss: 175MB	PreTrans
+time: 0.044; rss: 175MB	MIR optimisations
+  time: 0.008; rss: 177MB	write metadata
+  time: 0.085; rss: 182MB	translation item collection
+  time: 0.014; rss: 187MB	codegen unit partitioning
+  time: 0.012; rss: 311MB	internalize symbols
+time: 1.687; rss: 311MB	translation
+time: 0.000; rss: 311MB	assert dep graph
+time: 0.123; rss: 320MB	serialize dep graph
+incremental: re-using 0 out of 21 modules
+time: 0.001; rss: 251MB	llvm function passes [0]
+time: 0.000; rss: 251MB	llvm module passes [0]
+time: 0.002; rss: 255MB	llvm function passes [2]
+time: 0.000; rss: 255MB	llvm module passes [2]
+time: 0.003; rss: 255MB	llvm function passes [1]
+time: 0.001; rss: 260MB	llvm module passes [1]
+time: 0.002; rss: 266MB	llvm function passes [16]
+time: 0.001; rss: 266MB	llvm module passes [16]
+time: 0.001; rss: 260MB	llvm function passes [9]
+time: 0.000; rss: 266MB	llvm module passes [9]
+time: 0.018; rss: 266MB	llvm function passes [4]
+time: 0.020; rss: 266MB	llvm function passes [7]
+time: 0.015; rss: 266MB	llvm function passes [6]
+time: 0.020; rss: 270MB	llvm function passes [8]
+time: 0.003; rss: 270MB	llvm module passes [8]
+time: 0.006; rss: 270MB	llvm module passes [6]
+time: 0.032; rss: 272MB	llvm function passes [12]
+time: 0.012; rss: 272MB	llvm function passes [13]
+time: 0.002; rss: 272MB	llvm module passes [13]
+time: 0.044; rss: 274MB	llvm function passes [3]
+time: 0.021; rss: 285MB	llvm function passes [15]
+time: 0.047; rss: 285MB	codegen passes [0]
+time: 0.004; rss: 287MB	llvm function passes [10]
+time: 0.002; rss: 287MB	llvm function passes [0]
+time: 0.001; rss: 287MB	llvm module passes [0]
+time: 0.002; rss: 287MB	llvm module passes [10]
+time: 0.043; rss: 289MB	codegen passes [16]
+time: 0.055; rss: 289MB	codegen passes [2]
+time: 0.003; rss: 289MB	llvm function passes [2]
+time: 0.001; rss: 289MB	llvm module passes [2]
+time: 0.059; rss: 300MB	codegen passes [9]
+time: 0.025; rss: 302MB	llvm module passes [15]
+time: 0.029; rss: 302MB	llvm function passes [20]
+time: 0.000; rss: 306MB	codegen passes [19]
+time: 0.077; rss: 307MB	codegen passes [1]
+time: 0.048; rss: 309MB	llvm function passes [5]
+time: 0.061; rss: 309MB	llvm function passes [17]
+time: 0.047; rss: 309MB	llvm function passes [16]
+time: 0.044; rss: 315MB	llvm module passes [20]
+time: 0.070; rss: 320MB	codegen passes [0]
+time: 0.084; rss: 320MB	codegen passes [13]
+time: 0.036; rss: 321MB	llvm module passes [17]
+time: 0.070; rss: 321MB	codegen passes [2]
+time: 0.052; rss: 322MB	llvm module passes [5]
+time: 0.060; rss: 330MB	llvm module passes [16]
+time: 0.151; rss: 337MB	llvm module passes [7]
+time: 0.125; rss: 338MB	codegen passes [10]
+time: 0.121; rss: 336MB	llvm function passes [11]
+time: 0.170; rss: 336MB	llvm module passes [4]
+time: 0.163; rss: 339MB	codegen passes [6]
+time: 0.184; rss: 335MB	codegen passes [8]
+time: 0.169; rss: 339MB	codegen passes [20]
+time: 0.364; rss: 370MB	codegen passes [15]
+time: 0.489; rss: 376MB	llvm module passes [12]
+time: 0.523; rss: 383MB	llvm module passes [3]
+time: 0.418; rss: 389MB	llvm module passes [11]
+time: 0.418; rss: 394MB	codegen passes [17]
+time: 0.467; rss: 389MB	codegen passes [5]
+time: 0.446; rss: 370MB	codegen passes [7]
+time: 0.479; rss: 368MB	codegen passes [4]
+time: 0.572; rss: 364MB	codegen passes [16]
+time: 0.610; rss: 403MB	codegen passes [12]
+time: 0.687; rss: 382MB	codegen passes [3]
+time: 0.732; rss: 360MB	codegen passes [11]
+time: 1.456; rss: 358MB	LLVM passes
+time: 0.000; rss: 358MB	serialize work products
+time: 0.207; rss: 175MB	linking
+done
