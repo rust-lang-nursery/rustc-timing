@@ -1,0 +1,109 @@
+commit 469fd779ee24f8348acd438f471c8c3a5cef309a
+Merge: 17f1fba a6fe6c9
+Author: bors <bors@rust-lang.org>
+Date:   Wed Dec 28 09:42:46 2016 +0000
+
+    Auto merge of #38616 - pnkfelix:refactor-mir-dataflow-remove-ctxt, r=arielb1
+    
+    Refactor mir::dataflow: remove Ctxt associated type from BitDenotation trait
+    
+    Refactor mir::dataflow: remove Ctxt associated type from BitDenotation trait
+    
+    I no longer remember why I needed this (or thought I did). The way
+    that the `BitDenotation` is passed around in all existing use cases
+    (and planned future ones), the thing that were in the `Ctxt` can just
+    be part of `Self` instead.
+    
+    (I think ariel had been pushing me to do this back when I first put in
+    this infrastructure; it took me a while to see how much of pain the
+    `Ctxt` was causing.)
+rustc: ./helloworld
+cargo rustc  -- -Ztime-passes -Zinput-stats
+time: 0.000; rss: 42MB	parsing
+Lines of code:             3
+Pre-expansion node count:  8
+time: 0.000; rss: 42MB	recursion limit
+time: 0.000; rss: 42MB	crate injection
+time: 0.000; rss: 42MB	plugin loading
+time: 0.000; rss: 42MB	plugin registration
+time: 0.014; rss: 63MB	expansion
+time: 0.000; rss: 63MB	maybe building test harness
+time: 0.000; rss: 67MB	maybe creating a macro crate
+Post-expansion node count: 68
+time: 0.000; rss: 67MB	checking for inline asm in case the target doesn't support it
+time: 0.000; rss: 67MB	complete gated feature checking
+time: 0.000; rss: 67MB	early lint checks
+time: 0.000; rss: 67MB	AST validation
+time: 0.002; rss: 67MB	name resolution
+time: 0.000; rss: 67MB	lowering ast -> hir
+time: 0.000; rss: 67MB	indexing hir
+time: 0.000; rss: 67MB	attribute checking
+time: 0.000; rss: 67MB	language item collection
+time: 0.000; rss: 67MB	lifetime resolution
+time: 0.000; rss: 67MB	looking for entry point
+time: 0.000; rss: 67MB	looking for plugin registrar
+time: 0.000; rss: 67MB	region resolution
+time: 0.000; rss: 67MB	loop checking
+time: 0.000; rss: 67MB	static item recursion checking
+time: 0.000; rss: 67MB	compute_incremental_hashes_map
+time: 0.000; rss: 67MB	load_dep_graph
+time: 0.000; rss: 67MB	stability index
+time: 0.000; rss: 67MB	stability checking
+time: 0.000; rss: 67MB	type collecting
+time: 0.000; rss: 67MB	variance inference
+time: 0.000; rss: 67MB	impl wf inference
+time: 0.003; rss: 67MB	coherence checking
+time: 0.000; rss: 67MB	wf checking
+time: 0.000; rss: 67MB	item-types checking
+time: 0.000; rss: 67MB	item-bodies checking
+time: 0.000; rss: 67MB	drop-impl checking
+time: 0.000; rss: 67MB	const checking
+time: 0.000; rss: 67MB	privacy checking
+time: 0.000; rss: 67MB	intrinsic checking
+time: 0.000; rss: 67MB	effect checking
+time: 0.000; rss: 67MB	match checking
+time: 0.000; rss: 67MB	liveness checking
+time: 0.000; rss: 67MB	rvalue checking
+time: 0.000; rss: 67MB	MIR dump
+  time: 0.000; rss: 71MB	SimplifyCfg
+  time: 0.000; rss: 71MB	QualifyAndPromoteConstants
+  time: 0.000; rss: 71MB	TypeckMir
+  time: 0.000; rss: 71MB	SimplifyBranches
+  time: 0.000; rss: 71MB	SimplifyCfg
+time: 0.000; rss: 71MB	MIR cleanup and validation
+time: 0.000; rss: 71MB	borrow checking
+time: 0.000; rss: 71MB	reachability checking
+time: 0.000; rss: 71MB	death checking
+time: 0.000; rss: 71MB	unused lib feature checking
+time: 0.000; rss: 71MB	lint checking
+time: 0.001; rss: 71MB	resolving dependency formats
+  time: 0.000; rss: 71MB	NoLandingPads
+  time: 0.000; rss: 71MB	SimplifyCfg
+  time: 0.000; rss: 71MB	EraseRegions
+  time: 0.000; rss: 71MB	AddCallGuards
+  time: 0.000; rss: 71MB	ElaborateDrops
+  time: 0.000; rss: 71MB	NoLandingPads
+  time: 0.000; rss: 71MB	SimplifyCfg
+  time: 0.000; rss: 71MB	InstCombine
+  time: 0.000; rss: 71MB	Deaggregator
+  time: 0.000; rss: 71MB	CopyPropagation
+  time: 0.000; rss: 71MB	SimplifyLocals
+  time: 0.000; rss: 71MB	AddCallGuards
+  time: 0.000; rss: 71MB	PreTrans
+time: 0.000; rss: 71MB	MIR optimisations
+  time: 0.000; rss: 71MB	write metadata
+  time: 0.000; rss: 71MB	translation item collection
+  time: 0.000; rss: 71MB	codegen unit partitioning
+  time: 0.000; rss: 77MB	internalize symbols
+time: 0.045; rss: 77MB	translation
+time: 0.000; rss: 77MB	assert dep graph
+time: 0.000; rss: 77MB	serialize dep graph
+  time: 0.000; rss: 77MB	llvm function passes [0]
+  time: 0.000; rss: 77MB	llvm module passes [0]
+  time: 0.002; rss: 77MB	codegen passes [0]
+  time: 0.000; rss: 77MB	codegen passes [0]
+time: 0.003; rss: 77MB	LLVM passes
+time: 0.000; rss: 77MB	serialize work products
+  time: 0.074; rss: 77MB	running linker
+time: 0.074; rss: 77MB	linking
+done
