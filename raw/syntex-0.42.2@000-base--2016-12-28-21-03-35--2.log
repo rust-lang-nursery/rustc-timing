@@ -1,0 +1,110 @@
+commit 4ecc85beb339aa8089d936e450b0d800bdf580ae
+Merge: 02b22ec ee0ea95
+Author: bors <bors@rust-lang.org>
+Date:   Wed Dec 28 20:19:39 2016 +0000
+
+    Auto merge of #38449 - eddyb:lazy-10, r=nikomatsakis
+    
+    [10/n] Split constants and functions' arguments into disjoint bodies.
+    
+    _This is part of a series ([prev](https://github.com/rust-lang/rust/pull/38053) | [next]()) of patches designed to rework rustc into an out-of-order on-demand pipeline model for both better feature support (e.g. [MIR-based](https://github.com/solson/miri) early constant evaluation) and incremental execution of compiler passes (e.g. type-checking), with beneficial consequences to IDE support as well.
+    If any motivation is unclear, please ask for additional PR description clarifications or code comments._
+    
+    <hr>
+    
+    Finishes the signature-body split started in #37918, namely:
+    * `trait` items are separated just like `impl` items were, for uniformity, closing #37712
+    * `static`s, `const`s (including associated ones), `enum` discriminants and array lengths get bodies
+      * even the count in "repeat expressions", i.e. `n` in `[x; n]`, which fixes #24414
+    * arguments' patterns are moved to the bodies, with the types staying in `FnDecl`
+      * `&self` now desugars to `self: &Self` instead of `self: &_` (similarly for other `self` forms)
+      * `astconv`'s and metadata's (for rustdoc) informative uses are explicitly ignored for the purposes of the dep graph. this could be fixed in the future by hashing the exact information being extracted about the arguments as opposed to generating a dependency on *the whole body*
+rustc: ./syntex-0.42.2@000-base
+cargo rustc -p syntex_syntax  -- -Ztime-passes -Zinput-stats
+time: 0.093; rss: 71MB	parsing
+Lines of code:             33687
+Pre-expansion node count:  223115
+time: 0.000; rss: 71MB	recursion limit
+time: 0.000; rss: 71MB	crate injection
+time: 0.000; rss: 71MB	plugin loading
+time: 0.000; rss: 71MB	plugin registration
+time: 0.243; rss: 146MB	expansion
+time: 0.000; rss: 146MB	maybe building test harness
+time: 0.006; rss: 146MB	maybe creating a macro crate
+Post-expansion node count: 638863
+time: 0.000; rss: 146MB	checking for inline asm in case the target doesn't support it
+time: 0.012; rss: 146MB	complete gated feature checking
+time: 0.023; rss: 146MB	early lint checks
+time: 0.007; rss: 146MB	AST validation
+time: 0.075; rss: 161MB	name resolution
+time: 0.059; rss: 194MB	lowering ast -> hir
+time: 0.010; rss: 187MB	indexing hir
+time: 0.006; rss: 187MB	attribute checking
+time: 0.002; rss: 149MB	language item collection
+time: 0.011; rss: 149MB	lifetime resolution
+time: 0.000; rss: 149MB	looking for entry point
+time: 0.000; rss: 149MB	looking for plugin registrar
+time: 0.046; rss: 169MB	region resolution
+time: 0.007; rss: 169MB	loop checking
+time: 0.002; rss: 169MB	static item recursion checking
+time: 0.381; rss: 171MB	compute_incremental_hashes_map
+time: 0.000; rss: 171MB	load_dep_graph
+time: 0.008; rss: 171MB	stability index
+time: 0.016; rss: 171MB	stability checking
+time: 0.047; rss: 175MB	type collecting
+time: 0.001; rss: 175MB	variance inference
+time: 0.002; rss: 176MB	impl wf inference
+time: 0.018; rss: 177MB	coherence checking
+time: 0.085; rss: 179MB	wf checking
+time: 0.182; rss: 183MB	item-types checking
+time: 3.392; rss: 234MB	item-bodies checking
+time: 0.000; rss: 234MB	drop-impl checking
+time: 0.211; rss: 244MB	const checking
+time: 0.054; rss: 244MB	privacy checking
+time: 0.016; rss: 244MB	intrinsic checking
+time: 0.013; rss: 244MB	effect checking
+time: 0.046; rss: 244MB	match checking
+time: 0.045; rss: 249MB	liveness checking
+time: 0.168; rss: 249MB	rvalue checking
+time: 0.362; rss: 441MB	MIR dump
+  time: 0.056; rss: 442MB	SimplifyCfg
+  time: 0.073; rss: 443MB	QualifyAndPromoteConstants
+  time: 0.105; rss: 443MB	TypeckMir
+  time: 0.004; rss: 443MB	SimplifyBranches
+  time: 0.030; rss: 443MB	SimplifyCfg
+time: 0.268; rss: 443MB	MIR cleanup and validation
+time: 0.466; rss: 443MB	borrow checking
+time: 0.024; rss: 443MB	reachability checking
+time: 0.037; rss: 443MB	death checking
+time: 0.000; rss: 443MB	unused lib feature checking
+time: 0.175; rss: 443MB	lint checking
+time: 0.000; rss: 443MB	resolving dependency formats
+  time: 0.003; rss: 443MB	NoLandingPads
+  time: 0.026; rss: 443MB	SimplifyCfg
+  time: 0.064; rss: 452MB	EraseRegions
+  time: 0.010; rss: 452MB	AddCallGuards
+  time: 0.268; rss: 471MB	ElaborateDrops
+  time: 0.003; rss: 471MB	NoLandingPads
+  time: 0.052; rss: 471MB	SimplifyCfg
+  time: 0.028; rss: 471MB	InstCombine
+  time: 0.012; rss: 471MB	Deaggregator
+  time: 0.002; rss: 471MB	CopyPropagation
+  time: 0.034; rss: 471MB	SimplifyLocals
+  time: 0.009; rss: 471MB	AddCallGuards
+  time: 0.002; rss: 471MB	PreTrans
+time: 0.515; rss: 471MB	MIR optimisations
+  time: 0.063; rss: 480MB	write metadata
+  time: 0.381; rss: 492MB	translation item collection
+  time: 0.058; rss: 499MB	codegen unit partitioning
+  time: 0.046; rss: 756MB	internalize symbols
+time: 4.535; rss: 756MB	translation
+time: 0.000; rss: 756MB	assert dep graph
+time: 0.000; rss: 756MB	serialize dep graph
+  time: 0.527; rss: 428MB	llvm function passes [0]
+  time: 0.294; rss: 435MB	llvm module passes [0]
+  time: 10.477; rss: 429MB	codegen passes [0]
+  time: 0.000; rss: 429MB	codegen passes [0]
+time: 12.051; rss: 429MB	LLVM passes
+time: 0.000; rss: 429MB	serialize work products
+time: 0.339; rss: 117MB	linking
+done
