@@ -1,0 +1,26 @@
+commit d40d01bd0e7d9d20bb3454a3d0870f00b805a01c
+Merge: 9c0e373 71a11a0
+Author: bors <bors@rust-lang.org>
+Date:   Wed Jan 4 14:26:17 2017 +0000
+
+    Auto merge of #38670 - dotdash:transmute_align, r=eddyb
+    
+    Fix transmute::<T, U> where T requires a bigger alignment than U
+    
+    For transmute::<T, U> we simply pointercast the destination from a U
+    pointer to a T pointer, without providing any alignment information,
+    thus LLVM assumes that the destination is aligned to hold a value of
+    type T, which is not necessarily true. This can lead to LLVM emitting
+    machine instructions that assume said alignment, and thus cause aborts.
+    
+    To fix this, we need to provide the actual alignment to store_operand()
+    and in turn to store() so they can set the proper alignment information
+    on the stores and LLVM can emit the proper machine instructions.
+    
+    Fixes #32947
+rustc 1.15.0-nightly (daf8c1dfc 2016-12-05)
+-rwxr-xr-x 1 root root 9432 Dec  6 15:39 /usr/local/bin/rustc
+rustc: ./hyper.0.5.0
+cargo rustc  -- -Ztime-passes -Zinput-stats
+makefile:4: recipe for target 'all' failed
+done
