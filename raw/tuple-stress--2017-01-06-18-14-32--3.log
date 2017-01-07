@@ -1,0 +1,38 @@
+commit 7e38a89a7b970181be083691504825a23e6b0a0f
+Merge: 373efe8 5148918
+Author: bors <bors@rust-lang.org>
+Date:   Fri Jan 6 23:49:57 2017 +0000
+
+    Auto merge of #38835 - alexcrichton:less-overlapped, r=brson
+    
+    std: Don't pass overlapped handles to processes
+    
+    This commit fixes a mistake introduced in #31618 where overlapped handles were
+    leaked to child processes on Windows. On Windows once a handle is in overlapped
+    mode it should always have I/O executed with an instance of `OVERLAPPED`. Most
+    child processes, however, are not prepared to have their stdio handles in
+    overlapped mode as they don't use `OVERLAPPED` on reads/writes to the handle.
+    
+    Now we haven't had any odd behavior in Rust up to this point, and the original
+    bug was introduced almost a year ago. I believe this is because it turns out
+    that if you *don't* pass an `OVERLAPPED` then the system will [supply one for
+    you][link]. In this case everything will go awry if you concurrently operate on
+    the handle. In Rust, however, the stdio handles are always locked, and there's
+    no way to not use them unlocked in libstd. Due to that change we've always had
+    synchronized access to these handles, which means that Rust programs typically
+    "just work".
+    
+    Conversely, though, this commit fixes the test case included, which exhibits
+    behavior that other programs Rust spawns may attempt to execute. Namely, the
+    stdio handles may be concurrently used and having them in overlapped mode wreaks
+    havoc.
+    
+    [link]: https://blogs.msdn.microsoft.com/oldnewthing/20121012-00/?p=6343
+    
+    Closes #38811
+rustc 1.15.0-nightly (daf8c1dfc 2016-12-05)
+-rwxr-xr-x 1 root root 9432 Dec  6 15:39 /usr/local/bin/rustc
+rustc: ./tuple-stress
+cargo rustc  -- -Ztime-passes -Zinput-stats
+makefile:4: recipe for target 'all' failed
+done
