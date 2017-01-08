@@ -1,0 +1,122 @@
+commit 5219dad855e153de2e09f31835d83134d505da3a
+Merge: 0576869 9ced901
+Author: bors <bors@rust-lang.org>
+Date:   Sun Jan 8 06:19:14 2017 +0000
+
+    Auto merge of #38883 - alexcrichton:android-flaky, r=brson
+    
+    compiletest: Fix flaky Android gdb test runs
+    
+    Local testing showed that I was able to reproduce an error where debuginfo tests
+    on Android would fail with "connection reset by peer". Further investigation
+    turned out that the gdb tests are android with bit of process management:
+    
+    * First an `adb forward` command is run to ensure that the host's port 5039 is
+      the same as the emulator's.
+    * Next an `adb shell` command is run to execute the `gdbserver` executable
+      inside the emulator. This gdb server will attach to port 5039 and listen for
+      remote gdb debugging sessions.
+    * Finally, we run `gdb` on the host (not in the emulator) and then connect to
+      this gdb server to send it commands.
+    
+    The problem was happening when the host's gdb was failing to connect to the
+    remote gdbserver running inside the emulator. The previous test for this was
+    that after `adb shell` executed we'd sleep for a second and then attempt to make
+    a TCP connection to port 5039. If successful we'd run gdb and on failure we'd
+    sleep again.
+    
+    It turns out, however, that as soon as we've executed `adb forward` all TCP
+    connections to 5039 will succeed. This means that we would only ever sleep for
+    at most one second, and if this wasn't enough time we'd just fail later because
+    we would assume that gdbserver had started but it may not have done so yet.
+    
+    This commit fixes these issues by removing the TCP connection to test if
+    gdbserver is ready to go. Instead we read the stdout of the process and wait for
+    it to print that it's listening at which point we start running gdb. I've found
+    that locally at least I was unable to reproduce the failure after these changes.
+    
+    Closes #38710
+rustc 1.15.0-nightly (daf8c1dfc 2016-12-05)
+-rwxr-xr-x 1 root root 9432 Dec  6 15:39 /usr/local/bin/rustc
+rustc: ./regex-0.1.80@080-SparseSet
+git apply 080-SparseSet.diff
+find . -name "*.rs" | xargs touch
+git diff
+diff --git a/regex-0.1.80/src/compile.rs b/regex-0.1.80/src/compile.rs
+index 9db743f..629328a 100644
+--- a/regex-0.1.80/src/compile.rs
++++ b/regex-0.1.80/src/compile.rs
+@@ -54,6 +54,7 @@ impl Compiler {
+     ///
+     /// Various options can be set before calling `compile` on an expression.
+     pub fn new() -> Self {
++        {}
+         Compiler {
+             insts: vec![],
+             compiled: Program::new(),
+@@ -137,6 +138,8 @@ impl Compiler {
+     }
+ 
+     fn compile_one(mut self, expr: &Expr) -> result::Result<Program, Error> {
++        {} // @030
++
+         // If we're compiling a forward DFA and we aren't anchored, then
+         // add a `.*?` before the first capture group.
+         // Other matching engines handle this by baking the logic into the
+diff --git a/regex-0.1.80/src/expand.rs b/regex-0.1.80/src/expand.rs
+index 9bea703..b4ae1ab 100644
+--- a/regex-0.1.80/src/expand.rs
++++ b/regex-0.1.80/src/expand.rs
+@@ -5,6 +5,7 @@ use memchr::memchr;
+ use bytes::Captures;
+ 
+ pub fn expand(caps: &Captures, mut replacement: &[u8], dst: &mut Vec<u8>) {
++    { }
+     while !replacement.is_empty() {
+         match memchr(b'$', replacement) {
+             None => break,
+@@ -84,6 +85,7 @@ fn find_cap_ref(mut replacement: &[u8]) -> Option<CaptureRef> {
+ }
+ 
+ fn is_valid_cap_letter(b: &u8) -> bool {
++    { }
+     match *b {
+         b'0' ... b'9' | b'a' ... b'z' | b'A' ... b'Z' | b'_' => true,
+         _ => false,
+diff --git a/regex-0.1.80/src/freqs.rs b/regex-0.1.80/src/freqs.rs
+index 92bafc1..6eb5799 100644
+--- a/regex-0.1.80/src/freqs.rs
++++ b/regex-0.1.80/src/freqs.rs
+@@ -12,7 +12,7 @@
+ // edit directly
+ 
+ pub const BYTE_FREQUENCIES: [u8; 256] = [
+-     55, // '\x00'
++     54+1, // '\x00'
+      52, // '\x01'
+      51, // '\x02'
+      50, // '\x03'
+diff --git a/regex-0.1.80/src/sparse.rs b/regex-0.1.80/src/sparse.rs
+index 34c05e7..ef5188e 100644
+--- a/regex-0.1.80/src/sparse.rs
++++ b/regex-0.1.80/src/sparse.rs
+@@ -16,13 +16,13 @@ pub struct SparseSet {
+     /// Dense contains the instruction pointers in the order in which they
+     /// were inserted. Accessing elements >= self.size is illegal.
+     dense: Vec<usize>,
++    /// The number of elements in the set.
++    size: usize,
+     /// Sparse maps instruction pointers to their location in dense.
+     ///
+     /// An instruction pointer is in the set if and only if
+     /// sparse[ip] < size && ip == dense[sparse[ip]].
+     sparse: Vec<usize>,
+-    /// The number of elements in the set.
+-    size: usize,
+ }
+ 
+ impl SparseSet {
+RUSTFLAGS="-Z incremental=incr" cargo rustc  -- \
+  -Ztime-passes -Zinput-stats -Z incremental-info
+makefile:58: recipe for target 'all@080-SparseSet' failed
+done
