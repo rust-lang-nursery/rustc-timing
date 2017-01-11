@@ -1,0 +1,43 @@
+commit 52c03d1d619fd25c961bc9de59bcc942b660d5db
+Merge: 0d03d51 099e7cb
+Author: bors <bors@rust-lang.org>
+Date:   Wed Jan 11 13:42:52 2017 +0000
+
+    Auto merge of #38984 - alexcrichton:less-debuginfo, r=brson
+    
+    rustbuild: Don't enable debuginfo in rustc
+    
+    In #37280 we enabled line number debugging information in release artifacts,
+    primarily to close out #36452 where debugging information was critical for MSVC
+    builds of Rust to be useful in production. This commit, however, apparently had
+    some unfortunate side effects.
+    
+    Namely it was noticed in #37477 that if `RUST_BACKTRACE=1` was set then any
+    compiler error would take a very long time for the compiler to exit. The cause
+    of the problem here was somewhat deep:
+    
+    * For all compiler errors, the compiler will `panic!` with a known value. This
+      tears down the main compiler thread and allows cleaning up all the various
+      resources. By default, however, this panic output is suppressed for "normal"
+      compiler errors.
+    * When `RUST_BACKTRACE=1` was set this caused every compiler error to generate a
+      backtrace.
+    * The libbacktrace library hits a pathological case where it spends a very long
+      time in its custom allocation function, `backtrace_alloc`, because the
+      compiler has so much debugging information. More information about this can be
+      found in #29293 with a summary at the end of #37477.
+    
+    To solve this problem this commit simply removes debuginfo from the compiler but
+    not from the standard library. This should allow us to keep #36452 closed while
+    also closing #37477. I've measured the difference to be orders of magnitude
+    faster than it was before, so we should see a much quicker time-to-exit after a
+    compile error when `RUST_BACKTRACE=1` is set.
+    
+    Closes #37477
+    Closes #37571
+rustc 1.15.0-nightly (daf8c1dfc 2016-12-05)
+-rwxr-xr-x 1 root root 9432 Dec  6 15:39 /usr/local/bin/rustc
+rustc: ./html5ever-2016-08-25
+cargo rustc  -- -Ztime-passes -Zinput-stats
+makefile:4: recipe for target 'all' failed
+done
