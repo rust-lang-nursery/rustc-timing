@@ -1,0 +1,50 @@
+commit b27c7095606ad9386a7038d7af03abd7f948f02f
+Merge: 513d942 d86e487
+Author: bors <bors@rust-lang.org>
+Date:   Wed Jan 11 20:12:26 2017 +0000
+
+    Auto merge of #38313 - jseyfried:self_imports, r=nrc
+    
+    resolve: clean up the semantics of `self` in an import list
+    
+    Change `self` in an import list `use foo::bar::{self, ...};` to import `bar` only in the type namespace. Today, `bar` is imported in every namespace in which `foo::bar` is defined.
+    
+    This is a [breaking-change], see https://github.com/rust-lang/rust/issues/38293#issue-194817974 for examples of code that would break.
+    
+    Fixes #38293.
+    r? @nrc
+rustc 1.15.0-nightly (daf8c1dfc 2016-12-05)
+-rwxr-xr-x 1 root root 9432 Dec  6 15:39 /usr/local/bin/rustc
+rustc: ./regex-0.1.80@040-is_valid_cap_letter
+git apply 040-is_valid_cap_letter.diff
+find . -name "*.rs" | xargs touch
+git diff
+diff --git a/regex-0.1.80/src/compile.rs b/regex-0.1.80/src/compile.rs
+index 9db743f..9a32d30 100644
+--- a/regex-0.1.80/src/compile.rs
++++ b/regex-0.1.80/src/compile.rs
+@@ -137,6 +137,8 @@ impl Compiler {
+     }
+ 
+     fn compile_one(mut self, expr: &Expr) -> result::Result<Program, Error> {
++        {} // @030
++
+         // If we're compiling a forward DFA and we aren't anchored, then
+         // add a `.*?` before the first capture group.
+         // Other matching engines handle this by baking the logic into the
+diff --git a/regex-0.1.80/src/expand.rs b/regex-0.1.80/src/expand.rs
+index 9bea703..3b6ae94 100644
+--- a/regex-0.1.80/src/expand.rs
++++ b/regex-0.1.80/src/expand.rs
+@@ -84,6 +84,7 @@ fn find_cap_ref(mut replacement: &[u8]) -> Option<CaptureRef> {
+ }
+ 
+ fn is_valid_cap_letter(b: &u8) -> bool {
++    { }
+     match *b {
+         b'0' ... b'9' | b'a' ... b'z' | b'A' ... b'Z' | b'_' => true,
+         _ => false,
+RUSTFLAGS="-Z incremental=incr" cargo rustc  -- \
+  -Ztime-passes -Zinput-stats -Z incremental-info
+makefile:26: recipe for target 'all@040-is_valid_cap_letter' failed
+done
