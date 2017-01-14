@@ -1,0 +1,79 @@
+commit 6fe23719feb20c25a8b2693d1f196e72d8da9af5
+Merge: b13cc05 c6f99b4
+Author: bors <bors@rust-lang.org>
+Date:   Sat Jan 14 06:43:03 2017 +0000
+
+    Auto merge of #38914 - est31:tidy-gate-tests, r=nikomatsakis
+    
+    Make tidy check for lang gate tests
+    
+    Add gate tests to the checks that tidy performs. Excerpt from the commit message of the main commit:
+    
+        Require compile-fail tests for new lang features
+    
+        Its non trivial to test lang feature gates, and people
+        forget to add such tests. So we extend the features lint
+        of the tidy tool to ensure that all new lang features
+        contain a new compile-fail test.
+    
+        Of course, one could drop this requirement and just
+        grep all tests in run-pass for #![feature(abc)] and
+        then run this test again, removing the mention,
+        requiring that it fails.
+    
+        But this only tests for the existence of a compilation
+        failure. Manual tests ensure that also the correct lines
+        spawn the error, and also test the actual error message.
+    
+        For library features, it makes no sense to require such
+        a test, as here code is used that is generic for all
+        library features.
+    
+    The tidy lint extension now checks the compile-fail test suite for occurences of "gate-test-X" where X is a feature. Alternatively, it also accepts file names with the form "feature-gate-X.rs". If a lang feature is found that has no such check, we emit a tidy error.
+    
+    I've applied the markings to all tests I could find in the test suite. I left a small (20 elements) whitelist of features that right now have no gate test, or where I couldn't find one. Once this PR gets merged, I'd like to close issue #22820 and open a new one on suggestion of @nikomatsakis to track the removal of all elements from that whitelist (already have a draft). Writing such a small test can be a good opportunity for a first contribution, so I won't touch it (let others have the fun xD).
+    
+    cc @brson , @pnkfelix (they both discussed about this in the issue linked above).
+rustc 1.15.0-nightly (daf8c1dfc 2016-12-05)
+-rwxr-xr-x 1 root root 9432 Dec  6 15:39 /usr/local/bin/rustc
+rustc: ./regex-0.1.80@050-expand
+git apply 050-expand.diff
+find . -name "*.rs" | xargs touch
+git diff
+diff --git a/regex-0.1.80/src/compile.rs b/regex-0.1.80/src/compile.rs
+index 9db743f..9a32d30 100644
+--- a/regex-0.1.80/src/compile.rs
++++ b/regex-0.1.80/src/compile.rs
+@@ -137,6 +137,8 @@ impl Compiler {
+     }
+ 
+     fn compile_one(mut self, expr: &Expr) -> result::Result<Program, Error> {
++        {} // @030
++
+         // If we're compiling a forward DFA and we aren't anchored, then
+         // add a `.*?` before the first capture group.
+         // Other matching engines handle this by baking the logic into the
+diff --git a/regex-0.1.80/src/expand.rs b/regex-0.1.80/src/expand.rs
+index 9bea703..b4ae1ab 100644
+--- a/regex-0.1.80/src/expand.rs
++++ b/regex-0.1.80/src/expand.rs
+@@ -5,6 +5,7 @@ use memchr::memchr;
+ use bytes::Captures;
+ 
+ pub fn expand(caps: &Captures, mut replacement: &[u8], dst: &mut Vec<u8>) {
++    { }
+     while !replacement.is_empty() {
+         match memchr(b'$', replacement) {
+             None => break,
+@@ -84,6 +85,7 @@ fn find_cap_ref(mut replacement: &[u8]) -> Option<CaptureRef> {
+ }
+ 
+ fn is_valid_cap_letter(b: &u8) -> bool {
++    { }
+     match *b {
+         b'0' ... b'9' | b'a' ... b'z' | b'A' ... b'Z' | b'_' => true,
+         _ => false,
+RUSTFLAGS="-Z incremental=incr" cargo rustc  -- \
+  -Ztime-passes -Zinput-stats -Z incremental-info
+makefile:34: recipe for target 'all@050-expand' failed
+done
