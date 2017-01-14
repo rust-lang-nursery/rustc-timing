@@ -1,0 +1,32 @@
+commit ef04fc82b198487b0ffb1832304714519f9f1a35
+Merge: b4c0207 fc9dfca
+Author: bors <bors@rust-lang.org>
+Date:   Sat Jan 14 13:17:16 2017 +0000
+
+    Auto merge of #38944 - michaelwoerister:incr-generics-partitioning, r=nikomatsakis
+    
+    trans: Treat generics like regular functions, not like #[inline] function, during CGU partitioning
+    
+    This PR makes generics be treated just like regular functions during CGU partitioning:
+    
+    + the function instantiation is placed in a codegen unit based on the function's DefPath,
+    + unless it is marked with `#[inline]`  -- which causes a private copy of the function to be placed in every referencing codegen unit.
+    
+    This has the following effects:
+    + Multi codegen unit builds will become faster because code for generic functions is duplicated less.
+    + Multi codegen unit builds might have lower runtime performance, since generics are not available for inlining automatically any more.
+    + Single codegen unit builds are not affected one way or the other.
+    
+    This partitioning scheme is particularly good for incremental compilation as it drastically reduces the number of false positives during codegen unit invalidation.
+    
+    I'd love to have a benchmark suite for estimating the effect on runtime performance for changes like this one.
+    
+    r? @nikomatsakis
+    
+    cc @rust-lang/compiler
+rustc 1.15.0-nightly (daf8c1dfc 2016-12-05)
+-rwxr-xr-x 1 root root 9432 Dec  6 15:39 /usr/local/bin/rustc
+rustc: ./rust-encoding-0.3.0
+cargo rustc  -- -Ztime-passes -Zinput-stats
+makefile:4: recipe for target 'all' failed
+done
