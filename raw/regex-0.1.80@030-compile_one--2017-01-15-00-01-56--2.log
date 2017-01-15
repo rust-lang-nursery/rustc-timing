@@ -1,0 +1,69 @@
+commit 4f0508af90cfe4fac018b1a464ed94a828811600
+Merge: bf6d7b6 d04c027
+Author: bors <bors@rust-lang.org>
+Date:   Sun Jan 15 05:48:34 2017 +0000
+
+    Auto merge of #39040 - estebank:relevant-impl-multiline, r=nikomatsakis
+    
+    Use multiline Diagnostic for "relevant impl" list
+    
+    Provide the following output:
+    
+    ```
+    error[E0277]: the trait bound `Bar: Foo<usize>` is not satisfied
+      --> $DIR/issue-21659-show-relevant-trait-impls-2.rs:38:8
+       |
+    38 |     f1.foo(1usize);
+       |        ^^^ the trait `Foo<usize>` is not implemented for `Bar`
+       |
+       = help: the following implementations were found:
+                 <Bar as Foo<i8>>
+                 <Bar as Foo<i16>>
+                 <Bar as Foo<i32>>
+                 <Bar as Foo<u8>>
+               and 2 others
+    
+    error: aborting due to previous error
+    ```
+    
+    instead of
+    
+    ```
+    error[E0277]: the trait bound `Bar: Foo<usize>` is not satisfied
+      --> $DIR/issue-21659-show-relevant-trait-impls-2.rs:38:8
+       |
+    38 |     f1.foo(1usize);
+       |        ^^^ the trait `Foo<usize>` is not implemented for `Bar`
+       |
+       = help: the following implementations were found:
+       = help:   <Bar as Foo<i8>>
+       = help:   <Bar as Foo<i16>>
+       = help:   <Bar as Foo<i32>>
+       = help:   <Bar as Foo<u8>>
+       = help: and 2 others
+    
+    error: aborting due to previous error
+    ```
+rustc 1.15.0-nightly (daf8c1dfc 2016-12-05)
+-rwxr-xr-x 1 root root 9432 Dec  6 15:39 /usr/local/bin/rustc
+rustc: ./regex-0.1.80@030-compile_one
+git apply 030-compile_one.diff
+find . -name "*.rs" | xargs touch
+git diff
+diff --git a/regex-0.1.80/src/compile.rs b/regex-0.1.80/src/compile.rs
+index 9db743f..9a32d30 100644
+--- a/regex-0.1.80/src/compile.rs
++++ b/regex-0.1.80/src/compile.rs
+@@ -137,6 +137,8 @@ impl Compiler {
+     }
+ 
+     fn compile_one(mut self, expr: &Expr) -> result::Result<Program, Error> {
++        {} // @030
++
+         // If we're compiling a forward DFA and we aren't anchored, then
+         // add a `.*?` before the first capture group.
+         // Other matching engines handle this by baking the logic into the
+RUSTFLAGS="-Z incremental=incr" cargo rustc  -- \
+  -Ztime-passes -Zinput-stats -Z incremental-info
+makefile:18: recipe for target 'all@030-compile_one' failed
+done
