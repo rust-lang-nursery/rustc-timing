@@ -1,0 +1,58 @@
+commit c8af93f0901c336e873ce18274026d0fd9bc7c1f
+Merge: be1daa4 f595ea2
+Author: bors <bors@rust-lang.org>
+Date:   Wed Jan 18 04:45:25 2017 +0000
+
+    Auto merge of #38168 - estebank:help-E0034, r=nrc
+    
+    E0034: provide disambiguated syntax for candidates
+    
+    For a given file
+    
+    ```rust
+    trait A { fn foo(&self) {} }
+    trait B : A { fn foo(&self) {} }
+    
+    fn bar<T: B>(a: &T) {
+      a.foo()
+    }
+    ```
+    
+    provide the following output
+    
+    ```
+    error[E0034]: multiple applicable items in scope
+     --> file.rs:6:5
+      |
+    6 |   a.foo(1)
+      |     ^^^ multiple `foo` found
+      |
+    note: candidate #1 is defined in the trait `A`
+     --> file.rs:2:11
+      |
+    2 | trait A { fn foo(&self, a: usize) {} }
+      |           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    help: to use it here write `A::foo(&a, 1)` instead
+     --> file.rs:6:5
+      |
+    6 |   a.foo(1)
+      |     ^^^
+    note: candidate #2 is defined in the trait `B`
+     --> file.rs:3:15
+      |
+    3 | trait B : A { fn foo(&self, a: usize) {} }
+      |               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    help: to use it here write `B::foo(&a, 1)` instead
+     --> file.rs:6:5
+      |
+    6 |   a.foo(1)
+      |     ^^^
+    ```
+    
+    Fix #37767.
+rustc 1.15.0-nightly (daf8c1dfc 2016-12-05)
+-rwxr-xr-x 1 root root 9432 Dec  6 15:39 /usr/local/bin/rustc
+rustc: ./inflate-0.1.0
+cargo rustc  -- -Ztime-passes -Zinput-stats
+makefile:4: recipe for target 'all' failed
+done
