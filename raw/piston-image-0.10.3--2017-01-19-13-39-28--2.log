@@ -1,0 +1,42 @@
+commit 8e29b4d3876fc141a0c451c65045bda2c1f39534
+Merge: 47965f5 e928c75
+Author: bors <bors@rust-lang.org>
+Date:   Thu Jan 19 18:32:12 2017 +0000
+
+    Auto merge of #38465 - japaric:msp430-interrupt, r=eddyb
+    
+    calling convention for MSP430 interrupts
+    
+    This calling convention is used to define interrup handlers on MSP430 microcontrollers. Usage looks like this:
+    
+    ``` rust
+    #[no_mangle]
+    #[link_section = "__interrupt_vector_10"]
+    pub static TIM0_VECTOR: unsafe extern "msp430-interrupt" fn() = tim0;
+    
+    unsafe extern "msp430-interrupt" fn tim0() {
+      P1OUT.write(0x00);
+    }
+    ```
+    
+    which generates the following assembly:
+    
+    ``` asm
+    Disassembly of section __interrupt_vector_10:
+    
+    0000fff2 <TIM0_VECTOR>:
+        fff2:       10 c0           interrupt service routine at 0xc010
+    
+    Disassembly of section .text:
+    
+    0000c010 <_ZN3msp4tim017h3193b957fd6a4fd4E>:
+        c010:       c2 43 21 00     mov.b   #0,     &0x0021 ;r3 As==00
+        c014:       00 13           reti
+            ...
+    ```
+rustc 1.15.0-nightly (daf8c1dfc 2016-12-05)
+-rwxr-xr-x 1 root root 9432 Dec  6 15:39 /usr/local/bin/rustc
+rustc: ./piston-image-0.10.3
+cargo rustc  -- -Ztime-passes -Zinput-stats
+makefile:4: recipe for target 'all' failed
+done
