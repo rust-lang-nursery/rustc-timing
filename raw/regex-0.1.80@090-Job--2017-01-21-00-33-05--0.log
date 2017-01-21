@@ -1,0 +1,108 @@
+commit b4cb1878f04b0edb91f978347a6cb9545e9a1275
+Merge: 633f38a 50d36fb
+Author: bors <bors@rust-lang.org>
+Date:   Sat Jan 21 05:44:21 2017 +0000
+
+    Auto merge of #39156 - GuillaumeGomez:debug_librand, r=alexcrichton
+    
+    Add missing Debug implementation for librand structs
+    
+    Part of #31869.
+rustc 1.15.0-nightly (daf8c1dfc 2016-12-05)
+-rwxr-xr-x 1 root root 9432 Dec  6 15:39 /usr/local/bin/rustc
+rustc: ./regex-0.1.80@090-Job
+git apply 090-Job.diff
+find . -name "*.rs" | xargs touch
+git diff
+diff --git a/regex-0.1.80/src/backtrack.rs b/regex-0.1.80/src/backtrack.rs
+index 3c06254..4b72fd4 100644
+--- a/regex-0.1.80/src/backtrack.rs
++++ b/regex-0.1.80/src/backtrack.rs
+@@ -82,8 +82,8 @@ impl Cache {
+ /// stack to do it.
+ #[derive(Clone, Copy, Debug)]
+ enum Job {
+-    Inst { ip: InstPtr, at: InputAt },
+     SaveRestore { slot: usize, old_pos: Option<usize> },
++    Inst { ip: InstPtr, at: InputAt },
+ }
+ 
+ impl<'a, 'm, 'r, 's, I: Input> Bounded<'a, 'm, 'r, 's, I> {
+diff --git a/regex-0.1.80/src/compile.rs b/regex-0.1.80/src/compile.rs
+index 9db743f..629328a 100644
+--- a/regex-0.1.80/src/compile.rs
++++ b/regex-0.1.80/src/compile.rs
+@@ -54,6 +54,7 @@ impl Compiler {
+     ///
+     /// Various options can be set before calling `compile` on an expression.
+     pub fn new() -> Self {
++        {}
+         Compiler {
+             insts: vec![],
+             compiled: Program::new(),
+@@ -137,6 +138,8 @@ impl Compiler {
+     }
+ 
+     fn compile_one(mut self, expr: &Expr) -> result::Result<Program, Error> {
++        {} // @030
++
+         // If we're compiling a forward DFA and we aren't anchored, then
+         // add a `.*?` before the first capture group.
+         // Other matching engines handle this by baking the logic into the
+diff --git a/regex-0.1.80/src/expand.rs b/regex-0.1.80/src/expand.rs
+index 9bea703..b4ae1ab 100644
+--- a/regex-0.1.80/src/expand.rs
++++ b/regex-0.1.80/src/expand.rs
+@@ -5,6 +5,7 @@ use memchr::memchr;
+ use bytes::Captures;
+ 
+ pub fn expand(caps: &Captures, mut replacement: &[u8], dst: &mut Vec<u8>) {
++    { }
+     while !replacement.is_empty() {
+         match memchr(b'$', replacement) {
+             None => break,
+@@ -84,6 +85,7 @@ fn find_cap_ref(mut replacement: &[u8]) -> Option<CaptureRef> {
+ }
+ 
+ fn is_valid_cap_letter(b: &u8) -> bool {
++    { }
+     match *b {
+         b'0' ... b'9' | b'a' ... b'z' | b'A' ... b'Z' | b'_' => true,
+         _ => false,
+diff --git a/regex-0.1.80/src/freqs.rs b/regex-0.1.80/src/freqs.rs
+index 92bafc1..6eb5799 100644
+--- a/regex-0.1.80/src/freqs.rs
++++ b/regex-0.1.80/src/freqs.rs
+@@ -12,7 +12,7 @@
+ // edit directly
+ 
+ pub const BYTE_FREQUENCIES: [u8; 256] = [
+-     55, // '\x00'
++     54+1, // '\x00'
+      52, // '\x01'
+      51, // '\x02'
+      50, // '\x03'
+diff --git a/regex-0.1.80/src/sparse.rs b/regex-0.1.80/src/sparse.rs
+index 34c05e7..ef5188e 100644
+--- a/regex-0.1.80/src/sparse.rs
++++ b/regex-0.1.80/src/sparse.rs
+@@ -16,13 +16,13 @@ pub struct SparseSet {
+     /// Dense contains the instruction pointers in the order in which they
+     /// were inserted. Accessing elements >= self.size is illegal.
+     dense: Vec<usize>,
++    /// The number of elements in the set.
++    size: usize,
+     /// Sparse maps instruction pointers to their location in dense.
+     ///
+     /// An instruction pointer is in the set if and only if
+     /// sparse[ip] < size && ip == dense[sparse[ip]].
+     sparse: Vec<usize>,
+-    /// The number of elements in the set.
+-    size: usize,
+ }
+ 
+ impl SparseSet {
+RUSTFLAGS="-Z incremental=incr" cargo rustc  -- \
+  -Ztime-passes -Zinput-stats -Z incremental-info
+makefile:66: recipe for target 'all@090-Job' failed
+done
