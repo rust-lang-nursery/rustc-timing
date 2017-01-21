@@ -1,0 +1,24 @@
+commit 633f38ae99b657f70e2aba135318178abc9fee16
+Merge: aedb49c 70d2372
+Author: bors <bors@rust-lang.org>
+Date:   Sat Jan 21 03:26:37 2017 +0000
+
+    Auto merge of #39086 - aidanhs:aphs-local-rebuild-no-jemalloc, r=alexcrichton
+    
+    Make rustbuild force_alloc_system rather than relying on stage0
+    
+    This 'fixes' jemalloc-less local rebuilds, where we tell cargo that we're actually stage1 (this only fixes the rustbuild path, since I wasn't enthusiastic to dive into the makefiles).
+    
+    There should be one effect from this PR: `--enable-local-rebuild --disable-jemalloc` will successfully build a stage0 std (rather than erroring). Ideally I think it'd be nice to specify an allocator preference in Cargo.toml/cargo command line (used when an allocator must be picked i.e. dylibs, not rlibs), but since that's not possible we can make do with a force_alloc_system feature. Sadly this locks you into a single allocator in the build libstd, making any eventual implementation of #38575 not quite right in this edge case, but clearly not many people exercise the combination of these two flags.
+    
+    This PR is also a substitute for #37975 I think. The crucial difference is that the feature name here is distinct from the jemalloc feature (reused in the previous PR) - we don't want someone to be forced into alloc_system just for disabling jemalloc!
+    
+    Fixes #39054
+    
+    r? @alexcrichton
+rustc 1.15.0-nightly (daf8c1dfc 2016-12-05)
+-rwxr-xr-x 1 root root 9432 Dec  6 15:39 /usr/local/bin/rustc
+rustc: ./rust-encoding-0.3.0
+cargo rustc  -- -Ztime-passes -Zinput-stats
+makefile:4: recipe for target 'all' failed
+done
