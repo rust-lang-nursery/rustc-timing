@@ -1,0 +1,33 @@
+commit 2f0463a4a4f323c4deffc861349e38c6b5091782
+Merge: 6991938 282f7a3
+Author: bors <bors@rust-lang.org>
+Date:   Thu Jan 26 04:25:03 2017 +0000
+
+    Auto merge of #39000 - nikomatsakis:incr_comp_crosscontaminate_impl_item, r=michaelwoerister
+    
+    process trait/impl items directly from the visitor callback
+    
+    The current setup processes impl/trait items while visiting
+    the impl/trait. This means we basically have this setup:
+    
+        <Lots> -> TypeckItemBody(Impl) -> Tables(ImplItem{0,1,2,3})
+    
+    But this was largely an artifact of the older code. By moving the
+    processing of items into method dedicated for their use, we produce this
+    setup:
+    
+        <Little> -> TypeckItemBody(ImplItem0) -> Tables(ImplItem0)
+        ...
+        <Little> -> TypeckItemBody(ImplItem3) -> Tables(ImplItem3)
+    
+    r? @michaelwoerister
+    
+    Also, we might consider removing the `TypeckItemBody` node altogether and just using `Tables` as the task. `Tables` is its primary output, I imagine? That would reduce size of dep-graph somewhat.
+    
+    cc @eddyb -- perhaps this pattern applies elsewhere?
+rustc 1.15.0-nightly (daf8c1dfc 2016-12-05)
+-rwxr-xr-x 1 root root 9432 Dec  6 15:39 /usr/local/bin/rustc
+rustc: ./regex-0.1.80@010-baseline
+cargo rustc  -- -Ztime-passes -Zinput-stats
+makefile:9: recipe for target 'all@010-baseline' failed
+done
