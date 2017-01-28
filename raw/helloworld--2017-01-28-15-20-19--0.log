@@ -1,0 +1,28 @@
+commit 1491e0425911806f2612f05ee8caf21666447128
+Merge: c81c1d6 ab21314
+Author: bors <bors@rust-lang.org>
+Date:   Sat Jan 28 20:32:56 2017 +0000
+
+    Auto merge of #39234 - segevfiner:fix-backtraces-on-windows-gnu, r=petrochenkov
+    
+    Make backtraces work on Windows GNU targets again.
+    
+    This is done by adding a function that can return a filename
+    to pass to backtrace_create_state. The filename is obtained in
+    a safe way by first getting the filename, locking the file so it can't
+    be moved, and then getting the filename again and making sure it's the same.
+    
+    See: https://github.com/rust-lang/rust/pull/37359#issuecomment-260123399
+    Issue: #33985
+    
+    Note though that this isn't that pretty...
+    
+    I had to implement a `WideCharToMultiByte` wrapper function to convert to the ANSI code page. This will work better than only allowing ASCII provided that the ANSI code page is set to the user's local language, which is often the case.
+    
+    Also, please make sure that I didn't break the Unix build.
+rustc 1.15.0-nightly (daf8c1dfc 2016-12-05)
+-rwxr-xr-x 1 root root 9432 Dec  6 15:39 /usr/local/bin/rustc
+rustc: ./helloworld
+cargo rustc  -- -Ztime-passes -Zinput-stats
+makefile:4: recipe for target 'all' failed
+done
